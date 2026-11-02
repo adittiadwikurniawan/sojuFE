@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_Soju" targetNamespace="http://soju.app/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Aplikasi Soju" processRef="Process_1" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" name="Alur Onboarding, Autentikasi &amp; Pencatatan Transaksi" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_User" name="Pengguna">
+        <bpmn:flowNodeRef>Start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwOnboard</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Onb1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Onb2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Onb3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Onb4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Onb5</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Onb6</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>LoginPage</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwAction</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>InputCred</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Register</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>InputOtpReg</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ForgotInput</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Dashboard</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwMenu</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>MenuAI</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>MenuRiwayat</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>MenuData</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>AddTxn</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwMethod</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Chat</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Confirm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwApprove</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_System" name="Sistem Soju">
+        <bpmn:flowNodeRef>Init</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>MarkDone</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Validate</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwValid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SendOtpReg</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GwOtpReg</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SendOtpReset</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>InputOtpReset</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>FormManual</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ShowDraft</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Save</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>UpdateReport</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_AI" name="Asisten AI">
+        <bpmn:flowNodeRef>ResetPw</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>AiParse</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start" name="Buka Aplikasi" />
+    <bpmn:task id="Init" name="Inisialisasi &amp; cek sesi" />
+    <bpmn:exclusiveGateway id="GwOnboard" name="Pertama kali?" />
+    <bpmn:userTask id="Onb1" name="Onboarding 1&#10;Kelola Keuangan" />
+    <bpmn:userTask id="Onb2" name="Onboarding 2&#10;Asisten AI" />
+    <bpmn:userTask id="Onb3" name="Onboarding 3&#10;Tumbuh Percaya Diri" />
+    <bpmn:userTask id="Onb4" name="Onboarding 4&#10;Chat AI" />
+    <bpmn:userTask id="Onb5" name="Onboarding 5&#10;Kontrol Stok" />
+    <bpmn:userTask id="Onb6" name="Onboarding 6&#10;Laporan" />
+    <bpmn:task id="MarkDone" name="Simpan status onboarding" />
+    <bpmn:userTask id="LoginPage" name="Halaman Login" />
+    <bpmn:exclusiveGateway id="GwAction" name="Pilih aksi" />
+    <bpmn:userTask id="InputCred" name="Input email &amp; password" />
+    <bpmn:task id="Validate" name="Validasi kredensial" />
+    <bpmn:exclusiveGateway id="GwValid" name="Valid?" />
+    <bpmn:userTask id="Register" name="Registrasi akun" />
+    <bpmn:task id="SendOtpReg" name="Kirim kode OTP" />
+    <bpmn:userTask id="InputOtpReg" name="Input &amp; verifikasi OTP" />
+    <bpmn:exclusiveGateway id="GwOtpReg" name="OTP valid?" />
+    <bpmn:userTask id="ForgotInput" name="Input email pemulihan" />
+    <bpmn:task id="SendOtpReset" name="Kirim OTP reset" />
+    <bpmn:task id="InputOtpReset" name="Input OTP reset" />
+    <bpmn:userTask id="ResetPw" name="Atur ulang password" />
+    <bpmn:userTask id="Dashboard" name="Dashboard Soju" />
+    <bpmn:exclusiveGateway id="GwMenu" name="Pilih menu" />
+    <bpmn:userTask id="MenuAI" name="Menu Asisten AI" />
+    <bpmn:userTask id="MenuRiwayat" name="Menu Riwayat &amp; Audit" />
+    <bpmn:userTask id="MenuData" name="Menu Data" />
+    <bpmn:userTask id="AddTxn" name="Klik &quot;+ Tambah Transaksi&quot;" />
+    <bpmn:exclusiveGateway id="GwMethod" name="Metode input?" />
+    <bpmn:userTask id="FormManual" name="Isi form transaksi&#10;(tanggal, deskripsi,&#10;jenis, nominal)" />
+    <bpmn:userTask id="Chat" name="Chat / unggah struk" />
+    <bpmn:task id="AiParse" name="AI parsing &amp;&#10;kategorisasi otomatis" />
+    <bpmn:task id="ShowDraft" name="Tampilkan draf transaksi" />
+    <bpmn:userTask id="Confirm" name="Konfirmasi draf" />
+    <bpmn:exclusiveGateway id="GwApprove" name="Disetujui?" />
+    <bpmn:task id="Save" name="Simpan ke pembukuan" />
+    <bpmn:task id="UpdateReport" name="Update dashboard &amp; laporan" />
+    <bpmn:endEvent id="End" name="Selesai" />
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Init" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Init" targetRef="GwOnboard" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="GwOnboard" targetRef="Onb1" name="Belum pernah" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="GwOnboard" targetRef="LoginPage" name="Sudah pernah" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Onb1" targetRef="Onb2" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Onb2" targetRef="Onb3" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Onb3" targetRef="Onb4" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Onb4" targetRef="Onb5" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Onb5" targetRef="Onb6" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Onb6" targetRef="MarkDone" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="MarkDone" targetRef="LoginPage" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="LoginPage" targetRef="GwAction" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="GwAction" targetRef="InputCred" name="Masuk" />
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="InputCred" targetRef="Validate" />
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="Validate" targetRef="GwValid" />
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="GwValid" targetRef="Dashboard" name="Ya" />
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="GwValid" targetRef="LoginPage" name="Tidak" />
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="GwAction" targetRef="Register" name="Daftar" />
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="Register" targetRef="SendOtpReg" />
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="SendOtpReg" targetRef="InputOtpReg" />
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="InputOtpReg" targetRef="GwOtpReg" />
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="GwOtpReg" targetRef="Dashboard" name="Ya" />
+    <bpmn:sequenceFlow id="Flow_23" sourceRef="GwOtpReg" targetRef="InputOtpReg" name="Tidak" />
+    <bpmn:sequenceFlow id="Flow_24" sourceRef="GwAction" targetRef="ForgotInput" name="Lupa password" />
+    <bpmn:sequenceFlow id="Flow_25" sourceRef="ForgotInput" targetRef="SendOtpReset" />
+    <bpmn:sequenceFlow id="Flow_26" sourceRef="SendOtpReset" targetRef="InputOtpReset" />
+    <bpmn:sequenceFlow id="Flow_27" sourceRef="InputOtpReset" targetRef="ResetPw" />
+    <bpmn:sequenceFlow id="Flow_28" sourceRef="ResetPw" targetRef="LoginPage" />
+    <bpmn:sequenceFlow id="Flow_29" sourceRef="Dashboard" targetRef="GwMenu" />
+    <bpmn:sequenceFlow id="Flow_30" sourceRef="GwMenu" targetRef="MenuData" name="Data" />
+    <bpmn:sequenceFlow id="Flow_31" sourceRef="GwMenu" targetRef="MenuAI" name="Asisten AI" />
+    <bpmn:sequenceFlow id="Flow_32" sourceRef="GwMenu" targetRef="MenuRiwayat" name="Riwayat" />
+    <bpmn:sequenceFlow id="Flow_33" sourceRef="MenuRiwayat" targetRef="Dashboard" name="kembali" />
+    <bpmn:sequenceFlow id="Flow_34" sourceRef="MenuData" targetRef="AddTxn" />
+    <bpmn:sequenceFlow id="Flow_35" sourceRef="AddTxn" targetRef="GwMethod" />
+    <bpmn:sequenceFlow id="Flow_36" sourceRef="GwMethod" targetRef="FormManual" name="Manual" />
+    <bpmn:sequenceFlow id="Flow_37" sourceRef="GwMethod" targetRef="Chat" name="Chat AI" />
+    <bpmn:sequenceFlow id="Flow_38" sourceRef="Chat" targetRef="AiParse" />
+    <bpmn:sequenceFlow id="Flow_39" sourceRef="AiParse" targetRef="ShowDraft" />
+    <bpmn:sequenceFlow id="Flow_40" sourceRef="ShowDraft" targetRef="Confirm" />
+    <bpmn:sequenceFlow id="Flow_41" sourceRef="Confirm" targetRef="GwApprove" />
+    <bpmn:sequenceFlow id="Flow_42" sourceRef="GwApprove" targetRef="Save" name="Ya" />
+    <bpmn:sequenceFlow id="Flow_43" sourceRef="GwApprove" targetRef="Chat" name="Revisi" />
+    <bpmn:sequenceFlow id="Flow_44" sourceRef="FormManual" targetRef="Save" />
+    <bpmn:sequenceFlow id="Flow_45" sourceRef="MenuAI" targetRef="Chat" />
+    <bpmn:sequenceFlow id="Flow_46" sourceRef="Save" targetRef="UpdateReport" />
+    <bpmn:sequenceFlow id="Flow_47" sourceRef="UpdateReport" targetRef="End" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Shape_Participant_1" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="160" y="60" width="6695" height="640" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_User" bpmnElement="Lane_User" isHorizontal="true">
+        <dc:Bounds x="190" y="60" width="6665" height="220" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_System" bpmnElement="Lane_System" isHorizontal="true">
+        <dc:Bounds x="190" y="280" width="6665" height="220" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_AI" bpmnElement="Lane_AI" isHorizontal="true">
+        <dc:Bounds x="190" y="500" width="6665" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Start" bpmnElement="Start">
+        <dc:Bounds x="220" y="152" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Init" bpmnElement="Init">
+        <dc:Bounds x="415" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GwOnboard" bpmnElement="GwOnboard" isMarkerVisible="true">
+        <dc:Bounds x="610" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Onb1" bpmnElement="Onb1">
+        <dc:Bounds x="805" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Onb2" bpmnElement="Onb2">
+        <dc:Bounds x="1000" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Onb3" bpmnElement="Onb3">
+        <dc:Bounds x="1195" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Onb4" bpmnElement="Onb4">
+        <dc:Bounds x="1390" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Onb5" bpmnElement="Onb5">
+        <dc:Bounds x="1585" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Onb6" bpmnElement="Onb6">
+        <dc:Bounds x="1780" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_MarkDone" bpmnElement="MarkDone">
+        <dc:Bounds x="1975" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_LoginPage" bpmnElement="LoginPage">
+        <dc:Bounds x="2365" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GwAction" bpmnElement="GwAction" isMarkerVisible="true">
+        <dc:Bounds x="2560" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_InputCred" bpmnElement="InputCred">
+        <dc:Bounds x="2755" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Validate" bpmnElement="Validate">
+        <dc:Bounds x="2950" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GwValid" bpmnElement="GwValid" isMarkerVisible="true">
+        <dc:Bounds x="3145" y="365" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Register" bpmnElement="Register">
+        <dc:Bounds x="3340" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SendOtpReg" bpmnElement="SendOtpReg">
+        <dc:Bounds x="3535" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_InputOtpReg" bpmnElement="InputOtpReg">
+        <dc:Bounds x="3730" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GwOtpReg" bpmnElement="GwOtpReg" isMarkerVisible="true">
+        <dc:Bounds x="3925" y="365" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ForgotInput" bpmnElement="ForgotInput">
+        <dc:Bounds x="2755" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SendOtpReset" bpmnElement="SendOtpReset">
+        <dc:Bounds x="2950" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_InputOtpReset" bpmnElement="InputOtpReset">
+        <dc:Bounds x="3145" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ResetPw" bpmnElement="ResetPw">
+        <dc:Bounds x="3340" y="560" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Dashboard" bpmnElement="Dashboard">
+        <dc:Bounds x="4315" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GwMenu" bpmnElement="GwMenu" isMarkerVisible="true">
+        <dc:Bounds x="4510" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_MenuAI" bpmnElement="MenuAI">
+        <dc:Bounds x="4705" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_MenuRiwayat" bpmnElement="MenuRiwayat">
+        <dc:Bounds x="4900" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_MenuData" bpmnElement="MenuData">
+        <dc:Bounds x="4705" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_AddTxn" bpmnElement="AddTxn">
+        <dc:Bounds x="4900" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GwMethod" bpmnElement="GwMethod" isMarkerVisible="true">
+        <dc:Bounds x="5095" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_FormManual" bpmnElement="FormManual">
+        <dc:Bounds x="5290" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Chat" bpmnElement="Chat">
+        <dc:Bounds x="5290" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_AiParse" bpmnElement="AiParse">
+        <dc:Bounds x="5485" y="560" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ShowDraft" bpmnElement="ShowDraft">
+        <dc:Bounds x="5680" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Confirm" bpmnElement="Confirm">
+        <dc:Bounds x="5680" y="130" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GwApprove" bpmnElement="GwApprove" isMarkerVisible="true">
+        <dc:Bounds x="5875" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Save" bpmnElement="Save">
+        <dc:Bounds x="6070" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_UpdateReport" bpmnElement="UpdateReport">
+        <dc:Bounds x="6265" y="350" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End" bpmnElement="End">
+        <dc:Bounds x="6460" y="152" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_1" bpmnElement="Flow_1">
+        <di:waypoint x="256" y="170" />
+        <di:waypoint x="280" y="170" />
+        <di:waypoint x="280" y="390" />
+        <di:waypoint x="415" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_2" bpmnElement="Flow_2">
+        <di:waypoint x="565" y="390" />
+        <di:waypoint x="589" y="390" />
+        <di:waypoint x="589" y="170" />
+        <di:waypoint x="610" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_3" bpmnElement="Flow_3">
+        <di:waypoint x="660" y="170" />
+        <di:waypoint x="805" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_4" bpmnElement="Flow_4">
+        <di:waypoint x="660" y="170" />
+        <di:waypoint x="2365" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_5" bpmnElement="Flow_5">
+        <di:waypoint x="955" y="170" />
+        <di:waypoint x="1000" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_6" bpmnElement="Flow_6">
+        <di:waypoint x="1150" y="170" />
+        <di:waypoint x="1195" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_7" bpmnElement="Flow_7">
+        <di:waypoint x="1345" y="170" />
+        <di:waypoint x="1390" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_8" bpmnElement="Flow_8">
+        <di:waypoint x="1540" y="170" />
+        <di:waypoint x="1585" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_9" bpmnElement="Flow_9">
+        <di:waypoint x="1735" y="170" />
+        <di:waypoint x="1780" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_10" bpmnElement="Flow_10">
+        <di:waypoint x="1930" y="170" />
+        <di:waypoint x="1954" y="170" />
+        <di:waypoint x="1954" y="390" />
+        <di:waypoint x="1975" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_11" bpmnElement="Flow_11">
+        <di:waypoint x="2125" y="390" />
+        <di:waypoint x="2149" y="390" />
+        <di:waypoint x="2149" y="170" />
+        <di:waypoint x="2365" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_12" bpmnElement="Flow_12">
+        <di:waypoint x="2515" y="170" />
+        <di:waypoint x="2560" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_13" bpmnElement="Flow_13">
+        <di:waypoint x="2610" y="170" />
+        <di:waypoint x="2755" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_14" bpmnElement="Flow_14">
+        <di:waypoint x="2905" y="170" />
+        <di:waypoint x="2929" y="170" />
+        <di:waypoint x="2929" y="390" />
+        <di:waypoint x="2950" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_15" bpmnElement="Flow_15">
+        <di:waypoint x="3100" y="390" />
+        <di:waypoint x="3145" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_16" bpmnElement="Flow_16">
+        <di:waypoint x="3195" y="390" />
+        <di:waypoint x="3219" y="390" />
+        <di:waypoint x="3219" y="170" />
+        <di:waypoint x="4315" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_17" bpmnElement="Flow_17">
+        <di:waypoint x="3195" y="390" />
+        <di:waypoint x="3219" y="390" />
+        <di:waypoint x="3219" y="170" />
+        <di:waypoint x="2365" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_18" bpmnElement="Flow_18">
+        <di:waypoint x="2610" y="170" />
+        <di:waypoint x="3340" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_19" bpmnElement="Flow_19">
+        <di:waypoint x="3490" y="170" />
+        <di:waypoint x="3514" y="170" />
+        <di:waypoint x="3514" y="390" />
+        <di:waypoint x="3535" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_20" bpmnElement="Flow_20">
+        <di:waypoint x="3685" y="390" />
+        <di:waypoint x="3709" y="390" />
+        <di:waypoint x="3709" y="170" />
+        <di:waypoint x="3730" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_21" bpmnElement="Flow_21">
+        <di:waypoint x="3880" y="170" />
+        <di:waypoint x="3904" y="170" />
+        <di:waypoint x="3904" y="390" />
+        <di:waypoint x="3925" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_22" bpmnElement="Flow_22">
+        <di:waypoint x="3975" y="390" />
+        <di:waypoint x="3999" y="390" />
+        <di:waypoint x="3999" y="170" />
+        <di:waypoint x="4315" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_23" bpmnElement="Flow_23">
+        <di:waypoint x="3975" y="390" />
+        <di:waypoint x="3999" y="390" />
+        <di:waypoint x="3999" y="170" />
+        <di:waypoint x="3730" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_24" bpmnElement="Flow_24">
+        <di:waypoint x="2610" y="170" />
+        <di:waypoint x="2755" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_25" bpmnElement="Flow_25">
+        <di:waypoint x="2905" y="170" />
+        <di:waypoint x="2929" y="170" />
+        <di:waypoint x="2929" y="390" />
+        <di:waypoint x="2950" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_26" bpmnElement="Flow_26">
+        <di:waypoint x="3100" y="390" />
+        <di:waypoint x="3145" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_27" bpmnElement="Flow_27">
+        <di:waypoint x="3295" y="390" />
+        <di:waypoint x="3319" y="390" />
+        <di:waypoint x="3319" y="600" />
+        <di:waypoint x="3340" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_28" bpmnElement="Flow_28">
+        <di:waypoint x="3490" y="600" />
+        <di:waypoint x="3514" y="600" />
+        <di:waypoint x="3514" y="170" />
+        <di:waypoint x="2365" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_29" bpmnElement="Flow_29">
+        <di:waypoint x="4465" y="170" />
+        <di:waypoint x="4510" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_30" bpmnElement="Flow_30">
+        <di:waypoint x="4560" y="170" />
+        <di:waypoint x="4705" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_31" bpmnElement="Flow_31">
+        <di:waypoint x="4560" y="170" />
+        <di:waypoint x="4705" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_32" bpmnElement="Flow_32">
+        <di:waypoint x="4560" y="170" />
+        <di:waypoint x="4900" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_33" bpmnElement="Flow_33">
+        <di:waypoint x="5050" y="170" />
+        <di:waypoint x="4315" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_34" bpmnElement="Flow_34">
+        <di:waypoint x="4855" y="170" />
+        <di:waypoint x="4900" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_35" bpmnElement="Flow_35">
+        <di:waypoint x="5050" y="170" />
+        <di:waypoint x="5095" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_36" bpmnElement="Flow_36">
+        <di:waypoint x="5145" y="170" />
+        <di:waypoint x="5169" y="170" />
+        <di:waypoint x="5169" y="390" />
+        <di:waypoint x="5290" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_37" bpmnElement="Flow_37">
+        <di:waypoint x="5145" y="170" />
+        <di:waypoint x="5290" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_38" bpmnElement="Flow_38">
+        <di:waypoint x="5440" y="170" />
+        <di:waypoint x="5464" y="170" />
+        <di:waypoint x="5464" y="600" />
+        <di:waypoint x="5485" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_39" bpmnElement="Flow_39">
+        <di:waypoint x="5635" y="600" />
+        <di:waypoint x="5659" y="600" />
+        <di:waypoint x="5659" y="390" />
+        <di:waypoint x="5680" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_40" bpmnElement="Flow_40">
+        <di:waypoint x="5830" y="390" />
+        <di:waypoint x="5854" y="390" />
+        <di:waypoint x="5854" y="170" />
+        <di:waypoint x="5680" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_41" bpmnElement="Flow_41">
+        <di:waypoint x="5830" y="170" />
+        <di:waypoint x="5875" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_42" bpmnElement="Flow_42">
+        <di:waypoint x="5925" y="170" />
+        <di:waypoint x="5949" y="170" />
+        <di:waypoint x="5949" y="390" />
+        <di:waypoint x="6070" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_43" bpmnElement="Flow_43">
+        <di:waypoint x="5925" y="170" />
+        <di:waypoint x="5290" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_44" bpmnElement="Flow_44">
+        <di:waypoint x="5440" y="390" />
+        <di:waypoint x="6070" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_45" bpmnElement="Flow_45">
+        <di:waypoint x="4855" y="170" />
+        <di:waypoint x="5290" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_46" bpmnElement="Flow_46">
+        <di:waypoint x="6220" y="390" />
+        <di:waypoint x="6265" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_47" bpmnElement="Flow_47">
+        <di:waypoint x="6415" y="390" />
+        <di:waypoint x="6439" y="390" />
+        <di:waypoint x="6439" y="170" />
+        <di:waypoint x="6460" y="170" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
