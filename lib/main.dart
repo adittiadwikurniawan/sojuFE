@@ -1,25 +1,11 @@
 import 'package:flutter/material.dart';
-import 'screens/onboarding/onboarding_screen.dart';
 
+import 'app/app.dart';
+
+/// Entry point aplikasi Soju.
+///
+/// Inisialisasi (binding, DI, routing) akan ditambahkan saat slicing dimulai.
+/// Lihat `docs/STRUCTURE.md` dan `ARCHITECTURE.md`.
 void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Soju',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        fontFamily: 'Inter',
-        scaffoldBackgroundColor: Colors.white,
-      ),
-      debugShowCheckedModeBanner: false,
-      home: const OnboardingScreen(),
-    );
-  }
+  runApp(const SojuApp());
 }
