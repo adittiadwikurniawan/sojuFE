@@ -136,6 +136,40 @@ void main() {
     expect(find.text('Coba tanyakan'), findsNothing);
   });
 
+  testWidgets('composer chat ringkas meski ada safe area bawah', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(
+            size: Size(430, 932),
+            padding: EdgeInsets.only(bottom: 34),
+            viewPadding: EdgeInsets.only(bottom: 34),
+          ),
+          child: ChatbotScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Catat Sales'));
+    await tester.pumpAndSettle();
+
+    final Finder composer = find.byKey(const Key('chat_composer'));
+    expect(composer, findsOneWidget);
+    // Safe area bawah sudah dihitung oleh jarak ke navbar, bukan ditambahkan
+    // lagi di dalam kartu composer.
+    expect(tester.getSize(composer).height, lessThanOrEqualTo(90));
+    expect(
+      tester.getBottomLeft(composer).dy,
+      lessThanOrEqualTo(932 - 114 - 34 + 1),
+    );
+  });
+
   testWidgets('saran cepat mengirim pesan contoh tanpa backend', (
     WidgetTester tester,
   ) async {

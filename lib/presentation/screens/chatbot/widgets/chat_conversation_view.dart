@@ -117,7 +117,8 @@ class _ChatConversationViewState extends State<ChatConversationView> {
         ),
         Padding(
           padding: EdgeInsets.only(
-            bottom: kBottomNavBarHeight * widget.scale,
+            bottom: kBottomNavBarHeight * widget.scale +
+                MediaQuery.of(context).padding.bottom,
           ),
           child: _buildComposer(),
         ),
@@ -270,6 +271,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
 
   Widget _buildComposer() {
     return Container(
+      key: const Key('chat_composer'),
       decoration: BoxDecoration(
         color: SojuColors.surface,
         borderRadius: BorderRadius.vertical(
@@ -283,114 +285,109 @@ class _ChatConversationViewState extends State<ChatConversationView> {
           ),
         ],
       ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            12 * widget.scale,
-            10 * widget.scale,
-            12 * widget.scale,
-            12 * widget.scale,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              Semantics(
-                button: true,
-                label: 'Lampiran',
-                child: GestureDetector(
-                  onTap: widget.onAttach,
-                  child: Container(
-                    width: 40 * widget.scale,
-                    height: 40 * widget.scale,
-                    decoration: const BoxDecoration(
-                      color: SojuColors.surfaceMuted,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.attach_file,
-                      size: 19 * widget.scale,
-                      color: SojuColors.analyticsLabel,
-                    ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          12 * widget.scale,
+          10 * widget.scale,
+          12 * widget.scale,
+          12 * widget.scale,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: <Widget>[
+            Semantics(
+              button: true,
+              label: 'Lampiran',
+              child: GestureDetector(
+                onTap: widget.onAttach,
+                child: Container(
+                  width: 40 * widget.scale,
+                  height: 40 * widget.scale,
+                  decoration: const BoxDecoration(
+                    color: SojuColors.surfaceMuted,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.attach_file,
+                    size: 19 * widget.scale,
+                    color: SojuColors.analyticsLabel,
                   ),
                 ),
               ),
-              SizedBox(width: 8 * widget.scale),
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  minLines: 1,
-                  maxLines: 4,
-                  textInputAction: TextInputAction.send,
-                  textCapitalization: TextCapitalization.sentences,
-                  onSubmitted: (_) => _submit(),
-                  style: TextStyle(
+            ),
+            SizedBox(width: 8 * widget.scale),
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                minLines: 1,
+                maxLines: 4,
+                textInputAction: TextInputAction.send,
+                textCapitalization: TextCapitalization.sentences,
+                onSubmitted: (_) => _submit(),
+                style: TextStyle(
+                  fontFamily: AppTypography.family,
+                  fontSize: 12 * widget.scale,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF191C1E),
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: SojuColors.chatSurface,
+                  hintText:
+                      'Ketik perintah atau tempel chat pesanan WhatsApp...',
+                  hintMaxLines: 2,
+                  hintStyle: TextStyle(
                     fontFamily: AppTypography.family,
                     fontSize: 12 * widget.scale,
                     fontWeight: FontWeight.w400,
-                    color: const Color(0xFF191C1E),
+                    color: SojuColors.analyticsMuted,
                   ),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    filled: true,
-                    fillColor: SojuColors.chatSurface,
-                    hintText:
-                        'Ketik perintah atau tempel chat pesanan WhatsApp...',
-                    hintMaxLines: 2,
-                    hintStyle: TextStyle(
-                      fontFamily: AppTypography.family,
-                      fontSize: 12 * widget.scale,
-                      fontWeight: FontWeight.w400,
-                      color: SojuColors.analyticsMuted,
-                    ),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 14 * widget.scale,
-                      vertical: 11 * widget.scale,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(22 * widget.scale),
-                      borderSide: BorderSide.none,
-                    ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 14 * widget.scale,
+                    vertical: 11 * widget.scale,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(22 * widget.scale),
+                    borderSide: BorderSide.none,
                   ),
                 ),
               ),
-              SizedBox(width: 8 * widget.scale),
-              ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _controller,
-                builder: (
-                  BuildContext context,
-                  TextEditingValue value,
-                  Widget? child,
-                ) {
-                  final bool enabled = value.text.trim().isNotEmpty;
-                  return Semantics(
-                    button: true,
-                    label: 'Kirim pesan',
-                    child: GestureDetector(
-                      onTap: _submit,
-                      child: Container(
-                        width: 40 * widget.scale,
-                        height: 40 * widget.scale,
-                        decoration: BoxDecoration(
-                          color: enabled
-                              ? SojuColors.primary
-                              : SojuColors.hairline,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.send,
-                          size: 18 * widget.scale,
-                          color: enabled
-                              ? Colors.white
-                              : SojuColors.analyticsMuted,
-                        ),
+            ),
+            SizedBox(width: 8 * widget.scale),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _controller,
+              builder: (
+                BuildContext context,
+                TextEditingValue value,
+                Widget? child,
+              ) {
+                final bool enabled = value.text.trim().isNotEmpty;
+                return Semantics(
+                  button: true,
+                  label: 'Kirim pesan',
+                  child: GestureDetector(
+                    onTap: _submit,
+                    child: Container(
+                      width: 40 * widget.scale,
+                      height: 40 * widget.scale,
+                      decoration: BoxDecoration(
+                        color:
+                            enabled ? SojuColors.primary : SojuColors.hairline,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.send,
+                        size: 18 * widget.scale,
+                        color:
+                            enabled ? Colors.white : SojuColors.analyticsMuted,
                       ),
                     ),
-                  );
-                },
-              ),
-            ],
-          ),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
