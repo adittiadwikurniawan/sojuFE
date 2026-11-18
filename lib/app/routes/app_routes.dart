@@ -303,6 +303,10 @@ class _BukuDapurShell extends StatelessWidget {
     final double width = MediaQuery.sizeOf(context).width;
     final double scale = (width > 480 ? 480 : width) / 430;
 
+    // Area chat Ai Asistant tidak memakai glassmorphism agar composer dan
+    // navbar tetap solid saat mengetik atau mengirim pesan.
+    final bool glassEnabled = activeTab != BottomNavTab.aiAssistant;
+
     return Scaffold(
       // Navbar punya area transparan 30 px di atas bar putih. Samakan dengan
       // latar layar agar tidak muncul strip putih kosong di atas navbar.
@@ -313,14 +317,15 @@ class _BukuDapurShell extends StatelessWidget {
       body: Stack(
         children: <Widget>[
           Positioned.fill(child: child),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: IgnorePointer(
-              child: BottomGlassOverlay(scale: scale),
+          if (glassEnabled)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: BottomGlassOverlay(scale: scale),
+              ),
             ),
-          ),
         ],
       ),
       // `Center(heightFactor: 1)` penting: `Align` tanpa heightFactor akan
@@ -331,6 +336,7 @@ class _BukuDapurShell extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 480),
           child: BukuDapurBottomNavBar(
             activeTab: activeTab,
+            glassEnabled: glassEnabled,
             onTabSelected: (BottomNavTab tab) {
               context.go(AppRouter._pathFor(tab));
             },

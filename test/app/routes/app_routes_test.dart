@@ -53,6 +53,9 @@ void main() {
     expect(find.text('Alat Cepat'), findsOneWidget);
     // "Ai Asistant" adalah tab navbar Figma, jadi navbar tetap terlihat.
     expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
+    // Area chat tidak memakai glassmorphism: overlay dan blur navbar mati.
+    expect(find.byKey(const Key('bottom_glass_overlay')), findsNothing);
+    expect(find.byKey(const Key('bottom_nav_glass')), findsNothing);
 
     // Panggil callback rute langsung agar test fokus pada wiring, bukan
     // hit-test bilah atas yang sedang bertransisi.
@@ -62,6 +65,9 @@ void main() {
     expect(find.text('Aktivitas'), findsOneWidget);
     expect(find.text('Alat Cepat'), findsNothing);
     expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
+    // Kembali ke Beranda memulihkan efek kaca.
+    expect(find.byKey(const Key('bottom_glass_overlay')), findsOneWidget);
+    expect(find.byKey(const Key('bottom_nav_glass')), findsOneWidget);
   });
 
   testWidgets('tombol kembali audit membuka Beranda saat tanpa riwayat', (

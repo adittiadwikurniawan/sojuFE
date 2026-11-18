@@ -58,6 +58,33 @@ void main() {
     expect(addTapped, isTrue);
   });
 
+  testWidgets('navbar tanpa glass tetap menampilkan tab dan tombol tambah', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: const SizedBox.expand(),
+          bottomNavigationBar: BukuDapurBottomNavBar(
+            activeTab: BottomNavTab.aiAssistant,
+            glassEnabled: false,
+            onTabSelected: (_) {},
+            onAddTap: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('bottom_nav_glass')), findsNothing);
+    expect(find.byType(BackdropFilter), findsNothing);
+    expect(find.text('Ai Asistant'), findsOneWidget);
+    expect(find.byIcon(Icons.add), findsOneWidget);
+  });
+
   testWidgets('konten navbar berada di atas area aman bawah', (
     WidgetTester tester,
   ) async {

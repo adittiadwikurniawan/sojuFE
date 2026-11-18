@@ -11,6 +11,9 @@ import 'package:flutter/material.dart';
 import '../../core/themes/app_typography.dart';
 import '../../core/themes/soju_colors.dart';
 
+/// Tinggi area navbar Figma tanpa safe area bawah.
+const double kBottomNavBarHeight = 114;
+
 /// Empat tab berlabel pada navbar Figma `801:4265`.
 ///
 /// Tombol `+` di tengah bukan bagian dari enum ini karena tidak memiliki
@@ -41,6 +44,7 @@ class BukuDapurBottomNavBar extends StatelessWidget {
     required this.activeTab,
     required this.onTabSelected,
     required this.onAddTap,
+    this.glassEnabled = true,
   });
 
   final BottomNavTab activeTab;
@@ -50,11 +54,11 @@ class BukuDapurBottomNavBar extends StatelessWidget {
   /// menampilkan informasi bahwa pencatatan belum tersedia.
   final VoidCallback onAddTap;
 
+  /// Mematikan blur kaca pada tab tertentu (dipakai area chat Ai Asistant).
+  final bool glassEnabled;
+
   /// Lebar desain acuan node Figma.
   static const double _designWidth = 430;
-
-  /// Tinggi area ikon/label pada node Figma.
-  static const double _slotHeight = 84;
 
   /// Jarak sebelum slot mulai (tempat tombol `+` mengambang).
   static const double _topSpacing = 30;
@@ -74,7 +78,7 @@ class BukuDapurBottomNavBar extends StatelessWidget {
       maintainBottomViewPadding: true,
       child: SizedBox(
         key: const Key('bottom_nav_content'),
-        height: (_topSpacing + _slotHeight) * scale,
+        height: kBottomNavBarHeight * scale,
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
@@ -87,16 +91,18 @@ class BukuDapurBottomNavBar extends StatelessWidget {
                   barTop: _topSpacing * scale,
                   notchRadius: 43 * scale,
                 ),
-                child: BackdropFilter(
-                  key: const Key('bottom_nav_glass'),
-                  filter: ImageFilter.blur(
-                    sigmaX: 18 * scale,
-                    sigmaY: 18 * scale,
-                  ),
-                  child: ColoredBox(
-                    color: SojuColors.surface.withOpacity(0.88),
-                  ),
-                ),
+                child: glassEnabled
+                    ? BackdropFilter(
+                        key: const Key('bottom_nav_glass'),
+                        filter: ImageFilter.blur(
+                          sigmaX: 18 * scale,
+                          sigmaY: 18 * scale,
+                        ),
+                        child: ColoredBox(
+                          color: SojuColors.surface.withOpacity(0.88),
+                        ),
+                      )
+                    : const ColoredBox(color: SojuColors.surface),
               ),
             ),
             Column(
