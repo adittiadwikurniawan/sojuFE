@@ -61,8 +61,44 @@ abstract final class AppRoutes {
   /// Modal form Buat Kategori Baru Tabel Bebas (frame `546:5163`).
   static const String freeTableCreate = '/free-tables/create';
 
-  /// Modal form Buat Kategori Baru dari tombol `+` navbar (frame `546:5430`).
+  /// Deep link form Buat Kategori Baru (frame `546:5430`). Tombol `+` navbar
+  /// membuka form yang sama sebagai popup tanpa berpindah rute.
   static const String categoryCreate = '/categories/create';
+}
+
+/// Menampilkan form Buat Kategori Baru sebagai popup tanpa mengubah rute.
+///
+/// Popup memakai bottom sheet terbatas tinggi agar tidak menutupi seluruh
+/// layar. Form tetap memakai [FreeTableCategoryScreen] yang sudah berbentuk
+/// sheet, dan otomatis ditutup setelah penyimpanan berhasil. Rute
+/// [AppRoutes.categoryCreate] tetap tersedia untuk deep link langsung.
+Future<void> _showCategoryCreatePopup(BuildContext context) {
+  final double maxHeight = MediaQuery.sizeOf(context).height * 0.78;
+
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: const Color(0x4D0F172A),
+    elevation: 0,
+    enableDrag: true,
+    isDismissible: true,
+    constraints: BoxConstraints(maxHeight: maxHeight),
+    builder: (BuildContext sheetContext) {
+      void close() => Navigator.of(sheetContext).pop();
+
+      return FreeTableCategoryScreen(
+        backgroundColor: Colors.transparent,
+        applyTopInset: false,
+        onClose: close,
+        onSaved: close,
+        controllerFactory: () => FreeTableCategoryController(
+          createCategory: DataProviders.createFreeTableCategory(),
+          initialState: const FreeTableCategoryState.incomeExample(),
+        ),
+      );
+    },
+  );
 }
 
 /// Konfigurasi GoRouter aplikasi (lihat `ARCHITECTURE.md` §2.4).
@@ -164,7 +200,8 @@ abstract final class AppRouter {
             ),
           ),
         ),
-        // Modal Buat Kategori Baru dari tombol `+` navbar (frame `546:5430`).
+        // Deep link Buat Kategori Baru (frame `546:5430`). Tombol `+` navbar
+        // memakai popup; rute ini tetap ada untuk akses langsung.
         // Phase A tetap mock: tidak ada endpoint mutasi yang dipanggil.
         GoRoute(
           path: AppRoutes.categoryCreate,
@@ -215,7 +252,7 @@ abstract final class AppRouter {
               builder: (BuildContext context, GoRouterState state) =>
                   AnalyticsScreen(
                 onNotificationTap: () => context.push(AppRoutes.notifications),
-                onAddTap: () => context.push(AppRoutes.categoryCreate),
+                onAddTap: () => _showCategoryCreatePopup(context),
                 onSeeAllActivities: () => context.push(AppRoutes.activities),
                 onLogout: () => context.go(AppRoutes.login),
               ),
@@ -340,9 +377,10 @@ class _BukuDapurShell extends StatelessWidget {
             onTabSelected: (BottomNavTab tab) {
               context.go(AppRouter._pathFor(tab));
             },
-            // Tombol "+" membuka form kategori Phase A (frame `546:5430`).
+            // Tombol "+" membuka form kategori Phase A (frame `546:5430`)
+            // sebagai popup, bukan perpindahan rute.
             // Form hanya mengirim draf ke datasource mock; belum ada HTTP.
-            onAddTap: () => context.push(AppRoutes.categoryCreate),
+            onAddTap: () => _showCategoryCreatePopup(context),
           ),
         ),
       ),

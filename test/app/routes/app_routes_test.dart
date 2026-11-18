@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:soju_fe/app/routes/app_routes.dart';
 import 'package:soju_fe/core/themes/soju_colors.dart';
 import 'package:soju_fe/presentation/screens/activities/activities_screen.dart';
+import 'package:soju_fe/presentation/screens/analytics/widgets/analytics_top_bar.dart';
 import 'package:soju_fe/presentation/screens/audit/widgets/audit_top_bar.dart';
 import 'package:soju_fe/presentation/screens/chatbot/chatbot_screen.dart';
 import 'package:soju_fe/presentation/screens/dashboard/dashboard_screen.dart';
@@ -189,6 +190,48 @@ void main() {
     expect(find.byType(BukuDapurBottomNavBar), findsNothing);
   });
 
+  testWidgets('tombol tambah Analytics membuka popup tanpa pindah rute', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final GoRouter router = AppRouter.create(
+      initialLocation: AppRoutes.analytics,
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: router),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AnalyticsTopBar),
+        matching: find.byIcon(Icons.add),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FreeTableCategoryScreen), findsOneWidget);
+    expect(
+      find.text('Atur pos pembukuan pemasukan & custom field'),
+      findsOneWidget,
+    );
+    expect(router.state.uri.path, AppRoutes.analytics);
+
+    tester
+        .widget<FreeTableCategoryScreen>(
+          find.byType(FreeTableCategoryScreen),
+        )
+        .onClose!();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FreeTableCategoryScreen), findsNothing);
+    expect(router.state.uri.path, AppRoutes.analytics);
+  });
+
   testWidgets('rute Tabel Bebas membuka modal tanpa navbar', (
     WidgetTester tester,
   ) async {
@@ -366,7 +409,12 @@ void main() {
       find.text('Simpan & Gunakan Kategori Pemasukan'),
       findsOneWidget,
     );
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    // Popup terbatas tinggi dan tidak mengubah lokasi GoRouter.
+    expect(
+      tester.getSize(find.byType(FreeTableCategoryScreen)).height,
+      lessThan(932),
+    );
+    expect(router.state.uri.path, AppRoutes.dashboard);
 
     tester
         .widget<FreeTableCategoryScreen>(
@@ -376,6 +424,34 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(FreeTableCategoryScreen), findsNothing);
+    expect(find.byType(DashboardScreen), findsOneWidget);
+    expect(router.state.uri.path, AppRoutes.dashboard);
+  });
+
+  testWidgets('simpan kategori dari popup langsung menutup sheet', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final GoRouter router = AppRouter.create(
+      initialLocation: AppRoutes.dashboard,
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: router),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('bottom_nav_add')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('free_table_save_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FreeTableCategoryScreen), findsNothing);
+    expect(router.state.uri.path, AppRoutes.dashboard);
     expect(find.byType(DashboardScreen), findsOneWidget);
   });
 }

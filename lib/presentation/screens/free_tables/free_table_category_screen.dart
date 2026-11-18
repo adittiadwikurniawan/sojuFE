@@ -33,6 +33,9 @@ class FreeTableCategoryScreen extends StatefulWidget {
     super.key,
     required this.controllerFactory,
     this.onClose,
+    this.onSaved,
+    this.backgroundColor = const Color(0x990F172A),
+    this.applyTopInset = true,
   });
 
   /// Factory controller agar screen dapat diuji dengan repository palsu.
@@ -40,6 +43,17 @@ class FreeTableCategoryScreen extends StatefulWidget {
 
   /// Aksi tutup modal (drag handle / area scrim).
   final VoidCallback? onClose;
+
+  /// Dipanggil setelah kategori berhasil disimpan. Popup memakainya untuk
+  /// langsung menutup sheet tanpa menunggu aksi pengguna.
+  final VoidCallback? onSaved;
+
+  /// Warna scrim. Popup memakai transparan agar barrier modal yang mengatur
+  /// dimming, sementara route penuh tetap memakai scrim gelap.
+  final Color backgroundColor;
+
+  /// Popup yang tidak menyentuh status bar tidak perlu inset atas tambahan.
+  final bool applyTopInset;
 
   @override
   State<FreeTableCategoryScreen> createState() =>
@@ -79,6 +93,10 @@ class _FreeTableCategoryScreenState extends State<FreeTableCategoryScreen> {
       return;
     }
     final FreeTableCategoryState state = _controller.state;
+    if (state.isSuccess) {
+      widget.onSaved?.call();
+      return;
+    }
     if (state.nameError != null && _scrollController.hasClients) {
       try {
         await _scrollController.animateTo(
@@ -111,9 +129,9 @@ class _FreeTableCategoryScreenState extends State<FreeTableCategoryScreen> {
     final double bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
-      backgroundColor: const Color(0x990F172A),
+      backgroundColor: widget.backgroundColor,
       body: SafeArea(
-        top: true,
+        top: widget.applyTopInset,
         bottom: false,
         child: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
