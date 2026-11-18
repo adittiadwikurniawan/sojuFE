@@ -42,6 +42,27 @@ const List<FreeTableFieldEntity> _initialFields = <FreeTableFieldEntity>[
   ),
 ];
 
+/// Contoh kolom pada frame `546:5430` (kategori pemasukan).
+const List<FreeTableFieldEntity> _incomeFields = <FreeTableFieldEntity>[
+  FreeTableFieldEntity(
+    id: 'field-nama-klien',
+    label: 'Nama Klien / Pemesan',
+    type: FreeTableFieldType.shortText,
+    isRequired: true,
+  ),
+  FreeTableFieldEntity(
+    id: 'field-tanggal-acara',
+    label: 'Tanggal Acara / Pengiriman',
+    type: FreeTableFieldType.date,
+  ),
+  FreeTableFieldEntity(
+    id: 'field-metode-pembayaran',
+    label: 'Metode Pembayaran',
+    type: FreeTableFieldType.multipleChoice,
+    options: <String>['BCA', 'QRIS', 'Tunai'],
+  ),
+];
+
 /// State form Buat Kategori Baru.
 class FreeTableCategoryState {
   const FreeTableCategoryState({
@@ -59,6 +80,14 @@ class FreeTableCategoryState {
 
   /// Keadaan awal sesuai contoh pada frame `546:5163`.
   const FreeTableCategoryState.initial() : this();
+
+  /// Keadaan awal sesuai frame `546:5430` (kategori pemasukan).
+  const FreeTableCategoryState.incomeExample()
+      : this(
+          name: 'Penjualan Katering & Event Khusus',
+          cashflowType: FreeTableCashflowType.income,
+          fields: _incomeFields,
+        );
 
   final String name;
   final String department;

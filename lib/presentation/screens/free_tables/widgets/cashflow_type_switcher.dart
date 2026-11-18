@@ -43,7 +43,7 @@ class CashflowTypeSwitcher extends StatelessWidget {
         Opacity(
           opacity: enabled ? 1 : 0.55,
           child: Container(
-            height: 42 * scale,
+            height: 44 * scale,
             padding: EdgeInsets.all(4 * scale),
             decoration: BoxDecoration(
               color: SojuColors.freeTableSegmentBg,
@@ -102,11 +102,12 @@ class _Option extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: enabled ? () => onTap(type) : null,
         child: Container(
-          height: 32 * scale,
+          height: 34 * scale,
           padding: EdgeInsets.symmetric(horizontal: 8 * scale),
           decoration: BoxDecoration(
-            color: Colors.transparent,
+            color: isActive ? SojuColors.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(8 * scale),
+            border: isActive ? Border.all(color: _accentColor(type)) : null,
             boxShadow: isActive
                 ? const <BoxShadow>[
                     BoxShadow(
@@ -125,7 +126,9 @@ class _Option extends StatelessWidget {
                 height: 8 * scale,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _dotColor(type, isActive),
+                  color: isActive
+                      ? _accentColor(type)
+                      : SojuColors.freeTableFieldBorder,
                 ),
               ),
               SizedBox(width: 6 * scale),
@@ -140,7 +143,9 @@ class _Option extends StatelessWidget {
                     fontSize: 12 * scale,
                     height: 16 / 12,
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                    color: SojuColors.freeTableBody,
+                    color: isActive
+                        ? _activeTextColor(type)
+                        : SojuColors.freeTableBody,
                   ),
                 ),
               ),
@@ -151,17 +156,25 @@ class _Option extends StatelessWidget {
     );
   }
 
-  Color _dotColor(FreeTableCashflowType type, bool isActive) {
-    if (!isActive) {
-      return SojuColors.freeTableFieldBorder;
-    }
+  Color _accentColor(FreeTableCashflowType type) {
     switch (type) {
       case FreeTableCashflowType.income:
         return SojuColors.freeTableIncome;
       case FreeTableCashflowType.expense:
         return SojuColors.freeTableExpense;
       case FreeTableCashflowType.freeTable:
-        return SojuColors.freeTableBody;
+        return SojuColors.freeTableAccent;
+    }
+  }
+
+  Color _activeTextColor(FreeTableCashflowType type) {
+    switch (type) {
+      case FreeTableCashflowType.income:
+        return SojuColors.freeTableGreen;
+      case FreeTableCashflowType.expense:
+        return SojuColors.freeTableExpense;
+      case FreeTableCashflowType.freeTable:
+        return SojuColors.freeTableAccent;
     }
   }
 }

@@ -26,6 +26,11 @@ class CustomFieldTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String typeLabel = field.type == FreeTableFieldType.multipleChoice &&
+            field.options.isNotEmpty
+        ? 'Pilihan: ${field.options.join(', ')}'
+        : field.type.label;
+
     return Opacity(
       opacity: enabled ? 1 : 0.55,
       child: Container(
@@ -66,15 +71,18 @@ class CustomFieldTile extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 4 * scale),
-                  Text(
-                    '(${field.type.label})',
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontFamily: AppTypography.family,
-                      fontSize: 11 * scale,
-                      height: 16 / 11,
-                      fontWeight: FontWeight.w400,
-                      color: SojuColors.freeTableHint,
+                  Flexible(
+                    child: Text(
+                      '($typeLabel)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 11 * scale,
+                        height: 16 / 11,
+                        fontWeight: FontWeight.w400,
+                        color: SojuColors.freeTableHint,
+                      ),
                     ),
                   ),
                 ],

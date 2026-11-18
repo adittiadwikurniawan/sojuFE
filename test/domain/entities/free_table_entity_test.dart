@@ -19,8 +19,9 @@ void main() {
         ),
         FreeTableFieldEntity(
           id: 'field-2',
-          label: 'Suhu (°C) / Kuantitas',
-          type: FreeTableFieldType.number,
+          label: 'Metode Pembayaran',
+          type: FreeTableFieldType.multipleChoice,
+          options: <String>['BCA', 'QRIS', 'Tunai'],
         ),
       ],
     );
@@ -34,6 +35,10 @@ void main() {
     expect((fields.first! as Map<String, Object?>)['tipe'], 'teks');
     expect((fields.first! as Map<String, Object?>)['wajib'], isTrue);
     expect((fields.last! as Map<String, Object?>)['wajib'], isFalse);
+    expect(
+      (fields.last! as Map<String, Object?>)['opsi'],
+      <String>['BCA', 'QRIS', 'Tunai'],
+    );
   });
 
   test('departemen kosong tidak dikirim', () {

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
 import '../../../../domain/entities/free_table_entity.dart';
+import '../free_table_copy.dart';
 import 'custom_field_tile.dart';
 import 'field_type_grid.dart';
 
@@ -16,6 +17,7 @@ class CustomFieldsSection extends StatelessWidget {
   const CustomFieldsSection({
     super.key,
     required this.scale,
+    required this.cashflowType,
     required this.fields,
     required this.selectedFieldType,
     required this.onAddField,
@@ -26,6 +28,7 @@ class CustomFieldsSection extends StatelessWidget {
   });
 
   final double scale;
+  final FreeTableCashflowType cashflowType;
   final List<FreeTableFieldEntity> fields;
   final FreeTableFieldType selectedFieldType;
   final VoidCallback onAddField;
@@ -118,8 +121,7 @@ class CustomFieldsSection extends StatelessWidget {
           ),
           SizedBox(height: 13.4 * scale),
           Text(
-            'Tentukan kolom data yang ingin dicatat setiap kali mengisi baris '
-            'tabel ini.',
+            cashflowType.customFieldsDescription,
             style: TextStyle(
               fontFamily: AppTypography.family,
               fontSize: 11 * scale,

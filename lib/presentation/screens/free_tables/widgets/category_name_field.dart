@@ -7,12 +7,15 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
+import '../../../../domain/entities/free_table_entity.dart';
+import '../free_table_copy.dart';
 
 /// Input nama kategori pada form Tabel Bebas.
 class CategoryNameField extends StatelessWidget {
   const CategoryNameField({
     super.key,
     required this.scale,
+    required this.cashflowType,
     required this.controller,
     required this.onChanged,
     this.errorText,
@@ -20,6 +23,7 @@ class CategoryNameField extends StatelessWidget {
   });
 
   final double scale;
+  final FreeTableCashflowType cashflowType;
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final String? errorText;
@@ -119,8 +123,7 @@ class CategoryNameField extends StatelessWidget {
         ],
         SizedBox(height: 5.4 * scale),
         Text(
-          'Format tabel bebas tanpa rumus uang, cocok untuk inventaris, aset, '
-          'suhu, atau piket.',
+          cashflowType.nameHelper,
           style: TextStyle(
             fontFamily: AppTypography.family,
             fontSize: 11 * scale,

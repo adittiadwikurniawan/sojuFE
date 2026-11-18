@@ -36,6 +36,7 @@ void main() {
               'id': 'field-pic',
               'label': 'Petugas Shift (PIC)',
               'tipe': 'pilihan_ganda',
+              'opsi': <String>['BCA', 'QRIS', 'Tunai'],
             },
           ],
         },
@@ -51,6 +52,7 @@ void main() {
       expect(entity.fields[1].type, FreeTableFieldType.number);
       expect(entity.fields[2].type, FreeTableFieldType.date);
       expect(entity.fields[3].type, FreeTableFieldType.multipleChoice);
+      expect(entity.fields[3].options, <String>['BCA', 'QRIS', 'Tunai']);
       expect(entity.fields[0].isRequired, isTrue);
       expect(entity.fields[2].isRequired, isFalse);
     });

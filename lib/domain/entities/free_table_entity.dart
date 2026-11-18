@@ -131,6 +131,7 @@ class FreeTableFieldEntity {
     required this.label,
     required this.type,
     this.isRequired = false,
+    this.options = const <String>[],
   });
 
   /// Identitas lokal untuk kunci widget dan operasi hapus.
@@ -145,6 +146,9 @@ class FreeTableFieldEntity {
   /// `true` bila kolom bertanda "Wajib".
   final bool isRequired;
 
+  /// Pilihan nilai untuk kolom [FreeTableFieldType.multipleChoice].
+  final List<String> options;
+
   /// Payload kolom untuk datasource/API.
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -152,6 +156,7 @@ class FreeTableFieldEntity {
       'label': label,
       'tipe': type.apiValue,
       'wajib': isRequired,
+      if (options.isNotEmpty) 'opsi': options,
     };
   }
 }

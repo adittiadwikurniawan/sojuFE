@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:soju_fe/app/routes/app_routes.dart';
 import 'package:soju_fe/core/themes/soju_colors.dart';
+import 'package:soju_fe/presentation/screens/activities/activities_screen.dart';
 import 'package:soju_fe/presentation/screens/audit/widgets/audit_top_bar.dart';
 import 'package:soju_fe/presentation/screens/chatbot/chatbot_screen.dart';
 import 'package:soju_fe/presentation/screens/dashboard/dashboard_screen.dart';
@@ -124,6 +125,64 @@ void main() {
     expect(find.byType(DashboardScreen), findsOneWidget);
   });
 
+  testWidgets('Lihat Semua aktivitas membuka daftar tanpa navbar', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final GoRouter router = AppRouter.create(
+      initialLocation: AppRoutes.dashboard,
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: router),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Lihat Semua'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lihat Semua'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ActivitiesScreen), findsOneWidget);
+    expect(find.text('Semua Aktivitas'), findsOneWidget);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byKey(const Key('bottom_glass_overlay')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('activities_back')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ActivitiesScreen), findsNothing);
+    expect(find.byType(DashboardScreen), findsOneWidget);
+  });
+
+  testWidgets('Lihat Semua aktivitas dari Analytics membuka daftar', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final GoRouter router = AppRouter.create(
+      initialLocation: AppRoutes.analytics,
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: router),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Lihat Semua'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lihat Semua'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ActivitiesScreen), findsOneWidget);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+  });
+
   testWidgets('rute Tabel Bebas membuka modal tanpa navbar', (
     WidgetTester tester,
   ) async {
@@ -145,6 +204,43 @@ void main() {
     expect(find.byType(BukuDapurBottomNavBar), findsNothing);
 
     // Tanpa riwayat, tombol tutup modal kembali ke Beranda.
+    tester
+        .widget<FreeTableCategoryScreen>(
+          find.byType(FreeTableCategoryScreen),
+        )
+        .onClose!();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FreeTableCategoryScreen), findsNothing);
+    expect(find.text('Aktivitas'), findsOneWidget);
+  });
+
+  testWidgets('rute kategori pemasukan memakai form frame 546:5430', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final GoRouter router = AppRouter.create(
+      initialLocation: AppRoutes.categoryCreate,
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: router),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FreeTableCategoryScreen), findsOneWidget);
+    expect(
+      find.text('Atur pos pembukuan pemasukan & custom field'),
+      findsOneWidget,
+    );
+    expect(find.text('Nama Klien / Pemesan'), findsOneWidget);
+    expect(find.text('Metode Pembayaran'), findsOneWidget);
+    expect(find.text('(Pilihan: BCA, QRIS, Tunai)'), findsOneWidget);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+
     tester
         .widget<FreeTableCategoryScreen>(
           find.byType(FreeTableCategoryScreen),
@@ -250,12 +346,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Aktivitas'), findsOneWidget);
 
-    // Tombol "+" sesuai Figma tidak menulis data: hanya pesan informasi.
+    // Tombol "+" membuka form kategori Phase A (frame `546:5430`).
     await tester.tap(find.byKey(const Key('bottom_nav_add')));
     await tester.pumpAndSettle();
+
+    expect(find.byType(FreeTableCategoryScreen), findsOneWidget);
     expect(
-      find.text('Pencatatan belum tersedia di versi ini.'),
+      find.text('Atur pos pembukuan pemasukan & custom field'),
       findsOneWidget,
     );
+    expect(find.text('Rekomendasi Akun / Tagar'), findsOneWidget);
+    expect(
+      find.text('Simpan & Gunakan Kategori Pemasukan'),
+      findsOneWidget,
+    );
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+
+    tester
+        .widget<FreeTableCategoryScreen>(
+          find.byType(FreeTableCategoryScreen),
+        )
+        .onClose!();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FreeTableCategoryScreen), findsNothing);
+    expect(find.byType(DashboardScreen), findsOneWidget);
   });
 }

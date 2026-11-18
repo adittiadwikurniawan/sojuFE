@@ -1,6 +1,7 @@
 // lib/presentation/screens/free_tables/free_table_category_screen.dart
 //
-// Modal sheet "Buat Kategori Baru" varian Tabel Bebas (frame `546:5163`).
+// Modal sheet "Buat Kategori Baru" varian Tabel Bebas (`546:5163`) dan
+// kategori pemasukan dari tombol `+` navbar (`546:5430`).
 //
 // Screen ini hanya mengorkestrasi state form dan widget reusable. Semua
 // pengiriman data melewati [FreeTableCategoryController] → usecase →
@@ -156,6 +157,7 @@ class _FreeTableCategoryScreenState extends State<FreeTableCategoryScreen> {
                             children: <Widget>[
                               FreeTableSheetHeader(
                                 scale: scale,
+                                cashflowType: state.cashflowType,
                                 onClose: widget.onClose,
                               ),
                               Expanded(
@@ -173,6 +175,7 @@ class _FreeTableCategoryScreenState extends State<FreeTableCategoryScreen> {
                                     children: <Widget>[
                                       CategoryNameField(
                                         scale: scale,
+                                        cashflowType: state.cashflowType,
                                         controller: _nameController,
                                         enabled: enabled,
                                         errorText: state.nameError,
@@ -189,6 +192,7 @@ class _FreeTableCategoryScreenState extends State<FreeTableCategoryScreen> {
                                       SizedBox(height: 20 * scale),
                                       TargetDepartmentField(
                                         scale: scale,
+                                        cashflowType: state.cashflowType,
                                         controller: _departmentController,
                                         enabled: enabled,
                                         onChanged: _controller.updateDepartment,
@@ -197,6 +201,7 @@ class _FreeTableCategoryScreenState extends State<FreeTableCategoryScreen> {
                                       CustomFieldsSection(
                                         key: _customFieldsKey,
                                         scale: scale,
+                                        cashflowType: state.cashflowType,
                                         fields: state.fields,
                                         selectedFieldType:
                                             state.selectedFieldType,
@@ -215,6 +220,7 @@ class _FreeTableCategoryScreenState extends State<FreeTableCategoryScreen> {
                               ),
                               FreeTableSheetFooter(
                                 scale: scale,
+                                cashflowType: state.cashflowType,
                                 bottomInset: bottomInset,
                                 status: state.status,
                                 errorMessage: state.errorMessage,

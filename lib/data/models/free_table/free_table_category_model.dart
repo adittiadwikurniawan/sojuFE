@@ -32,12 +32,14 @@ class FreeTableFieldModel {
     required this.label,
     required this.type,
     required this.isRequired,
+    this.options = const <String>[],
   });
 
   final String id;
   final String label;
   final FreeTableFieldType type;
   final bool isRequired;
+  final List<String> options;
 
   /// Mengurai satu kolom; `label` wajib ada.
   factory FreeTableFieldModel.fromJson(Object? raw, {required int index}) {
@@ -51,6 +53,7 @@ class FreeTableFieldModel {
       label: label,
       type: FreeTableFieldTypeX.fromApi(json['tipe'] ?? json['type']),
       isRequired: _asBool(json['wajib'] ?? json['required']),
+      options: _asStringList(json['opsi'] ?? json['options']),
     );
   }
 
@@ -60,6 +63,7 @@ class FreeTableFieldModel {
       label: label,
       type: type,
       isRequired: isRequired,
+      options: options,
     );
   }
 }
@@ -152,4 +156,14 @@ bool _asBool(Object? raw) {
     return raw.toLowerCase() == 'true' || raw == '1';
   }
   return false;
+}
+
+List<String> _asStringList(Object? raw) {
+  if (raw is! List) {
+    return const <String>[];
+  }
+  return <String>[
+    for (final Object? item in raw)
+      if (item is String && item.trim().isNotEmpty) item.trim(),
+  ];
 }

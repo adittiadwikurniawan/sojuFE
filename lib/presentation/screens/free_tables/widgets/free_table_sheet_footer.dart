@@ -7,13 +7,16 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
+import '../../../../domain/entities/free_table_entity.dart';
 import '../../../providers/free_tables/free_table_category_controller.dart';
+import '../free_table_copy.dart';
 
 /// Footer aksi form Buat Kategori Baru.
 class FreeTableSheetFooter extends StatelessWidget {
   const FreeTableSheetFooter({
     super.key,
     required this.scale,
+    required this.cashflowType,
     required this.bottomInset,
     required this.status,
     required this.onSave,
@@ -21,6 +24,7 @@ class FreeTableSheetFooter extends StatelessWidget {
   });
 
   final double scale;
+  final FreeTableCashflowType cashflowType;
   final double bottomInset;
   final FreeTableCategoryStatus status;
   final String? errorMessage;
@@ -85,12 +89,13 @@ class FreeTableSheetFooter extends StatelessWidget {
               child: _ButtonContent(
                 scale: scale,
                 status: status,
+                saveLabel: cashflowType.saveLabel,
               ),
             ),
           ),
           SizedBox(height: 8 * scale),
           Text(
-            'Tabel baru akan langsung aktif di menu Data Pembukuan.',
+            cashflowType.footerNote,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppTypography.family,
@@ -107,10 +112,15 @@ class FreeTableSheetFooter extends StatelessWidget {
 }
 
 class _ButtonContent extends StatelessWidget {
-  const _ButtonContent({required this.scale, required this.status});
+  const _ButtonContent({
+    required this.scale,
+    required this.status,
+    required this.saveLabel,
+  });
 
   final double scale;
   final FreeTableCategoryStatus status;
+  final String saveLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +165,7 @@ class _ButtonContent extends StatelessWidget {
       case FreeTableCategoryStatus.error:
         return Text('Coba Simpan Lagi', style: textStyle);
       case FreeTableCategoryStatus.editing:
-        return Text('Simpan & Buat Tabel Bebas', style: textStyle);
+        return Text(saveLabel, style: textStyle);
     }
   }
 }

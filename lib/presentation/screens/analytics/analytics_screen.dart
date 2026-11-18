@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
+import '../../widgets/activity_tile.dart';
 import '../../widgets/bar_chart_card.dart';
 import '../../widgets/bottom_glass_overlay.dart';
 import '../../widgets/date_filter_card.dart';
 import '../../widgets/profile_menu.dart';
 import '../../widgets/soju_date_calendar_sheet.dart';
 import '../dashboard/models/dashboard_view_data.dart';
-import '../dashboard/widgets/activity_tile.dart';
 import '../profile/models/profile_view_data.dart';
 import 'models/analytics_export_request.dart';
 import 'models/analytics_filter.dart';

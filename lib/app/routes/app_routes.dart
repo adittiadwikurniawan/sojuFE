@@ -8,6 +8,7 @@ import '../../data/repositories/audit_repository_impl.dart';
 import '../../domain/usecases/audit_usecases.dart';
 import '../../presentation/providers/audit/audit_log_controller.dart';
 import '../../presentation/providers/free_tables/free_table_category_controller.dart';
+import '../../presentation/screens/activities/activities_screen.dart';
 import '../../presentation/screens/analytics/analytics_screen.dart';
 import '../../presentation/screens/audit/audit_screen.dart';
 import '../../presentation/screens/auth/auth_screen.dart';
@@ -54,8 +55,14 @@ abstract final class AppRoutes {
   /// Daftar notifikasi (frame `546:1841`), di luar shell tanpa navbar.
   static const String notifications = '/notifications';
 
+  /// Daftar lengkap aktivitas dari tautan "Lihat Semua".
+  static const String activities = '/activities';
+
   /// Modal form Buat Kategori Baru Tabel Bebas (frame `546:5163`).
   static const String freeTableCreate = '/free-tables/create';
+
+  /// Modal form Buat Kategori Baru dari tombol `+` navbar (frame `546:5430`).
+  static const String categoryCreate = '/categories/create';
 }
 
 /// Konfigurasi GoRouter aplikasi (lihat `ARCHITECTURE.md` §2.4).
@@ -123,6 +130,21 @@ abstract final class AppRouter {
             onReconcile: () => context.go(AppRoutes.analytics),
           ),
         ),
+        // Daftar aktivitas "Lihat Semua": halaman drill-down di luar shell,
+        // sehingga tidak ada navbar dan tombol kembali selalu tersedia.
+        GoRoute(
+          path: AppRoutes.activities,
+          builder: (BuildContext context, GoRouterState state) =>
+              ActivitiesScreen(
+            onBack: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.dashboard);
+              }
+            },
+          ),
+        ),
         // Modal Tabel Bebas di luar shell: tidak memakai navbar dan boleh
         // dibuka dari layar mana pun saat entry point tersedia.
         GoRoute(
@@ -142,6 +164,25 @@ abstract final class AppRouter {
             ),
           ),
         ),
+        // Modal Buat Kategori Baru dari tombol `+` navbar (frame `546:5430`).
+        // Phase A tetap mock: tidak ada endpoint mutasi yang dipanggil.
+        GoRoute(
+          path: AppRoutes.categoryCreate,
+          builder: (BuildContext context, GoRouterState state) =>
+              FreeTableCategoryScreen(
+            onClose: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.dashboard);
+              }
+            },
+            controllerFactory: () => FreeTableCategoryController(
+              createCategory: DataProviders.createFreeTableCategory(),
+              initialState: const FreeTableCategoryState.incomeExample(),
+            ),
+          ),
+        ),
         // Navbar Figma `801:4265`: Home, Analytics, +, Ai Asistant, Audit & Stok.
         // Empat tab berlabel memakai satu shell internal (ARCHITECTURE.md §2.4);
         // splash dan auth tetap di luar shell (layar penuh).
@@ -157,7 +198,7 @@ abstract final class AppRouter {
               path: AppRoutes.dashboard,
               builder: (BuildContext context, GoRouterState state) =>
                   DashboardScreen(
-                onSeeAllActivities: () => context.go(AppRoutes.analytics),
+                onSeeAllActivities: () => context.push(AppRoutes.activities),
                 onAnalyticsTap: () => context.go(AppRoutes.analytics),
                 onNotificationTap: () => context.push(AppRoutes.notifications),
                 onQuickCommand: (_) {
@@ -174,6 +215,8 @@ abstract final class AppRouter {
               builder: (BuildContext context, GoRouterState state) =>
                   AnalyticsScreen(
                 onNotificationTap: () => context.push(AppRoutes.notifications),
+                onAddTap: () => context.push(AppRoutes.categoryCreate),
+                onSeeAllActivities: () => context.push(AppRoutes.activities),
                 onLogout: () => context.go(AppRoutes.login),
               ),
             ),
@@ -291,15 +334,9 @@ class _BukuDapurShell extends StatelessWidget {
             onTabSelected: (BottomNavTab tab) {
               context.go(AppRouter._pathFor(tab));
             },
-            // Tombol "+" ada pada node Figma, tetapi mobile belum boleh
-            // melakukan aksi tulis. Tampilkan informasi tanpa request/data.
-            onAddTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Pencatatan belum tersedia di versi ini.'),
-                ),
-              );
-            },
+            // Tombol "+" membuka form kategori Phase A (frame `546:5430`).
+            // Form hanya mengirim draf ke datasource mock; belum ada HTTP.
+            onAddTap: () => context.push(AppRoutes.categoryCreate),
           ),
         ),
       ),

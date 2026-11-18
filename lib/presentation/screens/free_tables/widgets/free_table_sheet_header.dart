@@ -7,16 +7,20 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
+import '../../../../domain/entities/free_table_entity.dart';
+import '../free_table_copy.dart';
 
 /// Header modal sheet Tabel Bebas.
 class FreeTableSheetHeader extends StatelessWidget {
   const FreeTableSheetHeader({
     super.key,
     required this.scale,
+    required this.cashflowType,
     this.onClose,
   });
 
   final double scale;
+  final FreeTableCashflowType cashflowType;
 
   /// Dipanggil saat drag handle diketuk; `null` membuat handle pasif.
   final VoidCallback? onClose;
@@ -75,7 +79,7 @@ class FreeTableSheetHeader extends StatelessWidget {
               ),
               SizedBox(height: 2 * scale),
               Text(
-                'Pendataan operasional fleksibel & non-keuangan',
+                cashflowType.sheetSubtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

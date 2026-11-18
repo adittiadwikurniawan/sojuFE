@@ -7,18 +7,22 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
+import '../../../../domain/entities/free_table_entity.dart';
+import '../free_table_copy.dart';
 
-/// Input target departemen/lokasi.
+/// Input catatan kategori: target departemen/lokasi atau rekomendasi akun.
 class TargetDepartmentField extends StatelessWidget {
   const TargetDepartmentField({
     super.key,
     required this.scale,
+    required this.cashflowType,
     required this.controller,
     required this.onChanged,
     this.enabled = true,
   });
 
   final double scale;
+  final FreeTableCashflowType cashflowType;
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final bool enabled;
@@ -32,7 +36,7 @@ class TargetDepartmentField extends StatelessWidget {
           children: <Widget>[
             Expanded(
               child: Text(
-                'Target Departemen / Lokasi',
+                cashflowType.noteLabel,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -46,7 +50,7 @@ class TargetDepartmentField extends StatelessWidget {
             ),
             SizedBox(width: 8 * scale),
             Text(
-              '(Opsional) Label area kerja',
+              cashflowType.noteOptionalHint,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -80,7 +84,7 @@ class TargetDepartmentField extends StatelessWidget {
             isDense: true,
             filled: true,
             fillColor: SojuColors.surface,
-            hintText: 'Misal: Area Dapur Utama, Chiller Gudang, Barista',
+            hintText: cashflowType.noteHintText,
             hintStyle: TextStyle(
               fontFamily: AppTypography.family,
               fontSize: 12 * scale,

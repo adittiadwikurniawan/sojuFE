@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../models/activity_view_data.dart';
+
 /// Model tampilan layar Beranda (frame Figma `546:1616`).
 ///
 /// Semua widget beranda menerima data dari model ini sehingga wiring API
@@ -33,7 +35,7 @@ class DashboardViewData {
   final AssistantCardData assistant;
 
   /// Daftar aktivitas terakhir.
-  final List<DashboardActivityData> activities;
+  final List<ActivityData> activities;
 
   /// Data contoh hasil slicing Figma.
   static const DashboardViewData sample = DashboardViewData(
@@ -89,40 +91,7 @@ class DashboardViewData {
         ),
       ],
     ),
-    activities: <DashboardActivityData>[
-      DashboardActivityData(
-        name: 'Sosis',
-        variant: 'Pedas/Sedang',
-        sku: 'SKU: AYM - BKR -01',
-        pack: '10 Pack',
-        badge: 'Pemasukkan',
-        imageAsset: 'assets/images/activity_sosis.png',
-      ),
-      DashboardActivityData(
-        name: 'Sosis',
-        variant: 'Pedas/Sedang',
-        sku: 'SKU: AYM - BKR -01',
-        pack: '10 Pack',
-        badge: 'Pemasukkan',
-        imageAsset: 'assets/images/activity_sosis.png',
-      ),
-      DashboardActivityData(
-        name: 'Sosis',
-        variant: 'Pedas/Sedang',
-        sku: 'SKU: AYM - BKR -01',
-        pack: '10 Pack',
-        badge: 'Pemasukkan',
-        imageAsset: 'assets/images/activity_sosis.png',
-      ),
-      DashboardActivityData(
-        name: 'Sosis',
-        variant: 'Pedas/Sedang',
-        sku: 'SKU: AYM - BKR -01',
-        pack: '10 Pack',
-        badge: 'Pemasukkan',
-        imageAsset: 'assets/images/activity_sosis.png',
-      ),
-    ],
+    activities: ActivityViewData.sample,
   );
 }
 
@@ -233,22 +202,5 @@ class AssistantCommandData {
   final IconData icon;
 }
 
-/// Satu baris aktivitas terakhir.
-@immutable
-class DashboardActivityData {
-  const DashboardActivityData({
-    required this.name,
-    required this.variant,
-    required this.sku,
-    required this.pack,
-    required this.badge,
-    required this.imageAsset,
-  });
-
-  final String name;
-  final String variant;
-  final String sku;
-  final String pack;
-  final String badge;
-  final String imageAsset;
-}
+/// Alias lama untuk menjaga impor dan test yang sudah ada.
+typedef DashboardActivityData = ActivityData;
