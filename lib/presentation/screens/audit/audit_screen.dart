@@ -16,6 +16,7 @@ import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
 import '../../providers/audit/audit_log_controller.dart';
 import '../../utils/format.dart';
+import '../../widgets/bottom_glass_overlay.dart';
 import '../../widgets/date_filter_card.dart';
 import '../../widgets/soju_date_calendar_sheet.dart';
 import 'models/audit_view_data.dart';
@@ -275,7 +276,8 @@ class _AuditScreenState extends State<AuditScreen> {
     rows.add(_ListFooter(state: state, scale: scale, controller: _controller));
 
     return ListView(
-        padding: EdgeInsets.only(bottom: 24 * scale), children: rows);
+        padding: EdgeInsets.only(bottom: kBottomContentInset * scale),
+        children: rows);
   }
 }
 

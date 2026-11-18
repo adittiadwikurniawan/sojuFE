@@ -31,6 +31,8 @@ void main() {
 
     final Finder nav = find.byType(BukuDapurBottomNavBar);
     expect(nav, findsOneWidget);
+    expect(find.byKey(const Key('bottom_nav_glass')), findsOneWidget);
+    expect(find.byType(BackdropFilter), findsWidgets);
 
     final Iterable<Text> labels = tester.widgetList<Text>(
       find.descendant(of: nav, matching: find.byType(Text)),

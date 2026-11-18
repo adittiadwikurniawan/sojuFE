@@ -4,6 +4,8 @@
 // yang dipakai pada slicing Analytics. Bentuk, warna, dan proporsi mengikuti
 // node tersebut; tidak ada penyesuaian label/ikon selain yang ada di Figma.
 
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../../core/themes/app_typography.dart';
@@ -85,7 +87,16 @@ class BukuDapurBottomNavBar extends StatelessWidget {
                   barTop: _topSpacing * scale,
                   notchRadius: 43 * scale,
                 ),
-                child: const ColoredBox(color: SojuColors.surface),
+                child: BackdropFilter(
+                  key: const Key('bottom_nav_glass'),
+                  filter: ImageFilter.blur(
+                    sigmaX: 18 * scale,
+                    sigmaY: 18 * scale,
+                  ),
+                  child: ColoredBox(
+                    color: SojuColors.surface.withOpacity(0.88),
+                  ),
+                ),
               ),
             ),
             Column(

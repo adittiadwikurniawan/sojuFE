@@ -60,6 +60,11 @@ void main() {
     expect(find.text('12 Transaksi'), findsOneWidget);
     expect(find.text('Penjualan Sosis Solo'), findsOneWidget);
     expect(find.text('12 Transaksi'), findsOneWidget);
+
+    // Bagian aktivitas memakai tampilan yang sama dengan Beranda.
+    expect(find.text('Aktivitas'), findsOneWidget);
+    expect(find.text('Lihat Semua'), findsOneWidget);
+    expect(find.text('Sosis'), findsWidgets);
   });
 
   testWidgets('chip Pemasukan memfilter seluruh angka turunan', (

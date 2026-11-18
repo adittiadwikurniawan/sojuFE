@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
+import '../../../widgets/bottom_glass_overlay.dart';
 import '../models/chat_draft.dart';
 import '../models/chatbot_view_data.dart';
 import 'chat_draft_card.dart';
@@ -114,7 +115,12 @@ class _ChatConversationViewState extends State<ChatConversationView> {
             ],
           ),
         ),
-        _buildComposer(),
+        Padding(
+          padding: EdgeInsets.only(
+            bottom: kBottomGlassOverlayHeight * widget.scale,
+          ),
+          child: _buildComposer(),
+        ),
       ],
     );
   }

@@ -16,8 +16,10 @@ import '../../presentation/screens/auth/widgets/auth_header.dart';
 import '../../presentation/screens/chatbot/chatbot_screen.dart';
 import '../../presentation/screens/dashboard/dashboard_screen.dart';
 import '../../presentation/screens/free_tables/free_table_category_screen.dart';
+import '../../presentation/screens/notifications/notifications_screen.dart';
 import '../../presentation/screens/onboarding/onboarding_screen.dart';
 import '../../presentation/screens/onboarding/splash_screen.dart';
+import '../../presentation/widgets/bottom_glass_overlay.dart';
 import '../../presentation/widgets/bottom_nav_bar.dart';
 
 /// Segment rute aplikasi.
@@ -48,6 +50,9 @@ abstract final class AppRoutes {
 
   /// Audit & Stok: log aktivitas baca-saja (mock Phase A).
   static const String audit = '/audit';
+
+  /// Daftar notifikasi (frame `546:1841`), di luar shell tanpa navbar.
+  static const String notifications = '/notifications';
 
   /// Modal form Buat Kategori Baru Tabel Bebas (frame `546:5163`).
   static const String freeTableCreate = '/free-tables/create';
@@ -101,6 +106,23 @@ abstract final class AppRouter {
             // onSendResetLink diisi saat lapisan data tersedia.
           ),
         ),
+        // Notifikasi di luar shell: frame Figma `546:1841` tidak memuat
+        // navbar, hanya header dengan tombol kembali.
+        GoRoute(
+          path: AppRoutes.notifications,
+          builder: (BuildContext context, GoRouterState state) =>
+              NotificationsScreen(
+            onBack: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.dashboard);
+              }
+            },
+            // Aksi rekonsiliasi membuka Analytics.
+            onReconcile: () => context.go(AppRoutes.analytics),
+          ),
+        ),
         // Modal Tabel Bebas di luar shell: tidak memakai navbar dan boleh
         // dibuka dari layar mana pun saat entry point tersedia.
         GoRoute(
@@ -137,6 +159,7 @@ abstract final class AppRouter {
                   DashboardScreen(
                 onSeeAllActivities: () => context.go(AppRoutes.analytics),
                 onAnalyticsTap: () => context.go(AppRoutes.analytics),
+                onNotificationTap: () => context.push(AppRoutes.notifications),
                 onQuickCommand: (_) {
                   context.push(AppRoutes.chatbot);
                 },
@@ -150,6 +173,7 @@ abstract final class AppRouter {
               path: AppRoutes.analytics,
               builder: (BuildContext context, GoRouterState state) =>
                   AnalyticsScreen(
+                onNotificationTap: () => context.push(AppRoutes.notifications),
                 onLogout: () => context.go(AppRoutes.login),
               ),
             ),
@@ -158,6 +182,7 @@ abstract final class AppRouter {
               builder: (BuildContext context, GoRouterState state) =>
                   ChatbotScreen(
                 onBack: () => context.go(AppRoutes.dashboard),
+                onNotificationTap: () => context.push(AppRoutes.notifications),
               ),
             ),
             GoRoute(
@@ -232,11 +257,29 @@ class _BukuDapurShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double width = MediaQuery.sizeOf(context).width;
+    final double scale = (width > 480 ? 480 : width) / 430;
+
     return Scaffold(
       // Navbar punya area transparan 30 px di atas bar putih. Samakan dengan
       // latar layar agar tidak muncul strip putih kosong di atas navbar.
       backgroundColor: SojuColors.homeBackground,
-      body: child,
+      // Body ikut turun di belakang navbar supaya lapisan kaca dapat
+      // memblur konten yang sedang digulir.
+      extendBody: true,
+      body: Stack(
+        children: <Widget>[
+          Positioned.fill(child: child),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: BottomGlassOverlay(scale: scale),
+            ),
+          ),
+        ],
+      ),
       // `Center(heightFactor: 1)` penting: `Align` tanpa heightFactor akan
       // mengembang setinggi Scaffold dan membuat body berukuran 0 px.
       bottomNavigationBar: Center(

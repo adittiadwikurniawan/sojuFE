@@ -22,7 +22,6 @@ void main() {
     expect(find.text('Aktivitas'), findsOneWidget);
     expect(find.text('Lihat Semua'), findsOneWidget);
     expect(find.text('Sosis'), findsWidgets);
-    expect(find.byKey(const Key('home_bottom_gloss')), findsOneWidget);
   });
 
   testWidgets('Total Penghasilan, tanggal, dan menu profil terhubung', (

@@ -83,6 +83,11 @@ void main() {
     expect(find.text('+ Rp 1.375.000'), findsOneWidget);
     expect(find.text('Konfirmasi & Simpan'), findsOneWidget);
     expect(find.text('Koreksi Jumlah / Harga'), findsOneWidget);
+
+    // Composer kini memberi ruang untuk lapisan kaca navbar, sehingga
+    // pemberitahuan demo di awal daftar perlu digulir kembali ke atas.
+    await tester.drag(find.byType(ListView), const Offset(0, 600));
+    await tester.pumpAndSettle();
     expect(find.text(ChatbotViewData.sample.demoNotice), findsOneWidget);
   });
 

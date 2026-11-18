@@ -1,11 +1,11 @@
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
 import '../../utils/format.dart';
+import '../../widgets/bottom_glass_overlay.dart';
 import '../../widgets/profile_menu.dart';
 import '../../widgets/soju_date_calendar_sheet.dart';
 import '../profile/models/profile_view_data.dart';
@@ -102,80 +102,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: SizedBox(
                 width: contentWidth,
                 height: constraints.maxHeight,
-                child: Stack(
-                  children: <Widget>[
-                    Positioned.fill(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: <Widget>[
-                            DashboardTopBar(
-                              scale: scale,
-                              topInset: topInset,
-                              searchHint: widget.data.searchHint,
-                              avatarAsset: widget.data.avatarAsset,
-                              onAvatarTap: widget.onAvatarTap ??
-                                  () => showProfileMenu(
-                                        context,
-                                        data: widget.profile,
-                                        onLogout: widget.onLogout,
-                                      ),
-                              onSearchTap: widget.onSearchTap,
-                              onNotificationTap: widget.onNotificationTap,
-                            ),
-                            SizedBox(height: 16 * scale),
-                            _buildMetrics(scale),
-                            SizedBox(height: 32 * scale),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16 * scale,
-                              ),
-                              child: RevenueChartCard(
-                                scale: scale,
-                                data: _selectedRange == null
-                                    ? widget.data.revenue
-                                    : widget.data.revenue.copyWith(
-                                        dateLabel: _dateLabel,
-                                      ),
-                                onTap: widget.onAnalyticsTap ??
-                                    widget.onSeeAllActivities,
-                                onDateTap: _pickDate,
-                              ),
-                            ),
-                            SizedBox(height: 32 * scale),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16 * scale,
-                              ),
-                              child: AiAssistantCard(
-                                scale: scale,
-                                data: widget.data.assistant,
-                                onQuickCommand: widget.onQuickCommand,
-                                onSubmit: widget.onSendCommand,
-                              ),
-                            ),
-                            SizedBox(height: 15 * scale),
-                            _buildActivitiesHeader(scale),
-                            SizedBox(height: 15 * scale),
-                            _buildActivities(scale),
-                            // Ruang agar item terakhir bisa digulir melewati
-                            // lapisan glossy di bawah.
-                            SizedBox(height: (24 + 137) * scale),
-                          ],
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      DashboardTopBar(
+                        scale: scale,
+                        topInset: topInset,
+                        searchHint: widget.data.searchHint,
+                        avatarAsset: widget.data.avatarAsset,
+                        onAvatarTap: widget.onAvatarTap ??
+                            () => showProfileMenu(
+                                  context,
+                                  data: widget.profile,
+                                  onLogout: widget.onLogout,
+                                ),
+                        onSearchTap: widget.onSearchTap,
+                        onNotificationTap: widget.onNotificationTap,
+                      ),
+                      SizedBox(height: 16 * scale),
+                      _buildMetrics(scale),
+                      SizedBox(height: 32 * scale),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16 * scale,
+                        ),
+                        child: RevenueChartCard(
+                          scale: scale,
+                          data: _selectedRange == null
+                              ? widget.data.revenue
+                              : widget.data.revenue.copyWith(
+                                  dateLabel: _dateLabel,
+                                ),
+                          onTap: widget.onAnalyticsTap ??
+                              widget.onSeeAllActivities,
+                          onDateTap: _pickDate,
                         ),
                       ),
-                    ),
-                    // Node Figma `586:1740`: lapisan glossy tipis di bawah
-                    // Beranda, tepat di atas navbar.
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: IgnorePointer(
-                        child: _HomeBottomGloss(scale: scale),
+                      SizedBox(height: 32 * scale),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16 * scale,
+                        ),
+                        child: AiAssistantCard(
+                          scale: scale,
+                          data: widget.data.assistant,
+                          onQuickCommand: widget.onQuickCommand,
+                          onSubmit: widget.onSendCommand,
+                        ),
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 15 * scale),
+                      _buildActivitiesHeader(scale),
+                      SizedBox(height: 15 * scale),
+                      _buildActivities(scale),
+                      // Ruang agar item terakhir bisa digulir melewati
+                      // lapisan kaca di bawah.
+                      SizedBox(height: kBottomContentInset * scale),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -268,42 +252,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16 * scale),
       child: Column(children: children),
-    );
-  }
-}
-
-/// Lapisan glossy tipis di bawah Beranda (Figma `586:1740`).
-///
-/// Gradien putih 20% -> 5% dengan blur halus, bukan blok putih solid, agar
-/// daftar aktivitas memudar lembut di atas navbar.
-class _HomeBottomGloss extends StatelessWidget {
-  const _HomeBottomGloss({required this.scale});
-
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRect(
-      child: ImageFiltered(
-        imageFilter: ImageFilter.blur(
-          sigmaX: 2.45 * scale,
-          sigmaY: 2.45 * scale,
-        ),
-        child: Container(
-          key: const Key('home_bottom_gloss'),
-          height: 137 * scale,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: <Color>[
-                Color(0x33FFFFFF),
-                Color(0x0DFFFFFF),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

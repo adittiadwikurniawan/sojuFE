@@ -146,6 +146,41 @@ abstract final class SojuColors {
   /// Ikon dan label tab navbar yang tidak aktif.
   static const Color navInactive = Color(0xFFB3B3B3);
 
+  // --- Notifikasi (frame `546:1841`) ---
+
+  /// Latar banner peringatan mendesak.
+  static const Color notificationUrgentBg = Color(0xFFFFDAD6);
+
+  /// Teks judul/isi banner peringatan mendesak.
+  static const Color notificationUrgentInk = Color(0xFF93000A);
+
+  /// Aksen ikon, badge, dan tombol pada banner peringatan.
+  static const Color notificationUrgent = Color(0xFFBA1A1A);
+
+  /// Judul kartu notifikasi.
+  static const Color notificationTitle = Color(0xFF191C1E);
+
+  /// Isi dan metadata kartu notifikasi.
+  static const Color notificationBody = Color(0xFF424655);
+
+  /// Titik pemisah metadata kartu notifikasi.
+  static const Color notificationBullet = Color(0xFFC2C6D8);
+
+  /// Tautan kategori dan jumlah belum dibaca.
+  static const Color notificationBlue = Color(0xFF0051D2);
+
+  /// Latar ikon notifikasi tagihan supplier.
+  static const Color notificationSupplierBg = Color(0xFFDCE1FF);
+
+  /// Ikon notifikasi tagihan supplier.
+  static const Color notificationSupplierInk = Color(0xFF263F91);
+
+  /// Latar tombol sekunder "Abaikan".
+  static const Color notificationSecondaryBg = Color(0xFFECEEF0);
+
+  /// Bayangan halus kartu notifikasi.
+  static const Color notificationCardShadow = Color(0x14000000);
+
   // --- Audit (frame `546:4741`) ---
 
   /// Latar lembut badge aksi "Diubah" pada log audit.

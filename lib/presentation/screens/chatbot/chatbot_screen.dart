@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
+import '../../widgets/bottom_glass_overlay.dart';
 import 'models/chat_draft.dart';
 import 'models/chatbot_view_data.dart';
 import 'widgets/chat_conversation_view.dart';
@@ -129,7 +130,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   Widget _buildHome(double scale) {
     return SingleChildScrollView(
       child: Padding(
-        padding: EdgeInsets.only(top: 12 * scale, bottom: 24 * scale),
+        padding: EdgeInsets.only(
+          top: 12 * scale,
+          bottom: kBottomContentInset * scale,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[

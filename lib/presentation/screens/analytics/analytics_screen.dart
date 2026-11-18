@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
 import '../../widgets/bar_chart_card.dart';
+import '../../widgets/bottom_glass_overlay.dart';
 import '../../widgets/date_filter_card.dart';
 import '../../widgets/profile_menu.dart';
 import '../../widgets/soju_date_calendar_sheet.dart';
+import '../dashboard/models/dashboard_view_data.dart';
+import '../dashboard/widgets/activity_tile.dart';
 import '../profile/models/profile_view_data.dart';
 import 'models/analytics_export_request.dart';
 import 'models/analytics_filter.dart';
@@ -42,6 +45,9 @@ class AnalyticsScreen extends StatefulWidget {
     this.onAvatarTap,
     this.onNotificationTap,
     this.onAddTap,
+    this.activities,
+    this.onActivityTap,
+    this.onSeeAllActivities,
     this.profile = ProfileViewData.sample,
     this.onLogout,
   });
@@ -56,6 +62,15 @@ class AnalyticsScreen extends StatefulWidget {
   final VoidCallback? onAvatarTap;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onAddTap;
+
+  /// Aktivitas terbaru; bawaannya data contoh Beranda.
+  final List<DashboardActivityData>? activities;
+
+  /// Membuka detail satu aktivitas.
+  final ValueChanged<DashboardActivityData>? onActivityTap;
+
+  /// Aksi "Lihat Semua" pada bagian aktivitas.
+  final VoidCallback? onSeeAllActivities;
 
   /// Akun aktif untuk menu Profil / Menu Akun.
   final ProfileViewData profile;
@@ -150,7 +165,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         16 * scale,
                         18 * scale,
                         16 * scale,
-                        32 * scale,
+                        kBottomContentInset * scale,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,6 +247,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           ),
                           SizedBox(height: 12 * scale),
                           _buildTransactionList(scale, visible),
+                          SizedBox(height: 22 * scale),
+                          _buildActivityHeader(scale),
+                          SizedBox(height: 12 * scale),
+                          _buildActivityList(scale),
                         ],
                       ),
                     ),
@@ -356,6 +375,66 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildActivityHeader(double scale) {
+    return Row(
+      children: <Widget>[
+        Text(
+          'Aktivitas',
+          style: TextStyle(
+            fontFamily: AppTypography.wordmarkFamily,
+            fontSize: 18 * scale,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const Spacer(),
+        GestureDetector(
+          onTap: widget.onSeeAllActivities,
+          child: Text(
+            'Lihat Semua',
+            style: TextStyle(
+              fontFamily: AppTypography.wordmarkFamily,
+              fontSize: 14 * scale,
+              fontWeight: FontWeight.w500,
+              color: SojuColors.badgeBlue,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActivityList(double scale) {
+    final List<DashboardActivityData> activities =
+        widget.activities ?? DashboardViewData.sample.activities;
+    final List<Widget> children = <Widget>[];
+
+    for (int i = 0; i < activities.length; i++) {
+      if (i > 0) {
+        children.add(SizedBox(height: 8 * scale));
+        children.add(
+          Container(
+            height: 1,
+            color: const Color(0xCCC1C1C1),
+          ),
+        );
+        children.add(SizedBox(height: 8 * scale));
+      }
+      final DashboardActivityData activity = activities[i];
+      children.add(
+        ActivityTile(
+          scale: scale,
+          data: activity,
+          onDetail: widget.onActivityTap == null
+              ? null
+              : () => widget.onActivityTap!(activity),
+        ),
+      );
+    }
+
+    return Column(children: children);
   }
 
   void _onQueryChanged(String value) {

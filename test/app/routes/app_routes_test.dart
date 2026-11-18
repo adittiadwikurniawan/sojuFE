@@ -10,6 +10,7 @@ import 'package:soju_fe/presentation/screens/audit/widgets/audit_top_bar.dart';
 import 'package:soju_fe/presentation/screens/chatbot/chatbot_screen.dart';
 import 'package:soju_fe/presentation/screens/dashboard/dashboard_screen.dart';
 import 'package:soju_fe/presentation/screens/free_tables/free_table_category_screen.dart';
+import 'package:soju_fe/presentation/screens/notifications/notifications_screen.dart';
 import 'package:soju_fe/presentation/screens/onboarding/splash_screen.dart';
 import 'package:soju_fe/presentation/widgets/bottom_nav_bar.dart';
 
@@ -89,6 +90,38 @@ void main() {
     expect(find.byType(AuditTopBar), findsNothing);
     // Label navbar tetap ada, tetapi halaman audit sudah tidak terbuka.
     expect(find.text('Audit & Stok'), findsOneWidget);
+  });
+
+  testWidgets('tombol notifikasi membuka halaman notifikasi tanpa navbar', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final GoRouter router = AppRouter.create(
+      initialLocation: AppRoutes.dashboard,
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: router),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.notifications_none));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NotificationsScreen), findsOneWidget);
+    expect(find.text('Notifikasi'), findsOneWidget);
+    expect(find.text('HARI INI'), findsOneWidget);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byKey(const Key('bottom_glass_overlay')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('notifications_back')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NotificationsScreen), findsNothing);
+    expect(find.byType(DashboardScreen), findsOneWidget);
   });
 
   testWidgets('rute Tabel Bebas membuka modal tanpa navbar', (
@@ -190,6 +223,9 @@ void main() {
     // navbar akan terlihat sebagai strip putih kosong.
     final Scaffold shell = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(shell.backgroundColor, SojuColors.homeBackground);
+    expect(shell.extendBody, isTrue);
+    expect(find.byKey(const Key('bottom_glass_overlay')), findsOneWidget);
+    expect(find.byType(BackdropFilter), findsWidgets);
     // Regresi: navbar tidak boleh mengembang memenuhi layar dan membuat body
     // Beranda setinggi 0 px (tampilan blank).
     expect(tester.getSize(nav).height, lessThan(200));
