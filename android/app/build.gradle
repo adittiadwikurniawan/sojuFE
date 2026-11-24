@@ -39,6 +39,12 @@ android {
     }
 }
 
+dependencies {
+    // flutter_secure_storage 8.1.0 membawa Tink lama yang bermasalah saat
+    // R8 release. Versi 1.9.0 adalah versi yang dipakai perbaikan upstream.
+    implementation 'com.google.crypto.tink:tink-android:1.9.0'
+}
+
 flutter {
     source = "../.."
 }

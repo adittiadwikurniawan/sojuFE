@@ -9,6 +9,7 @@ import 'package:soju_fe/presentation/widgets/profile_menu.dart';
 void main() {
   Future<void> pumpMenu(
     WidgetTester tester, {
+    VoidCallback? onViewProfile,
     VoidCallback? onLogout,
   }) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
@@ -23,6 +24,7 @@ void main() {
                 onPressed: () => showProfileMenu(
                   context,
                   data: ProfileViewData.sample,
+                  onViewProfile: onViewProfile,
                   onLogout: onLogout,
                 ),
                 child: const Text('Buka profil'),
@@ -36,20 +38,35 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('menampilkan nama, email, role, dan hanya aksi Keluar', (
+  testWidgets('menampilkan identitas, Lihat Profil, dan Keluar', (
     WidgetTester tester,
   ) async {
-    await pumpMenu(tester);
+    await pumpMenu(tester, onViewProfile: () {});
 
     expect(find.byKey(const Key('profile_menu_card')), findsOneWidget);
     expect(find.text('Adittia'), findsOneWidget);
     expect(find.text('adittia@sojucorp.com'), findsOneWidget);
     expect(find.text('Owner'), findsOneWidget);
+    expect(find.text('Lihat Profil'), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
     expect(find.text('Keluar'), findsOneWidget);
 
     // Sesuai PRD, pengelolaan akun belum tersedia.
     expect(find.text('Tambah Akun'), findsNothing);
     expect(find.text('Kelola Akun'), findsNothing);
+  });
+
+  testWidgets('Lihat Profil menutup menu dan memanggil callback', (
+    WidgetTester tester,
+  ) async {
+    int viewProfileCount = 0;
+    await pumpMenu(tester, onViewProfile: () => viewProfileCount++);
+
+    await tester.tap(find.byKey(const Key('profile_view_profile')));
+    await tester.pumpAndSettle();
+
+    expect(viewProfileCount, 1);
+    expect(find.byKey(const Key('profile_menu_card')), findsNothing);
   });
 
   testWidgets('Keluar membuka dialog konfirmasi dan Batal tidak memanggil aksi',

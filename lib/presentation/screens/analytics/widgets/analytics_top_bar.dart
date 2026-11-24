@@ -11,9 +11,8 @@ class AnalyticsTopBar extends StatelessWidget {
     super.key,
     required this.scale,
     required this.topInset,
-    required this.avatarAsset,
     this.title = 'Analytics',
-    this.onAvatarTap,
+    this.onBack,
     this.onNotificationTap,
     this.onAddTap,
   });
@@ -23,9 +22,8 @@ class AnalyticsTopBar extends StatelessWidget {
   /// Tinggi area status bar agar posisi konten mengikuti desain.
   final double topInset;
 
-  final String avatarAsset;
   final String title;
-  final VoidCallback? onAvatarTap;
+  final VoidCallback? onBack;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onAddTap;
 
@@ -58,17 +56,11 @@ class AnalyticsTopBar extends StatelessWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                GestureDetector(
-                  key: const Key('analytics_avatar'),
-                  onTap: onAvatarTap,
-                  child: ClipOval(
-                    child: Image.asset(
-                      avatarAsset,
-                      width: 52 * scale,
-                      height: 52 * scale,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                _CircleButton(
+                  key: const Key('analytics_back'),
+                  scale: scale,
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onTap: onBack,
                 ),
                 const Spacer(),
                 _CircleButton(
@@ -103,6 +95,7 @@ class AnalyticsTopBar extends StatelessWidget {
 
 class _CircleButton extends StatelessWidget {
   const _CircleButton({
+    super.key,
     required this.scale,
     required this.icon,
     this.showDot = false,

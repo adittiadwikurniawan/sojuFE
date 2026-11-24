@@ -36,6 +36,14 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   go_router: ^15.1.2
+  http: ^1.6.0
+  # Pin 8.1.0: AGP 8.1.1, cocok dengan Gradle 8.3 / Flutter 3.24 dan tidak
+  # terkena regresi keychain iOS pada seri 9.x. Versi 9.2+ menuntut Gradle 8.4+.
+  flutter_secure_storage: 8.1.0
+  google_sign_in: ^6.2.2
+  # Pin implementasi Android yang masih memakai AGP lama. Versi baru
+  # google_sign_in_android menuntut AGP 8.5/Gradle 8.7.
+  google_sign_in_android: 6.1.26
 
 dev_dependencies:
   flutter_test:

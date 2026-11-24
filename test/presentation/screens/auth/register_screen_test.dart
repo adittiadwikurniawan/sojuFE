@@ -1,4 +1,4 @@
-// Widget test: layar Daftar (register).
+// Widget test: layar Daftar Pelanggan (register).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,7 +13,7 @@ void main() {
     ValueChanged<RegisterFormData>? onSubmit,
     VoidCallback? onLoginTap,
   }) async {
-    await tester.binding.setSurfaceSize(const Size(430, 932));
+    await tester.binding.setSurfaceSize(const Size(430, 1100));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
@@ -26,32 +26,38 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('Daftar menampilkan header, empat medan isian, dan tombol', (
+  testWidgets('Daftar menampilkan header, medan Pelanggan lengkap, dan tombol', (
     WidgetTester tester,
   ) async {
     await pumpScreen(tester);
 
     expect(find.text('Selamat Datang di Buku Kita'), findsOneWidget);
+    expect(find.text('Pendaftaran khusus akun Pelanggan.'), findsOneWidget);
     expect(find.text('Daftar'), findsWidgets);
     expect(find.text('Masuk'), findsOneWidget);
     expect(find.text('Masukkan Nama Kamu'), findsOneWidget);
     expect(find.text('Masukkan Email Kamu'), findsOneWidget);
+    expect(find.text('Masukkan Nomor Telepon'), findsOneWidget);
+    expect(find.text('Masukkan Alamat Lengkap'), findsOneWidget);
     expect(find.text('Masukkan password'), findsOneWidget);
     expect(find.text('Konfirmasi password'), findsOneWidget);
     expect(find.byType(Checkbox), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Daftar'), findsOneWidget);
   });
 
-  testWidgets('Daftar menampilkan galat saat isian kosong', (
+  testWidgets('Daftar menampilkan galat Bahasa Indonesia saat isian kosong', (
     WidgetTester tester,
   ) async {
     await pumpScreen(tester);
 
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Daftar'));
     await tester.tap(find.widgetWithText(FilledButton, 'Daftar'));
     await tester.pump();
 
     expect(find.text('Nama minimal 2 karakter'), findsOneWidget);
     expect(find.text('Email wajib diisi'), findsOneWidget);
+    expect(find.text('Nomor telepon wajib diisi'), findsOneWidget);
+    expect(find.text('Alamat wajib diisi'), findsOneWidget);
     expect(find.text('Password minimal 8 karakter'), findsOneWidget);
     expect(
       find.text('Setujui syarat & ketentuan dulu ya'),
@@ -59,7 +65,7 @@ void main() {
     );
   });
 
-  testWidgets('Daftar meneruskan isian valid lewat onSubmit', (
+  testWidgets('Daftar meneruskan isian Pelanggan valid lewat onSubmit', (
     WidgetTester tester,
   ) async {
     RegisterFormData? submitted;
@@ -73,17 +79,27 @@ void main() {
       find.byType(TextFormField).at(1),
       'budi@contoh.com',
     );
-    await tester.enterText(find.byType(TextFormField).at(2), 'rahasia123');
-    await tester.enterText(find.byType(TextFormField).at(3), 'rahasia123');
+    await tester.enterText(find.byType(TextFormField).at(2), '081234567890');
+    await tester.enterText(
+      find.byType(TextFormField).at(3),
+      'Jl. Melati No. 10, Bandung',
+    );
+    await tester.enterText(find.byType(TextFormField).at(4), 'rahasia123');
+    await tester.enterText(find.byType(TextFormField).at(5), 'rahasia123');
+
+    await tester.ensureVisible(find.byType(Checkbox));
     await tester.tap(find.byType(Checkbox));
     await tester.pump();
 
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Daftar'));
     await tester.tap(find.widgetWithText(FilledButton, 'Daftar'));
     await tester.pump();
 
     expect(submitted, isNotNull);
     expect(submitted!.name, 'Budi');
     expect(submitted!.email, 'budi@contoh.com');
+    expect(submitted!.phone, '081234567890');
+    expect(submitted!.address, 'Jl. Melati No. 10, Bandung');
     expect(submitted!.acceptedTerms, isTrue);
   });
 
@@ -100,7 +116,7 @@ void main() {
   testWidgets('Daftar membuka beranda setelah isian valid', (
     WidgetTester tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(430, 932));
+    await tester.binding.setSurfaceSize(const Size(430, 1100));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
@@ -117,11 +133,19 @@ void main() {
       find.byType(TextFormField).at(1),
       'budi@contoh.com',
     );
-    await tester.enterText(find.byType(TextFormField).at(2), 'rahasia123');
-    await tester.enterText(find.byType(TextFormField).at(3), 'rahasia123');
+    await tester.enterText(find.byType(TextFormField).at(2), '081234567890');
+    await tester.enterText(
+      find.byType(TextFormField).at(3),
+      'Jl. Melati No. 10, Bandung',
+    );
+    await tester.enterText(find.byType(TextFormField).at(4), 'rahasia123');
+    await tester.enterText(find.byType(TextFormField).at(5), 'rahasia123');
+
+    await tester.ensureVisible(find.byType(Checkbox));
     await tester.tap(find.byType(Checkbox));
     await tester.pump();
 
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Daftar'));
     await tester.tap(find.widgetWithText(FilledButton, 'Daftar'));
     await tester.pumpAndSettle();
 

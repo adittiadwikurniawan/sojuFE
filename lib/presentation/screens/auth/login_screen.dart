@@ -4,25 +4,31 @@ import 'package:flutter/material.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
+import '../../../domain/entities/auth_session_entity.dart';
 import 'models/login_form_data.dart';
-import 'widgets/auth_divider.dart';
 import 'widgets/auth_header.dart';
+import 'widgets/auth_portal_selector.dart';
 import 'widgets/auth_primary_button.dart';
-import 'widgets/auth_secondary_button.dart';
 import 'widgets/auth_text_field.dart';
 
-/// Layar Masuk (frame Figma `546:1497`).
-///
-/// Formulir hanya mengumpulkan isian lalu meneruskannya lewat [onSubmit];
-/// pemanggilan API dan penanganan hasil berada di luar layar ini.
+/// Layar Masuk (frame Figma `546:1497`) dengan dukungan pemilihan peran
+/// `Admin` (`/api/v1/auth/login`) dan `Pelanggan` (`/api/customer/auth/masuk`).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
+    this.initialPortal = AuthPortal.admin,
     this.onSubmit,
     this.onRegisterTap,
     this.onForgotPassword,
-    this.onGoogleLogin,
+    this.onForgotPasswordWithPortal,
+    this.onPortalChanged,
+    this.isLoading = false,
+    this.errorMessage,
+    this.onFieldChanged,
   });
+
+  /// Jalur akun awal saat layar ditampilkan.
+  final AuthPortal initialPortal;
 
   /// Dipanggil saat isian valid.
   final ValueChanged<LoginFormData>? onSubmit;
@@ -30,11 +36,23 @@ class LoginScreen extends StatefulWidget {
   /// Dipanggil saat tab "Daftar" ditekan.
   final VoidCallback? onRegisterTap;
 
-  /// Dipanggil saat tautan "Lupa password?" ditekan.
+  /// Dipanggil saat tautan "Lupa password?" ditekan (kompatibilitas lama).
   final VoidCallback? onForgotPassword;
 
-  /// Dipanggil saat tombol masuk lewat Google ditekan.
-  final VoidCallback? onGoogleLogin;
+  /// Dipanggil saat tautan "Lupa password?" ditekan dengan membawa peran terpilih.
+  final ValueChanged<AuthPortal>? onForgotPasswordWithPortal;
+
+  /// Dipanggil saat pengguna mengganti jalur `Admin` / `Pelanggan`.
+  final ValueChanged<AuthPortal>? onPortalChanged;
+
+  /// Menampilkan indikator proses pada tombol Masuk.
+  final bool isLoading;
+
+  /// Pesan galat dari controller auth.
+  final String? errorMessage;
+
+  /// Dipanggil saat isian berubah, biasanya untuk menghapus galat lama.
+  final VoidCallback? onFieldChanged;
 
   /// Lebar desain acuan (frame Figma 430px).
   static const double designWidth = 430;
@@ -47,12 +65,14 @@ class _LoginScreenState extends State<LoginScreen>
     with AutomaticKeepAliveClientMixin<LoginScreen> {
   @override
   bool get wantKeepAlive => true;
+
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   static final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
+  late AuthPortal _selectedPortal = widget.initialPortal;
   bool _obscurePassword = true;
 
   @override
@@ -68,7 +88,24 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  void _handlePortalChanged(AuthPortal portal) {
+    setState(() => _selectedPortal = portal);
+    widget.onFieldChanged?.call();
+    widget.onPortalChanged?.call(portal);
+  }
+
+  void _handleForgotPassword() {
+    if (widget.onForgotPasswordWithPortal != null) {
+      widget.onForgotPasswordWithPortal!(_selectedPortal);
+      return;
+    }
+    widget.onForgotPassword?.call();
+  }
+
   void _submit() {
+    if (widget.isLoading) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -78,6 +115,7 @@ class _LoginScreenState extends State<LoginScreen>
       LoginFormData(
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        portal: _selectedPortal,
       ),
     );
   }
@@ -93,6 +131,10 @@ class _LoginScreenState extends State<LoginScreen>
         );
         final double scale = contentWidth / LoginScreen.designWidth;
 
+        final String subtitle = _selectedPortal == AuthPortal.customer
+            ? 'Masuk sebagai pelanggan untuk memesan menu favoritmu.'
+            : 'Masuk untuk melanjutkan mengelola keuangan dan stok tokomu.';
+
         return Align(
           alignment: Alignment.topCenter,
           child: SizedBox(
@@ -107,15 +149,14 @@ class _LoginScreenState extends State<LoginScreen>
                   AuthHeader(
                     scale: scale,
                     title: 'Selamat Datang di Buku Kita',
-                    subtitle: 'Masuk untuk melanjutkan mengelola keuangan dan '
-                        'stok tokomu.',
+                    subtitle: subtitle,
                     activeTab: AuthTab.login,
                     onTabSelected: _handleTabSelected,
                   ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       20 * scale,
-                      32 * scale,
+                      24 * scale,
                       20 * scale,
                       0,
                     ),
@@ -125,6 +166,13 @@ class _LoginScreenState extends State<LoginScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
+                            AuthPortalSelector(
+                              scale: scale,
+                              selectedPortal: _selectedPortal,
+                              enabled: !widget.isLoading,
+                              onChanged: _handlePortalChanged,
+                            ),
+                            SizedBox(height: 16 * scale),
                             AuthTextField(
                               scale: scale,
                               controller: _emailController,
@@ -135,6 +183,7 @@ class _LoginScreenState extends State<LoginScreen>
                               autofillHints: const <String>[
                                 AutofillHints.email,
                               ],
+                              onChanged: (_) => widget.onFieldChanged?.call(),
                               validator: (String? value) {
                                 final String email = value?.trim() ?? '';
                                 if (email.isEmpty) {
@@ -160,6 +209,7 @@ class _LoginScreenState extends State<LoginScreen>
                               autofillHints: const <String>[
                                 AutofillHints.password,
                               ],
+                              onChanged: (_) => widget.onFieldChanged?.call(),
                               onFieldSubmitted: (_) => _submit(),
                               validator: (String? value) {
                                 if ((value ?? '').isEmpty) {
@@ -171,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen>
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: widget.onForgotPassword,
+                                onPressed: _handleForgotPassword,
                                 style: TextButton.styleFrom(
                                   foregroundColor: SojuColors.link,
                                   padding: EdgeInsets.symmetric(
@@ -191,18 +241,25 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                             SizedBox(height: 8 * scale),
+                            if (widget.errorMessage != null) ...<Widget>[
+                              Text(
+                                widget.errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: AppTypography.family,
+                                  fontSize: 13 * scale,
+                                  height: 1.4,
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(height: 12 * scale),
+                            ],
                             AuthPrimaryButton(
                               scale: scale,
                               label: 'Masuk',
+                              isLoading: widget.isLoading,
                               onPressed: _submit,
-                            ),
-                            SizedBox(height: 24 * scale),
-                            AuthDivider(scale: scale),
-                            SizedBox(height: 24 * scale),
-                            AuthSecondaryButton(
-                              scale: scale,
-                              label: 'Lanjutkan dengan Google',
-                              onPressed: widget.onGoogleLogin,
                             ),
                           ],
                         ),

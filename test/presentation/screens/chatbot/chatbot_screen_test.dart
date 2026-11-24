@@ -161,13 +161,10 @@ void main() {
 
     final Finder composer = find.byKey(const Key('chat_composer'));
     expect(composer, findsOneWidget);
-    // Safe area bawah sudah dihitung oleh jarak ke navbar, bukan ditambahkan
-    // lagi di dalam kartu composer.
+    // Composer menempel di bagian bawah tampilan, tanpa ruang reservasi
+    // navbar yang membuat area kosong berlebihan.
     expect(tester.getSize(composer).height, lessThanOrEqualTo(90));
-    expect(
-      tester.getBottomLeft(composer).dy,
-      lessThanOrEqualTo(932 - 114 - 34 + 1),
-    );
+    expect(tester.getBottomLeft(composer).dy, lessThanOrEqualTo(932));
   });
 
   testWidgets('saran cepat mengirim pesan contoh tanpa backend', (

@@ -5,8 +5,7 @@ import '../../../../core/themes/soju_colors.dart';
 
 /// Tombol sekunder pada layar auth: latar putih dengan garis tepi.
 ///
-/// Dipakai tombol "Lanjutkan dengan Google" (frame `546:1497`, node
-/// `546:1536`) dan tombol "Batalkan" (frame `546:1361`, node `546:1418`).
+/// Dipakai oleh tombol aksi sekunder seperti "Batalkan" atau "Kirim ulang tautan".
 class AuthSecondaryButton extends StatelessWidget {
   const AuthSecondaryButton({
     super.key,

@@ -26,7 +26,9 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('Masuk menampilkan header, medan isian, dan opsi masuk lain', (
+  testWidgets(
+      'Masuk menampilkan header, pemilih peran, dan menyembunyikan opsi sosial tidak didukung',
+      (
     WidgetTester tester,
   ) async {
     await pumpScreen(tester);
@@ -38,8 +40,9 @@ void main() {
     expect(find.text('Masukkan password'), findsOneWidget);
     expect(find.text('Lupa password?'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Masuk'), findsOneWidget);
-    expect(find.text('atau'), findsOneWidget);
-    expect(find.text('Lanjutkan dengan Google'), findsOneWidget);
+    expect(find.text('atau'), findsNothing);
+    expect(find.textContaining('Google'), findsNothing);
+    expect(find.byType(OutlinedButton), findsNothing);
   });
 
   testWidgets('Masuk menampilkan galat saat isian kosong', (

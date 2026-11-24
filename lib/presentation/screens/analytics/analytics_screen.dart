@@ -8,10 +8,8 @@ import '../../widgets/activity_tile.dart';
 import '../../widgets/bar_chart_card.dart';
 import '../../widgets/bottom_glass_overlay.dart';
 import '../../widgets/date_filter_card.dart';
-import '../../widgets/profile_menu.dart';
 import '../../widgets/soju_date_calendar_sheet.dart';
 import '../dashboard/models/dashboard_view_data.dart';
-import '../profile/models/profile_view_data.dart';
 import 'models/analytics_export_request.dart';
 import 'models/analytics_filter.dart';
 import 'models/analytics_format.dart';
@@ -42,14 +40,12 @@ class AnalyticsScreen extends StatefulWidget {
     this.data,
     this.onExportExcel,
     this.onTransactionTap,
-    this.onAvatarTap,
+    this.onBack,
     this.onNotificationTap,
     this.onAddTap,
     this.activities,
     this.onActivityTap,
     this.onSeeAllActivities,
-    this.profile = ProfileViewData.sample,
-    this.onLogout,
   });
 
   /// Data tampilan; bawaannya [AnalyticsViewData.sample].
@@ -59,7 +55,7 @@ class AnalyticsScreen extends StatefulWidget {
   final Future<void> Function(AnalyticsExportRequest request)? onExportExcel;
 
   final ValueChanged<AnalyticsTransaction>? onTransactionTap;
-  final VoidCallback? onAvatarTap;
+  final VoidCallback? onBack;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onAddTap;
 
@@ -71,12 +67,6 @@ class AnalyticsScreen extends StatefulWidget {
 
   /// Aksi "Lihat Semua" pada bagian aktivitas.
   final VoidCallback? onSeeAllActivities;
-
-  /// Akun aktif untuk menu Profil / Menu Akun.
-  final ProfileViewData profile;
-
-  /// Aksi setelah pengguna mengonfirmasi Keluar.
-  final VoidCallback? onLogout;
 
   @override
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
@@ -149,13 +139,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   AnalyticsTopBar(
                     scale: scale,
                     topInset: topInset,
-                    avatarAsset: _data.avatarAsset,
-                    onAvatarTap: widget.onAvatarTap ??
-                        () => showProfileMenu(
-                              context,
-                              data: widget.profile,
-                              onLogout: widget.onLogout,
-                            ),
+                    onBack: widget.onBack,
                     onNotificationTap: widget.onNotificationTap,
                     onAddTap: widget.onAddTap,
                   ),

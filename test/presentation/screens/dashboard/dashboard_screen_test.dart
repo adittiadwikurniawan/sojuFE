@@ -31,9 +31,13 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     int analyticsCount = 0;
+    int viewProfileCount = 0;
     await tester.pumpWidget(
       MaterialApp(
-        home: DashboardScreen(onAnalyticsTap: () => analyticsCount++),
+        home: DashboardScreen(
+          onAnalyticsTap: () => analyticsCount++,
+          onViewProfile: () => viewProfileCount++,
+        ),
       ),
     );
     await tester.pump();
@@ -58,8 +62,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Adittia'), findsOneWidget);
     expect(find.text('adittia@sojucorp.com'), findsOneWidget);
+    expect(find.text('Lihat Profil'), findsOneWidget);
     expect(find.text('Tambah Akun'), findsNothing);
     expect(find.text('Kelola Akun'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('profile_view_profile')));
+    await tester.pumpAndSettle();
+    expect(viewProfileCount, 1);
   });
 
   testWidgets('Beranda merender data dari model, bukan hardcode', (

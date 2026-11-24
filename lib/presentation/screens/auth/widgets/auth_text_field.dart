@@ -24,6 +24,7 @@ class AuthTextField extends StatelessWidget {
     this.autofillHints,
     this.inputFormatters,
     this.onFieldSubmitted,
+    this.onChanged,
     this.enabled = true,
   });
 
@@ -44,6 +45,7 @@ class AuthTextField extends StatelessWidget {
   final Iterable<String>? autofillHints;
   final List<TextInputFormatter>? inputFormatters;
   final ValueChanged<String>? onFieldSubmitted;
+  final ValueChanged<String>? onChanged;
   final bool enabled;
 
   @override
@@ -63,6 +65,7 @@ class AuthTextField extends StatelessWidget {
       autofillHints: autofillHints,
       inputFormatters: inputFormatters,
       onFieldSubmitted: onFieldSubmitted,
+      onChanged: onChanged,
       style: TextStyle(
         fontFamily: AppTypography.family,
         fontSize: 18 * scale,

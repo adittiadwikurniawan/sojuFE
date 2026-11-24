@@ -34,6 +34,7 @@ class DashboardScreen extends StatefulWidget {
     this.onActivityDetail,
     this.onAnalyticsTap,
     this.profile = ProfileViewData.sample,
+    this.onViewProfile,
     this.onLogout,
   });
 
@@ -51,6 +52,9 @@ class DashboardScreen extends StatefulWidget {
 
   /// Akun aktif untuk menu Profil / Menu Akun.
   final ProfileViewData profile;
+
+  /// Membuka layar detail profil dari menu avatar.
+  final VoidCallback? onViewProfile;
 
   /// Aksi setelah pengguna mengonfirmasi Keluar.
   final VoidCallback? onLogout;
@@ -115,6 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             () => showProfileMenu(
                                   context,
                                   data: widget.profile,
+                                  onViewProfile: widget.onViewProfile,
                                   onLogout: widget.onLogout,
                                 ),
                         onSearchTap: widget.onSearchTap,

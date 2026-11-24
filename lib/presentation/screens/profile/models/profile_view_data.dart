@@ -11,12 +11,14 @@ class ProfileViewData {
     required this.email,
     required this.role,
     required this.avatarAsset,
+    this.phone = '0812 3456 7890',
   });
 
   final String name;
   final String email;
   final String role;
   final String avatarAsset;
+  final String phone;
 
   /// Data contoh untuk menu Profil / Menu Akun.
   static const ProfileViewData sample = ProfileViewData(

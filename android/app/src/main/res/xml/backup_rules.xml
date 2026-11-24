@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Jangan cadangkan shared preferences milik flutter_secure_storage.
+  Kunci Keystore tidak ikut tercadang, sehingga restore bisa menghasilkan
+  InvalidKeyException saat membaca token.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="FlutterSecureStorage" />
+    <exclude domain="sharedpref" path="FlutterSecureKeyStorage" />
+</full-backup-content>

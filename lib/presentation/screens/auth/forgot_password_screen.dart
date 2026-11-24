@@ -4,29 +4,40 @@ import 'package:flutter/material.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
+import '../../../domain/entities/auth_session_entity.dart';
+import 'widgets/auth_portal_selector.dart';
 import 'widgets/auth_primary_button.dart';
 import 'widgets/auth_secondary_button.dart';
 import 'widgets/auth_text_field.dart';
 
-/// Layar Lupa Password (frame Figma `546:1361`).
+/// Layar Lupa Password (frame Figma `546:1361`) untuk Admin maupun Pelanggan.
 ///
 /// Dua keadaan dalam satu layar:
-/// 1. pengisian email, lalu
-/// 2. konfirmasi bahwa tautan reset sudah dikirim ke email tersebut.
-///
-/// Layar tidak memanggil API sendiri. Pengiriman tautan diserahkan ke
-/// [onSendResetLink]; bila callback gagal (melempar error) layar menampilkan
-/// pesan galat dan pengguna dapat mencoba lagi.
+/// 1. pemilihan peran (`Admin` / `Pelanggan`) + pengisian email, lalu
+/// 2. konfirmasi bahwa instruksi reset password telah dikirim beserta pintasan
+///    menuju layar input token Atur Ulang Password.
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({
     super.key,
+    this.initialPortal = AuthPortal.admin,
     this.onSendResetLink,
+    this.onRequestReset,
+    this.onOpenResetPassword,
     this.onCancel,
     this.onBackToLogin,
   });
 
-  /// Mengirim tautan reset password ke [email].
+  /// Jalur akun awal (`Admin` atau `Pelanggan`).
+  final AuthPortal initialPortal;
+
+  /// Callback kompatibilitas lama untuk mengirim tautan reset ke [email].
   final Future<void> Function(String email)? onSendResetLink;
+
+  /// Mengirim permintaan reset password ke [email] sesuai [portal].
+  final Future<void> Function(String email, AuthPortal portal)? onRequestReset;
+
+  /// Membuka layar Atur Ulang Password untuk memasukkan token reset.
+  final ValueChanged<AuthPortal>? onOpenResetPassword;
 
   /// Dipanggil saat tombol "Batalkan" atau panah kembali ditekan.
   final VoidCallback? onCancel;
@@ -53,6 +64,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
 
+  late AuthPortal _selectedPortal = widget.initialPortal;
   bool _isSending = false;
   bool _sent = false;
   String? _errorMessage;
@@ -82,9 +94,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
 
     try {
-      final Future<void> Function(String email)? send = widget.onSendResetLink;
-      if (send != null) {
-        await send(_email);
+      if (widget.onRequestReset != null) {
+        await widget.onRequestReset!(_email, _selectedPortal);
+      } else if (widget.onSendResetLink != null) {
+        await widget.onSendResetLink!(_email);
       }
       if (!mounted) {
         return;
@@ -246,14 +259,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         TextSpan(
           children: <InlineSpan>[
             const TextSpan(
-              text: 'Kami telah mengirimkan tautan verifikasi ke ',
+              text: 'Jika akun terdaftar dan aktif, instruksi reset password telah dikirim ke ',
             ),
             TextSpan(
               text: _email,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             const TextSpan(
-              text: '. Klik tautan tersebut untuk memverifikasi akunmu.',
+              text: '. Gunakan token dari email tersebut untuk mengatur ulang password.',
             ),
           ],
         ),
@@ -270,6 +283,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            AuthPortalSelector(
+              scale: scale,
+              selectedPortal: _selectedPortal,
+              enabled: !_isSending,
+              onChanged: (AuthPortal portal) {
+                setState(() {
+                  _selectedPortal = portal;
+                  _errorMessage = null;
+                });
+              },
+            ),
+            SizedBox(height: 16 * scale),
             AuthTextField(
               scale: scale,
               controller: _emailController,
@@ -315,6 +340,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               label: 'Batalkan',
               onPressed: widget.onCancel,
             ),
+            if (widget.onOpenResetPassword != null) ...<Widget>[
+              SizedBox(height: 8 * scale),
+              Center(
+                child: TextButton(
+                  onPressed: _isSending
+                      ? null
+                      : () => widget.onOpenResetPassword!(_selectedPortal),
+                  style: TextButton.styleFrom(
+                    foregroundColor: SojuColors.link,
+                    minimumSize: Size(0, 36 * scale),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: TextStyle(
+                      fontFamily: AppTypography.family,
+                      fontSize: 14 * scale,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  child: const Text('Sudah punya token reset? Atur ulang password'),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -349,11 +395,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         SizedBox(height: 16 * scale),
-        AuthPrimaryButton(
-          scale: scale,
-          label: 'Kembali ke Masuk',
-          onPressed: widget.onBackToLogin ?? () {},
-        ),
+        if (widget.onOpenResetPassword != null) ...<Widget>[
+          AuthPrimaryButton(
+            scale: scale,
+            label: 'Masukkan Token Reset',
+            onPressed: () => widget.onOpenResetPassword!(_selectedPortal),
+          ),
+          SizedBox(height: 12 * scale),
+          AuthSecondaryButton(
+            scale: scale,
+            label: 'Kembali ke Masuk',
+            onPressed: widget.onBackToLogin ?? () {},
+          ),
+        ] else
+          AuthPrimaryButton(
+            scale: scale,
+            label: 'Kembali ke Masuk',
+            onPressed: widget.onBackToLogin ?? () {},
+          ),
         SizedBox(height: 12 * scale),
         AuthSecondaryButton(
           scale: scale,

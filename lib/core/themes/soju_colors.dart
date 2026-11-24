@@ -344,6 +344,38 @@ abstract final class SojuColors {
   /// Latar tombol tambah kolom (@70%).
   static const Color freeTableWhite70 = Color(0xB3FFFFFF);
 
+  // --- Profil / Pusat Bantuan ---
+
+  /// Latar halaman profil dan pengaturan.
+  static const Color profileBackground = Color(0xFFF5F5F5);
+
+  /// Latar kotak ikon menu profil.
+  static const Color profileIconBackground = Color(0xFFDDEDFF);
+
+  /// Teks sekunder / label pada layar profil.
+  static const Color profileMuted = Color(0xFFA1A1A1);
+
+  /// Teks footer versi aplikasi.
+  static const Color profileFooter = Color(0xFFC1C1C1);
+
+  /// Latar kartu topik bantuan.
+  static const Color profileHelpCard = Color(0xFFF5F7FF);
+
+  /// Judul kartu bantuan.
+  static const Color profileHelpTitle = Color(0xFF263154);
+
+  /// Body kartu bantuan.
+  static const Color profileHelpBody = Color(0xFF6C727F);
+
+  /// Track switch notifikasi saat aktif.
+  static const Color profileSwitchActive = Color(0xFF4263EB);
+
+  /// Track switch notifikasi saat nonaktif.
+  static const Color profileSwitchInactive = Color(0xFFE8E8E8);
+
+  /// Latar bidang input pada Akun Saya.
+  static const Color profileFieldBackground = Color(0xFFFFFFFF);
+
   // --- Gradien ---
 
   /// Gradien latar halaman onboarding (langit -> putih).

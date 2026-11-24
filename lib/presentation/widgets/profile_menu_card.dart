@@ -6,19 +6,21 @@ import '../screens/profile/models/profile_view_data.dart';
 
 /// Kartu menu Profil / Menu Akun dari Figma `622:1156` varian `Menu=Terbuka`.
 ///
-/// Sesuai PRD, kartu hanya menampilkan identitas akun aktif dan aksi Keluar.
-/// Baris "Tambah Akun" dan "Kelola Akun" dari desain tidak dirender karena
-/// endpoint pengelolaan akun belum tersedia.
+/// Kartu menampilkan identitas akun aktif, aksi "Lihat Profil" dengan chevron
+/// menuju detail profil, dan aksi Keluar. Baris "Tambah Akun" dan "Kelola Akun"
+/// dari desain tidak dirender karena endpoint pengelolaan akun belum tersedia.
 class ProfileMenuCard extends StatelessWidget {
   const ProfileMenuCard({
     super.key,
     required this.data,
     required this.onLogout,
+    this.onViewProfile,
     this.scale = 1,
   });
 
   final ProfileViewData data;
   final VoidCallback onLogout;
+  final VoidCallback? onViewProfile;
 
   /// Skala dari lebar desain 284 px.
   final double scale;
@@ -113,7 +115,62 @@ class ProfileMenuCard extends StatelessWidget {
             SizedBox(height: 16 * s),
             Container(height: 1, color: SojuColors.profileDivider),
             SizedBox(height: 8 * s),
+            if (onViewProfile != null)
+              _ViewProfileRow(scale: s, onTap: onViewProfile!),
             _LogoutRow(scale: s, onTap: onLogout),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewProfileRow extends StatelessWidget {
+  const _ViewProfileRow({required this.scale, required this.onTap});
+
+  final double scale;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: const Key('profile_view_profile'),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12 * scale),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: 4 * scale,
+          vertical: 8 * scale,
+        ),
+        child: Row(
+          children: <Widget>[
+            SizedBox(
+              width: 35 * scale,
+              height: 35 * scale,
+              child: Icon(
+                Icons.person_outline_rounded,
+                size: 24 * scale,
+                color: Colors.black,
+              ),
+            ),
+            SizedBox(width: 15 * scale),
+            Expanded(
+              child: Text(
+                'Lihat Profil',
+                style: TextStyle(
+                  fontFamily: AppTypography.family,
+                  fontSize: 16 * scale,
+                  height: 1.2,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 24 * scale,
+              color: SojuColors.analyticsMuted,
+            ),
           ],
         ),
       ),
