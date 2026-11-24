@@ -221,7 +221,46 @@ abstract final class AppRouter {
     String initialLocation = AppRoutes.splash,
     AppFeatures features = const AppFeatures(),
     AuthController? authController,
+    CustomerCartController? cartController,
   }) {
+    final CustomerCartController effectiveCartController =
+        cartController ?? DataProviders.customerCartController();
+
+    int? lastLoadedCustomerId;
+    bool wasCustomer = false;
+
+    void syncCartWithAuth() {
+      if (authController == null) return;
+      final AuthState state = authController.state;
+      final bool isCustomer =
+          state.isAuthenticated && state.role == UserRole.customer;
+      final int? customerId = state.user?.id;
+
+      if (isCustomer) {
+        if (!wasCustomer || lastLoadedCustomerId != customerId) {
+          wasCustomer = true;
+          lastLoadedCustomerId = customerId;
+          effectiveCartController.load();
+        }
+      } else {
+        if (wasCustomer ||
+            effectiveCartController.items.isNotEmpty ||
+            effectiveCartController.status != CartStatus.initial) {
+          wasCustomer = false;
+          lastLoadedCustomerId = null;
+          effectiveCartController.reset();
+        }
+      }
+    }
+
+    if (authController != null) {
+      authController.addListener(syncCartWithAuth);
+      if (authController.state.isAuthenticated &&
+          authController.state.role == UserRole.customer) {
+        syncCartWithAuth();
+      }
+    }
+
     return GoRouter(
       initialLocation: initialLocation,
       refreshListenable: authController,
@@ -341,6 +380,7 @@ abstract final class AppRouter {
           builder: (BuildContext context, GoRouterState state, Widget child) {
             return _CustomerShell(
               activeTab: customerNavTabFor(state.uri.path),
+              cartController: effectiveCartController,
               child: child,
             );
           },
@@ -365,10 +405,7 @@ abstract final class AppRouter {
                 catalogControllerFactory: () => CustomerCatalogController(
                   getProducts: DataProviders.getCatalogProducts(),
                 ),
-                cartControllerFactory: () => CustomerCartController(
-                  getCart: DataProviders.getCart(),
-                  saveCart: DataProviders.saveCart(),
-                ),
+                cartController: effectiveCartController,
                 onOpenCart: () => context.go(AppRoutes.customerCart),
               ),
             ),
@@ -376,10 +413,7 @@ abstract final class AppRouter {
               path: AppRoutes.customerCart,
               builder: (BuildContext context, GoRouterState state) =>
                   CustomerCartScreen(
-                controllerFactory: () => CustomerCartController(
-                  getCart: DataProviders.getCart(),
-                  saveCart: DataProviders.saveCart(),
-                ),
+                controller: effectiveCartController,
                 onCheckout: () => context.push(AppRoutes.customerCheckout),
                 onBrowseMenu: () => context.go(AppRoutes.customerMenu),
               ),
@@ -1223,10 +1257,12 @@ class _CustomerShell extends StatelessWidget {
   const _CustomerShell({
     required this.activeTab,
     required this.child,
+    this.cartController,
   });
 
   final CustomerNavTab activeTab;
   final Widget child;
+  final CustomerCartController? cartController;
 
   @override
   Widget build(BuildContext context) {
@@ -1238,12 +1274,25 @@ class _CustomerShell extends StatelessWidget {
         heightFactor: 1,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
-          child: CustomerBottomNavBar(
-            activeTab: activeTab,
-            onTabSelected: (CustomerNavTab tab) {
-              context.go(AppRouter.pathForCustomerTab(tab));
-            },
-          ),
+          child: cartController == null
+              ? CustomerBottomNavBar(
+                  activeTab: activeTab,
+                  onTabSelected: (CustomerNavTab tab) {
+                    context.go(AppRouter.pathForCustomerTab(tab));
+                  },
+                )
+              : ListenableBuilder(
+                  listenable: cartController!,
+                  builder: (BuildContext context, _) {
+                    return CustomerBottomNavBar(
+                      activeTab: activeTab,
+                      cartBadgeCount: cartController!.totalQuantity,
+                      onTabSelected: (CustomerNavTab tab) {
+                        context.go(AppRouter.pathForCustomerTab(tab));
+                      },
+                    );
+                  },
+                ),
         ),
       ),
     );

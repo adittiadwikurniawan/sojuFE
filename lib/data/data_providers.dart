@@ -25,6 +25,7 @@ import 'datasources/remote/storefront_remote_datasource.dart';
 import 'repositories/storefront_repository_impl.dart';
 import '../domain/repositories/storefront_repository.dart';
 import '../domain/usecases/storefront_usecases.dart';
+import '../presentation/providers/storefront/customer_cart_controller.dart';
 import 'repositories/auth_repository_impl.dart';
 import 'repositories/free_table_repository_impl.dart';
 import 'repositories/help_repository_impl.dart';
@@ -53,6 +54,7 @@ abstract final class DataProviders {
       StorefrontRemoteDataSource(apiClient),
       apiOrigin: apiOrigin,
     );
+    resetCartController();
   }
 
   /// Apakah repository etalase Pelanggan (TASK-024) sudah dikonfigurasi.
@@ -66,6 +68,29 @@ abstract final class DataProviders {
         StorefrontRepositoryImpl(_storefrontMockDataSource);
   }
 
+  static CustomerCartController? _customerCartController;
+
+  /// Mengambil atau mengonfigurasi controller keranjang Pelanggan bersama.
+  static CustomerCartController customerCartController({
+    CustomerCartController? custom,
+  }) {
+    if (custom != null) {
+      _customerCartController = custom;
+      return custom;
+    }
+    return _customerCartController ??= CustomerCartController(
+      getCart: getCart(),
+      saveCart: saveCart(),
+    );
+  }
+
+  /// Mereset dan membuang controller keranjang bersama.
+  static void resetCartController() {
+    _customerCartController?.reset();
+    _customerCartController?.dispose();
+    _customerCartController = null;
+  }
+
   /// Usecase katalog produk publik `/api/public/products`.
   static GetCatalogProducts getCatalogProducts() =>
       GetCatalogProducts(_storefront);
@@ -76,10 +101,11 @@ abstract final class DataProviders {
   /// Usecase simpan keranjang `PUT /api/customer/keranjang`.
   static SaveCart saveCart() => SaveCart(_storefront);
 
-  /// Menghapus konfigurasi auth (dipakai test).
+  /// Menghapus konfigurasi auth dan etalase (dipakai test).
   static void resetAuth() {
     _authRepository = null;
     _storefrontRepository = null;
+    resetCartController();
   }
 
   static bool get hasAuth => _authRepository != null;

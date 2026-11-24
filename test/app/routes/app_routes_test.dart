@@ -12,9 +12,13 @@ import 'package:soju_fe/core/errors/app_failure.dart';
 import 'package:soju_fe/core/themes/app_theme.dart';
 import 'package:soju_fe/core/themes/soju_colors.dart';
 import 'package:soju_fe/domain/entities/auth_session_entity.dart';
+import 'package:soju_fe/domain/entities/storefront_entity.dart';
 import 'package:soju_fe/domain/repositories/auth_repository.dart';
+import 'package:soju_fe/domain/repositories/storefront_repository.dart';
 import 'package:soju_fe/domain/usecases/auth_usecases.dart';
+import 'package:soju_fe/domain/usecases/storefront_usecases.dart';
 import 'package:soju_fe/presentation/providers/auth/auth_controller.dart';
+import 'package:soju_fe/presentation/providers/storefront/customer_cart_controller.dart';
 import 'package:soju_fe/presentation/screens/activities/activities_screen.dart';
 import 'package:soju_fe/presentation/screens/analytics/analytics_screen.dart';
 import 'package:soju_fe/presentation/screens/analytics/widgets/analytics_top_bar.dart';
@@ -1232,5 +1236,109 @@ void main() {
         expect(find.byType(AdminBottomNavBar), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'Shell Pelanggan menampilkan badge keranjang live dari CustomerCartController bersama, sinkron antar rute, dan reset saat logout',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(430, 932));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final _FakeShellStorefrontRepository cartRepo =
+            _FakeShellStorefrontRepository();
+        final CustomerCartController cartController = CustomerCartController(
+          getCart: GetCart(cartRepo),
+          saveCart: SaveCart(cartRepo),
+        );
+        addTearDown(cartController.dispose);
+
+        final AuthController auth = await _createBootstrappedAuth(
+          user: _customerUser,
+        );
+        addTearDown(auth.dispose);
+
+        final GoRouter router = AppRouter.create(
+          initialLocation: AppRoutes.customerMenu,
+          authController: auth,
+          cartController: cartController,
+        );
+        addTearDown(router.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Initial: badge tidak tampil saat keranjang kosong (totalQuantity == 0)
+        expect(find.byKey(const Key('customer_cart_badge')), findsNothing);
+
+        // 2. Tambah produk: badge navbar muncul dengan angka live
+        const CatalogProduct sample = CatalogProduct(
+          id: 1,
+          code: 'MN-1',
+          name: 'Soju Peach',
+          variants: <String>[],
+          unit: 'Botol',
+          price: 45000,
+        );
+        await cartController.addProduct(sample, quantity: 2);
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('customer_cart_badge')), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('customer_cart_badge')),
+            matching: find.text('2'),
+          ),
+          findsOneWidget,
+        );
+
+        // 3. Pindah rute ke Keranjang via navbar: badge tetap sinkron dan item tampil
+        await tester.tap(find.byKey(const Key('customer_nav_keranjang')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.customerCart);
+        expect(find.byKey(const Key('customer_cart_badge')), findsOneWidget);
+        expect(find.byKey(const Key('customer_cart_item_0')), findsOneWidget);
+
+        // 4. Hapus item di layar keranjang: badge navbar langsung hilang (0)
+        await tester.tap(find.byKey(const Key('customer_cart_remove_0')));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('customer_cart_badge')), findsNothing);
+        expect(cartController.totalQuantity, 0);
+
+        // 5. Tambah item lagi lalu logout: badge dan keranjang di-reset
+        await cartController.addProduct(sample, quantity: 3);
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('customer_cart_badge')), findsOneWidget);
+
+        await auth.logout();
+        await tester.pumpAndSettle();
+
+        expect(router.state.uri.path, AppRoutes.login);
+        expect(cartController.totalQuantity, 0);
+        expect(cartController.isEmpty, isTrue);
+        expect(find.byKey(const Key('customer_cart_badge')), findsNothing);
+      },
+    );
   });
+}
+
+class _FakeShellStorefrontRepository implements StorefrontRepository {
+  List<CartItem> savedItems = <CartItem>[];
+
+  @override
+  Future<Result<List<CatalogProduct>>> fetchCatalog({String? search}) async =>
+      Result<List<CatalogProduct>>.success(<CatalogProduct>[]);
+
+  @override
+  Future<Result<List<CartItem>>> fetchCart() async =>
+      Result<List<CartItem>>.success(savedItems);
+
+  @override
+  Future<Result<int>> saveCart(List<CartItem> items) async {
+    savedItems = List<CartItem>.of(items);
+    return Result<int>.success(
+      items.fold(0, (int sum, CartItem i) => sum + i.quantity),
+    );
+  }
 }

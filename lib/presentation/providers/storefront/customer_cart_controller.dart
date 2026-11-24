@@ -29,11 +29,16 @@ class CustomerCartController extends ChangeNotifier {
   String? _errorMessage;
   String? _syncError;
   bool _isSyncing = false;
+  bool _isStaleCartError = false;
 
   CartStatus get status => _status;
   List<CartItem> get items => _items;
   bool get isEmpty => _items.isEmpty;
   bool get isSyncing => _isSyncing;
+
+  /// Apakah galat muat keranjang disebabkan produk/varian basi (HTTP 400).
+  bool get isStaleCartError => _isStaleCartError;
+  bool get canClearStaleCart => _isStaleCartError;
 
   /// Pesan galat saat memuat keranjang (state error penuh).
   String? get errorMessage => _errorMessage;
@@ -47,16 +52,19 @@ class CustomerCartController extends ChangeNotifier {
   Future<void> load() async {
     _status = CartStatus.loading;
     _errorMessage = null;
+    _isStaleCartError = false;
     notifyListeners();
     final Result<List<CartItem>> result = await _getCart();
     result.fold(
       onFailure: (AppFailure f) {
         _status = CartStatus.error;
         _errorMessage = f.message;
+        _isStaleCartError = f is ServerFailure && f.statusCode == 400;
       },
       onSuccess: (List<CartItem> items) {
         _items = List<CartItem>.unmodifiable(items);
         _status = CartStatus.ready;
+        _isStaleCartError = false;
       },
     );
     notifyListeners();
@@ -113,6 +121,44 @@ class CustomerCartController extends ChangeNotifier {
   void clearSyncError() {
     if (_syncError == null) return;
     _syncError = null;
+    notifyListeners();
+  }
+
+  /// Mengosongkan keranjang di backend (`PUT /api/customer/keranjang` dengan `[]`)
+  /// dan mereset item lokal. Berguna untuk pemulihan galat item basi (HTTP 400).
+  Future<bool> clearCart() async {
+    _isSyncing = true;
+    _syncError = null;
+    notifyListeners();
+
+    final Result<int> result = await _saveCart(const <CartItem>[]);
+    _isSyncing = false;
+    final bool ok = result.isSuccess;
+    if (ok) {
+      _items = const <CartItem>[];
+      _status = CartStatus.ready;
+      _errorMessage = null;
+      _isStaleCartError = false;
+    } else {
+      _syncError = result.failureOrNull?.message ??
+          'Gagal mengosongkan keranjang. Coba lagi.';
+    }
+    notifyListeners();
+    return ok;
+  }
+
+  /// Alias untuk [clearCart].
+  Future<bool> clear() => clearCart();
+
+  /// Mengembalikan state keranjang lokal ke awal tanpa panggilan jaringan.
+  /// Dipakai saat logout atau pergantian sesi pengguna.
+  void reset() {
+    _status = CartStatus.initial;
+    _items = const <CartItem>[];
+    _errorMessage = null;
+    _syncError = null;
+    _isSyncing = false;
+    _isStaleCartError = false;
     notifyListeners();
   }
 

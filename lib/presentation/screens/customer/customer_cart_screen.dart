@@ -110,6 +110,21 @@ class _CustomerCartScreenState extends State<CustomerCartScreen> {
         actionLabel: 'Coba Lagi',
         actionKey: const Key('customer_cart_retry'),
         onAction: c.load,
+        secondaryActionLabel:
+            c.isStaleCartError ? 'Kosongkan Keranjang' : null,
+        secondaryActionKey:
+            c.isStaleCartError ? const Key('customer_cart_clear') : null,
+        onSecondaryAction: c.isStaleCartError
+            ? () async {
+                final bool ok = await c.clearCart();
+                if (!mounted) return;
+                if (!ok && c.syncError != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(c.syncError!)),
+                  );
+                }
+              }
+            : null,
       );
     }
     if (c.isEmpty) {

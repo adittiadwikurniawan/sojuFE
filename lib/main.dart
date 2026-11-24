@@ -7,6 +7,7 @@ import 'data/data_providers.dart';
 import 'data/datasources/remote/http_api_client.dart';
 import 'data/datasources/remote/secure_token_storage.dart';
 import 'presentation/providers/auth/auth_controller.dart';
+import 'presentation/providers/storefront/customer_cart_controller.dart';
 
 /// Entry point aplikasi Soju.
 ///
@@ -31,6 +32,9 @@ void main() {
     apiOrigin: AppConfig.apiOrigin,
   );
 
+  final CustomerCartController cartController =
+      DataProviders.customerCartController();
+
   final AuthController authController = AuthController(
     login: DataProviders.login(),
     register: DataProviders.register(),
@@ -44,5 +48,10 @@ void main() {
   // selama status `checking`.
   authController.bootstrap();
 
-  runApp(SojuApp(authController: authController));
+  runApp(
+    SojuApp(
+      authController: authController,
+      cartController: cartController,
+    ),
+  );
 }

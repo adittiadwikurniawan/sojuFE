@@ -157,4 +157,34 @@ void main() {
     await tester.tap(find.byKey(const Key('customer_checkout_button')));
     expect(checkoutCalled, isTrue);
   });
+
+  testWidgets(
+      'renders both retry and clear buttons on HTTP 400 stale error, and clear button recovers to empty cart',
+      (WidgetTester tester) async {
+    repository.getCartResult = Result<List<CartItem>>.failure(
+      const ServerFailure(statusCode: 400, message: 'Produk #99 sudah tidak tersedia'),
+    );
+    repository.saveCartResult = Result<int>.success(0);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CustomerCartScreen(controller: controller),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Keranjang gagal dimuat'), findsOneWidget);
+    expect(find.text('Produk #99 sudah tidak tersedia'), findsOneWidget);
+    expect(find.byKey(const Key('customer_cart_retry')), findsOneWidget);
+    expect(find.text('Coba Lagi'), findsOneWidget);
+    expect(find.byKey(const Key('customer_cart_clear')), findsOneWidget);
+    expect(find.text('Kosongkan Keranjang'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('customer_cart_clear')));
+    await tester.pumpAndSettle();
+
+    expect(repository.saveCartCallCount, 1);
+    expect(find.byKey(const Key('customer_cart_empty')), findsOneWidget);
+    expect(find.text('Keranjang masih kosong'), findsOneWidget);
+  });
 }

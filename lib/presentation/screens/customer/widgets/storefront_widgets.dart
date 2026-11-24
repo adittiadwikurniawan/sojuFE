@@ -58,6 +58,9 @@ class StorefrontStateView extends StatelessWidget {
         actionLabel = null,
         onAction = null,
         actionKey = null,
+        secondaryActionLabel = null,
+        onSecondaryAction = null,
+        secondaryActionKey = null,
         isLoading = true;
 
   const StorefrontStateView({
@@ -68,6 +71,9 @@ class StorefrontStateView extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.actionKey,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
+    this.secondaryActionKey,
   }) : isLoading = false;
 
   final IconData? icon;
@@ -76,6 +82,9 @@ class StorefrontStateView extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
   final Key? actionKey;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
+  final Key? secondaryActionKey;
   final bool isLoading;
 
   @override
@@ -124,24 +133,69 @@ class StorefrontStateView extends StatelessWidget {
             ),
             if (actionLabel != null && onAction != null) ...<Widget>[
               const SizedBox(height: 18),
-              FilledButton(
-                key: actionKey,
-                onPressed: onAction,
-                style: FilledButton.styleFrom(
-                  backgroundColor: SojuColors.primary,
-                  foregroundColor: SojuColors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              if (secondaryActionLabel != null && onSecondaryAction != null)
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.center,
+                  children: <Widget>[
+                    FilledButton(
+                      key: actionKey,
+                      onPressed: onAction,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: SojuColors.primary,
+                        foregroundColor: SojuColors.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        actionLabel!,
+                        style: const TextStyle(
+                          fontFamily: AppTypography.family,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    OutlinedButton(
+                      key: secondaryActionKey,
+                      onPressed: onSecondaryAction,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: SojuColors.expense,
+                        side: const BorderSide(color: SojuColors.expense),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        secondaryActionLabel!,
+                        style: const TextStyle(
+                          fontFamily: AppTypography.family,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                FilledButton(
+                  key: actionKey,
+                  onPressed: onAction,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: SojuColors.primary,
+                    foregroundColor: SojuColors.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    actionLabel!,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.family,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                child: Text(
-                  actionLabel!,
-                  style: const TextStyle(
-                    fontFamily: AppTypography.family,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
             ],
           ],
         ),

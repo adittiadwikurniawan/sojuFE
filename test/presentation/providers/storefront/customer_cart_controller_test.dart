@@ -160,4 +160,60 @@ void main() {
     expect(controller.items.length, 1);
     expect(controller.items.first.variant, 'V2');
   });
+
+  test('load() detects HTTP 400 stale-cart failure and sets isStaleCartError flag', () async {
+    repository.getCartResult = Result<List<CartItem>>.failure(
+      const ServerFailure(statusCode: 400, message: 'Produk tidak tersedia'),
+    );
+
+    await controller.load();
+
+    expect(controller.status, CartStatus.error);
+    expect(controller.errorMessage, 'Produk tidak tersedia');
+    expect(controller.isStaleCartError, isTrue);
+    expect(controller.canClearStaleCart, isTrue);
+
+    // Other non-400 failure should not set isStaleCartError
+    repository.getCartResult = Result<List<CartItem>>.failure(
+      const ServerFailure(statusCode: 500, message: 'Internal Server Error'),
+    );
+    await controller.load();
+    expect(controller.isStaleCartError, isFalse);
+  });
+
+  test('clearCart() sends empty list to saveCart and recovers to empty ready state', () async {
+    repository.getCartResult = Result<List<CartItem>>.failure(
+      const ServerFailure(statusCode: 400, message: 'Produk tidak tersedia'),
+    );
+    await controller.load();
+    expect(controller.isStaleCartError, isTrue);
+
+    repository.saveCartResult = Result<int>.success(0);
+    final bool success = await controller.clearCart();
+
+    expect(success, isTrue);
+    expect(repository.lastSavedItems, isEmpty);
+    expect(controller.status, CartStatus.ready);
+    expect(controller.items, isEmpty);
+    expect(controller.isEmpty, isTrue);
+    expect(controller.isStaleCartError, isFalse);
+    expect(controller.errorMessage, isNull);
+  });
+
+  test('reset() clears in-memory items, errors, and stale flags back to initial', () async {
+    repository.saveCartResult = Result<int>.success(1);
+    await controller.addProduct(sampleProduct);
+    expect(controller.items.length, 1);
+    expect(controller.totalQuantity, 1);
+
+    controller.reset();
+
+    expect(controller.status, CartStatus.initial);
+    expect(controller.items, isEmpty);
+    expect(controller.isEmpty, isTrue);
+    expect(controller.totalQuantity, 0);
+    expect(controller.isStaleCartError, isFalse);
+    expect(controller.errorMessage, isNull);
+    expect(controller.syncError, isNull);
+  });
 }
