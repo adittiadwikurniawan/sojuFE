@@ -3,44 +3,66 @@
 // Titik pemilihan sumber data (mock Phase A / REST Phase B).
 //
 // Presentation hanya memakai usecase dari file ini. Saat backend tersedia,
-// ganti `FreeTableMockDataSource` dengan datasource remote tanpa mengubah
+// ganti datasource mock dengan datasource remote tanpa mengubah
 // screen, provider, atau entity.
 
 import '../core/services/api_client/api_client.dart';
 import '../core/services/token_storage/token_storage.dart';
 import '../domain/entities/sales_chat_entity.dart';
+import '../domain/repositories/admin_order_repository.dart';
+import '../domain/repositories/audit_repository.dart';
 import '../domain/repositories/auth_repository.dart';
+import '../domain/repositories/customer_order_repository.dart';
+import '../domain/repositories/customer_profile_repository.dart';
+import '../domain/repositories/dashboard_repository.dart';
+import '../domain/repositories/storefront_repository.dart';
+import '../domain/repositories/transaction_repository.dart';
+import '../domain/usecases/admin_order_usecases.dart';
+import '../domain/usecases/audit_usecases.dart';
 import '../domain/usecases/auth_usecases.dart';
+import '../domain/usecases/customer_order_usecases.dart';
+import '../domain/usecases/customer_profile_usecases.dart';
+import '../domain/usecases/dashboard_usecases.dart';
 import '../domain/usecases/free_table_usecases.dart';
 import '../domain/usecases/help_usecases.dart';
 import '../domain/usecases/profile_usecases.dart';
 import '../domain/usecases/sales_chat_usecases.dart';
+import '../domain/usecases/storefront_usecases.dart';
+import '../domain/usecases/transaction_usecases.dart';
+import '../presentation/providers/admin_orders/admin_orders_controller.dart';
+import '../presentation/providers/audit/audit_log_controller.dart';
+import '../presentation/providers/dashboard/dashboard_controller.dart';
+import '../presentation/providers/storefront/customer_cart_controller.dart';
+import '../presentation/providers/transactions/transactions_controller.dart';
+import 'datasources/mock/admin_order_mock_datasource.dart';
+import 'datasources/mock/audit_mock_datasource.dart';
+import 'datasources/mock/customer_order_mock_datasource.dart';
+import 'datasources/mock/customer_profile_mock_datasource.dart';
 import 'datasources/mock/free_table_mock_datasource.dart';
 import 'datasources/mock/help_mock_datasource.dart';
 import 'datasources/mock/profile_mock_datasource.dart';
 import 'datasources/mock/sales_chat_mock_datasource.dart';
 import 'datasources/mock/storefront_mock_datasource.dart';
-import 'datasources/mock/customer_order_mock_datasource.dart';
-import 'datasources/mock/customer_profile_mock_datasource.dart';
+import 'datasources/remote/admin_order_remote_datasource.dart';
+import 'datasources/remote/audit_remote_datasource.dart';
 import 'datasources/remote/auth_remote_datasource.dart';
-import 'datasources/remote/storefront_remote_datasource.dart';
 import 'datasources/remote/customer_order_remote_datasource.dart';
 import 'datasources/remote/customer_profile_remote_datasource.dart';
-import 'repositories/storefront_repository_impl.dart';
+import 'datasources/remote/dashboard_remote_datasource.dart';
+import 'datasources/remote/storefront_remote_datasource.dart';
+import 'datasources/remote/transaction_remote_datasource.dart';
+import 'repositories/admin_order_repository_impl.dart';
+import 'repositories/audit_repository_impl.dart';
+import 'repositories/auth_repository_impl.dart';
 import 'repositories/customer_order_repository_impl.dart';
 import 'repositories/customer_profile_repository_impl.dart';
-import '../domain/repositories/storefront_repository.dart';
-import '../domain/repositories/customer_order_repository.dart';
-import '../domain/repositories/customer_profile_repository.dart';
-import '../domain/usecases/storefront_usecases.dart';
-import '../domain/usecases/customer_order_usecases.dart';
-import '../domain/usecases/customer_profile_usecases.dart';
-import '../presentation/providers/storefront/customer_cart_controller.dart';
-import 'repositories/auth_repository_impl.dart';
+import 'repositories/dashboard_repository_impl.dart';
 import 'repositories/free_table_repository_impl.dart';
 import 'repositories/help_repository_impl.dart';
 import 'repositories/profile_repository_impl.dart';
 import 'repositories/sales_chat_repository_impl.dart';
+import 'repositories/storefront_repository_impl.dart';
+import 'repositories/transaction_repository_impl.dart';
 
 /// Factory dependency data tingkat aplikasi.
 abstract final class DataProviders {
@@ -48,6 +70,12 @@ abstract final class DataProviders {
   static StorefrontRepository? _storefrontRepository;
   static CustomerOrderRepository? _customerOrderRepository;
   static CustomerProfileRepository? _customerProfileRepository;
+
+  // Repositories untuk admin operasional live REST (TASK-026)
+  static DashboardRepository? _dashboardRepository;
+  static TransactionRepository? _transactionRepository;
+  static AuditLogRepository? _auditLogRepository;
+  static AdminOrderRepository? _adminOrderRepository;
 
   /// Mengonfigurasi dependency remote dari composition root (`main.dart`).
   ///
@@ -72,6 +100,21 @@ abstract final class DataProviders {
     _customerProfileRepository = CustomerProfileRepositoryImpl(
       CustomerProfileRemoteDataSource(apiClient),
     );
+
+    // REST data providers untuk Admin operasional (TASK-026)
+    _dashboardRepository = DashboardRepositoryImpl(
+      DashboardRemoteDataSource(apiClient),
+    );
+    _transactionRepository = TransactionRepositoryImpl(
+      TransactionRemoteDataSource(apiClient),
+    );
+    _auditLogRepository = AuditRepositoryImpl(
+      AuditRemoteDataSource(apiClient),
+    );
+    _adminOrderRepository = AdminOrderRepositoryImpl(
+      AdminOrderRemoteDataSource(apiClient),
+    );
+
     resetCartController();
   }
 
@@ -113,10 +156,8 @@ abstract final class DataProviders {
   static GetCatalogProducts getCatalogProducts() =>
       GetCatalogProducts(_storefront);
 
-  /// Usecase baca keranjang `GET /api/customer/keranjang`.
+  /// Usecase keranjang lokal/sinkronisasi.
   static GetCart getCart() => GetCart(_storefront);
-
-  /// Usecase simpan keranjang `PUT /api/customer/keranjang`.
   static SaveCart saveCart() => SaveCart(_storefront);
 
   static final CustomerOrderMockDataSource _customerOrderMockDataSource =
@@ -159,13 +200,114 @@ abstract final class DataProviders {
   static ChangeCustomerPassword changeCustomerPassword() =>
       ChangeCustomerPassword(_customerProfile);
 
-  /// Menghapus konfigurasi auth, etalase, dan pesanan pelanggan (dipakai test).
+  // --- Admin Operational Live Data Providers (TASK-026) ---
+
+  static final AuditMockDataSource _auditMockDataSource =
+      AuditMockDataSource();
+
+  static AuditLogRepository get _auditLog {
+    return _auditLogRepository ?? AuditRepositoryImpl(_auditMockDataSource);
+  }
+
+  /// Usecase daftar log audit `GET /api/v1/audit-log`.
+  static GetAuditLogs getAuditLogs() => GetAuditLogs(_auditLog);
+
+  /// Apakah repository dashboard sudah dikonfigurasi.
+  static bool get hasDashboard => _dashboardRepository != null;
+
+  static DashboardRepository get _dashboard {
+    final DashboardRepository? repo = _dashboardRepository;
+    if (repo == null) {
+      throw StateError('DataProviders.configure belum dipanggil untuk dashboard.');
+    }
+    return repo;
+  }
+
+  /// Usecase ringkasan dashboard `GET /api/v1/dashboard/*`.
+  static GetDashboardSummary getDashboardSummary() =>
+      GetDashboardSummary(_dashboard);
+
+  /// Apakah repository transaksi operasional sudah dikonfigurasi.
+  static bool get hasTransaction => _transactionRepository != null;
+
+  static TransactionRepository get _transaction {
+    final TransactionRepository? repo = _transactionRepository;
+    if (repo == null) {
+      throw StateError('DataProviders.configure belum dipanggil untuk transaksi.');
+    }
+    return repo;
+  }
+
+  /// Usecase daftar transaksi operasional `GET /api/v1/transactions`.
+  static GetTransactions getTransactions() => GetTransactions(_transaction);
+
+  static final AdminOrderMockDataSource _adminOrderMockDataSource =
+      AdminOrderMockDataSource();
+
+  static AdminOrderRepository get _adminOrder {
+    return _adminOrderRepository ?? AdminOrderRepositoryImpl(_adminOrderMockDataSource);
+  }
+
+  /// Usecase pesanan admin `GET /api/v1/customer-orders`.
+  static GetAdminOrders getAdminOrders() => GetAdminOrders(_adminOrder);
+
+  /// Usecase pembaruan status pesanan admin `PATCH /api/v1/customer-orders/:id/status`.
+  static UpdateAdminOrderStatus updateAdminOrderStatus() =>
+      UpdateAdminOrderStatus(_adminOrder);
+
+  /// Factory controller Admin Orders.
+  static AdminOrdersController createAdminOrdersController() {
+    return AdminOrdersController(
+      getAdminOrders: getAdminOrders(),
+      updateAdminOrderStatus: updateAdminOrderStatus(),
+    );
+  }
+
+  /// Factory controller Dashboard Operasional.
+  static DashboardController createDashboardController() {
+    return DashboardController(
+      getDashboardSummary: getDashboardSummary(),
+    );
+  }
+
+  /// Factory controller Transaksi / Data Operasional.
+  static TransactionsController createTransactionsController() {
+    return TransactionsController(
+      getTransactions: getTransactions(),
+    );
+  }
+
+  /// Factory controller Log Audit.
+  static AuditLogController createAuditLogController() {
+    return AuditLogController(
+      getAuditLogs: getAuditLogs(),
+    );
+  }
+
+  /// Menghapus konfigurasi auth, etalase, pesanan, dan admin repos (dipakai test).
   static void resetAuth() {
     _authRepository = null;
     _storefrontRepository = null;
     _customerOrderRepository = null;
     _customerProfileRepository = null;
+    _dashboardRepository = null;
+    _transactionRepository = null;
+    _auditLogRepository = null;
+    _adminOrderRepository = null;
     resetCartController();
+  }
+
+  /// Setter untuk testing repository admin secara eksplisit.
+  static void setAdminRepositoriesForTest({
+    DashboardRepository? dashboard,
+    TransactionRepository? transaction,
+    AuditLogRepository? audit,
+    AdminOrderRepository? adminOrder,
+  }) {
+    if (dashboard != null) _dashboardRepository = dashboard;
+    if (transaction != null) _transactionRepository = transaction;
+    if (audit != null) _auditLogRepository = audit;
+    if (adminOrder != null) _adminOrderRepository = adminOrder;
   }
 
   static bool get hasAuth => _authRepository != null;

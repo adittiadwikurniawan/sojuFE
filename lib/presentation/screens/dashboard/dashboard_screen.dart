@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
+import '../../providers/dashboard/dashboard_controller.dart';
 import '../../utils/format.dart';
 import '../../widgets/activity_tile.dart';
 import '../../widgets/bottom_glass_overlay.dart';
@@ -19,12 +20,14 @@ import 'widgets/revenue_chart_card.dart';
 /// Layar Beranda (frame Figma `546:1616`).
 ///
 /// Seluruh isi layar berasal dari [DashboardViewData]. Secara bawaan dipakai
-/// [DashboardViewData.sample] hasil slicing Figma; saat lapisan data siap,
-/// beranda cukup menerima data hasil pemetaan DTO tanpa mengubah widget.
+/// [DashboardViewData.sample] hasil slicing Figma; saat controller live
+/// diberikan melalui [controllerFactory], layar akan membaca state live REST
+/// dengan status loading, data, empty, dan error/retry.
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
     super.key,
     this.data = DashboardViewData.sample,
+    this.controllerFactory,
     this.onMenuTap,
     this.onAvatarTap,
     this.onSearchTap,
@@ -40,6 +43,7 @@ class DashboardScreen extends StatefulWidget {
   });
 
   final DashboardViewData data;
+  final DashboardController Function()? controllerFactory;
   final VoidCallback? onMenuTap;
   final VoidCallback? onAvatarTap;
   final VoidCallback? onSearchTap;
@@ -70,11 +74,31 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   DateTimeRange? _selectedRange;
+  DashboardController? _controller;
 
-  String get _dateLabel {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controllerFactory != null) {
+      _controller = widget.controllerFactory!();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _controller?.load();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  String _dateLabel(DashboardViewData data) {
     final DateTimeRange? range = _selectedRange;
     return range == null
-        ? widget.data.revenue.dateLabel
+        ? data.revenue.dateLabel
         : formatDateRange(range);
   }
 
@@ -103,73 +127,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final double contentWidth = math.min(constraints.maxWidth, 480);
             final double scale = contentWidth / DashboardScreen._designWidth;
 
-            return Align(
-              alignment: Alignment.topCenter,
-              child: SizedBox(
-                width: contentWidth,
-                height: constraints.maxHeight,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      DashboardTopBar(
-                        scale: scale,
-                        topInset: topInset,
-                        searchHint: widget.data.searchHint,
-                        avatarAsset: widget.data.avatarAsset,
-                        onMenuTap: widget.onMenuTap,
-                        onAvatarTap: widget.onAvatarTap ??
-                            () => showProfileMenu(
-                                  context,
-                                  data: widget.profile,
-                                  onViewProfile: widget.onViewProfile,
-                                  onLogout: widget.onLogout,
-                                ),
-                        onSearchTap: widget.onSearchTap,
-                        onNotificationTap: widget.onNotificationTap,
-                      ),
-                      SizedBox(height: 16 * scale),
-                      _buildMetrics(scale),
-                      SizedBox(height: 32 * scale),
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16 * scale,
-                        ),
-                        child: RevenueChartCard(
-                          scale: scale,
-                          data: _selectedRange == null
-                              ? widget.data.revenue
-                              : widget.data.revenue.copyWith(
-                                  dateLabel: _dateLabel,
-                                ),
-                          onTap: widget.onAnalyticsTap ??
-                              widget.onSeeAllActivities,
-                          onDateTap: _pickDate,
-                        ),
-                      ),
-                      SizedBox(height: 32 * scale),
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16 * scale,
-                        ),
-                        child: AiAssistantCard(
-                          scale: scale,
-                          data: widget.data.assistant,
-                          onQuickCommand: widget.onQuickCommand,
-                          onSubmit: widget.onSendCommand,
-                        ),
-                      ),
-                      SizedBox(height: 15 * scale),
-                      _buildActivitiesHeader(scale),
-                      SizedBox(height: 15 * scale),
-                      _buildActivities(scale),
-                      // Ruang agar item terakhir bisa digulir melewati
-                      // lapisan kaca di bawah.
-                      SizedBox(height: kBottomContentInset * scale),
-                    ],
-                  ),
-                ),
-              ),
+            if (_controller != null) {
+              return AnimatedBuilder(
+                animation: _controller!,
+                builder: (BuildContext context, Widget? _) {
+                  return _buildLayout(
+                    context,
+                    constraints,
+                    contentWidth,
+                    scale,
+                    topInset,
+                    state: _controller!.state,
+                  );
+                },
+              );
+            }
+
+            return _buildLayout(
+              context,
+              constraints,
+              contentWidth,
+              scale,
+              topInset,
             );
           },
         ),
@@ -177,17 +156,225 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildMetrics(double scale) {
+  Widget _buildLayout(
+    BuildContext context,
+    BoxConstraints constraints,
+    double contentWidth,
+    double scale,
+    double topInset, {
+    DashboardState? state,
+  }) {
+    final DashboardViewData effectiveData =
+        state?.viewData ?? widget.data;
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: SizedBox(
+        width: contentWidth,
+        height: constraints.maxHeight,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              DashboardTopBar(
+                scale: scale,
+                topInset: topInset,
+                searchHint: effectiveData.searchHint,
+                avatarAsset: effectiveData.avatarAsset,
+                onMenuTap: widget.onMenuTap,
+                onAvatarTap: widget.onAvatarTap ??
+                    () => showProfileMenu(
+                          context,
+                          data: widget.profile,
+                          onViewProfile: widget.onViewProfile,
+                          onLogout: widget.onLogout,
+                        ),
+                onSearchTap: widget.onSearchTap,
+                onNotificationTap: widget.onNotificationTap,
+              ),
+              if (state != null && state.status == DashboardStatus.loading)
+                _buildLoadingState(scale)
+              else if (state != null && state.status == DashboardStatus.error)
+                _buildErrorState(scale, state.errorMessage)
+              else if (state != null && state.status == DashboardStatus.empty)
+                _buildEmptyState(scale)
+              else ...<Widget>[
+                SizedBox(height: 16 * scale),
+                _buildMetrics(scale, effectiveData),
+                SizedBox(height: 32 * scale),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16 * scale,
+                  ),
+                  child: RevenueChartCard(
+                    scale: scale,
+                    data: _selectedRange == null
+                        ? effectiveData.revenue
+                        : effectiveData.revenue.copyWith(
+                            dateLabel: _dateLabel(effectiveData),
+                          ),
+                    onTap: widget.onAnalyticsTap ??
+                        widget.onSeeAllActivities,
+                    onDateTap: _pickDate,
+                  ),
+                ),
+                SizedBox(height: 32 * scale),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16 * scale,
+                  ),
+                  child: AiAssistantCard(
+                    scale: scale,
+                    data: effectiveData.assistant,
+                    onQuickCommand: widget.onQuickCommand,
+                    onSubmit: widget.onSendCommand,
+                  ),
+                ),
+                SizedBox(height: 15 * scale),
+                _buildActivitiesHeader(scale),
+                SizedBox(height: 15 * scale),
+                _buildActivities(scale, effectiveData),
+                // Ruang agar item terakhir bisa digulir melewati
+                // lapisan kaca di bawah.
+                SizedBox(height: kBottomContentInset * scale),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(double scale) {
+    return Padding(
+      key: const Key('dashboard_loading'),
+      padding: EdgeInsets.symmetric(vertical: 80 * scale),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const CircularProgressIndicator(color: SojuColors.primary),
+            SizedBox(height: 12 * scale),
+            Text(
+              'Memuat ringkasan operasional...',
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 14 * scale,
+                color: SojuColors.inkMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(double scale, String? errorMessage) {
+    return Padding(
+      key: const Key('dashboard_error'),
+      padding: EdgeInsets.all(24 * scale),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.error_outline_rounded,
+              size: 48 * scale,
+              color: SojuColors.expense,
+            ),
+            SizedBox(height: 12 * scale),
+            Text(
+              errorMessage ?? 'Gagal memuat ringkasan operasional.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 14 * scale,
+                fontWeight: FontWeight.w600,
+                color: SojuColors.ink,
+              ),
+            ),
+            SizedBox(height: 16 * scale),
+            ElevatedButton(
+              key: const Key('dashboard_retry_button'),
+              onPressed: () => _controller?.load(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: SojuColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20 * scale),
+                ),
+              ),
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(double scale) {
+    return Padding(
+      key: const Key('dashboard_empty'),
+      padding: EdgeInsets.all(24 * scale),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.dashboard_outlined,
+              size: 56 * scale,
+              color: SojuColors.inkMuted,
+            ),
+            SizedBox(height: 12 * scale),
+            Text(
+              'Belum ada data operasional',
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 16 * scale,
+                fontWeight: FontWeight.w700,
+                color: SojuColors.ink,
+              ),
+            ),
+            SizedBox(height: 6 * scale),
+            Text(
+              'Data ringkasan kas dan aktivitas operasional masih kosong.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 13 * scale,
+                color: SojuColors.inkMuted,
+              ),
+            ),
+            SizedBox(height: 16 * scale),
+            ElevatedButton(
+              key: const Key('dashboard_empty_retry_button'),
+              onPressed: () => _controller?.load(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: SojuColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20 * scale),
+                ),
+              ),
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetrics(double scale, DashboardViewData data) {
     return SizedBox(
       height: 116 * scale,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16 * scale),
-        itemCount: widget.data.metrics.length,
+        itemCount: data.metrics.length,
         separatorBuilder: (BuildContext context, int index) =>
             SizedBox(width: 12 * scale),
         itemBuilder: (BuildContext context, int index) {
-          final DashboardMetricData metric = widget.data.metrics[index];
+          final DashboardMetricData metric = data.metrics[index];
           return MetricCard(
             scale: scale,
             title: metric.title,
@@ -232,9 +419,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildActivities(double scale) {
+  Widget _buildActivities(double scale, DashboardViewData data) {
     final List<Widget> children = <Widget>[];
-    for (int i = 0; i < widget.data.activities.length; i++) {
+    for (int i = 0; i < data.activities.length; i++) {
       if (i > 0) {
         children.add(SizedBox(height: 8 * scale));
         children.add(
@@ -245,7 +432,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
         children.add(SizedBox(height: 8 * scale));
       }
-      final DashboardActivityData activity = widget.data.activities[i];
+      final DashboardActivityData activity = data.activities[i];
       children.add(
         ActivityTile(
           scale: scale,

@@ -3,11 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/themes/soju_colors.dart';
 import '../../data/data_providers.dart';
-import '../../data/datasources/mock/audit_mock_datasource.dart';
-import '../../data/repositories/audit_repository_impl.dart';
 import '../../domain/entities/auth_session_entity.dart';
-import '../../domain/usecases/audit_usecases.dart';
-import '../../presentation/providers/audit/audit_log_controller.dart';
 import '../../presentation/providers/auth/auth_controller.dart';
 import '../../presentation/providers/free_tables/free_table_category_controller.dart';
 import '../../presentation/providers/profile/change_password_controller.dart';
@@ -22,6 +18,7 @@ import '../../presentation/providers/customer/customer_checkout_controller.dart'
 import '../../presentation/providers/customer/customer_orders_controller.dart';
 import '../../presentation/providers/customer/customer_profile_controller.dart';
 import '../../presentation/screens/activities/activities_screen.dart';
+import '../../presentation/screens/admin_orders/admin_orders_screen.dart';
 import '../../presentation/screens/analytics/analytics_screen.dart';
 import '../../presentation/screens/audit/audit_screen.dart';
 import '../../presentation/screens/auth/auth_screen.dart';
@@ -517,6 +514,9 @@ abstract final class AppRouter {
 
                   return DashboardScreen(
                     profile: profileData,
+                    controllerFactory: DataProviders.hasDashboard
+                        ? DataProviders.createDashboardController
+                        : null,
                     onMenuTap: () => _AdminShellScope.openDrawerOf(context),
                     onViewProfile: () => context.push(AppRoutes.profile),
                     onSeeAllActivities: () =>
@@ -539,7 +539,8 @@ abstract final class AppRouter {
             GoRoute(
               path: AppRoutes.adminOrders,
               builder: (BuildContext context, GoRouterState state) =>
-                  AdminOrdersShellScreen(
+                  AdminOrdersScreen(
+                controllerFactory: DataProviders.createAdminOrdersController,
                 onMenuTap: () => _AdminShellScope.openDrawerOf(context),
                 onNotificationTap: () => context.push(AppRoutes.notifications),
               ),
@@ -595,11 +596,7 @@ abstract final class AppRouter {
                 context.go(AppRoutes.dashboard);
               }
             },
-            controllerFactory: () => AuditLogController(
-              getAuditLogs: GetAuditLogs(
-                AuditRepositoryImpl(AuditMockDataSource()),
-              ),
-            ),
+            controllerFactory: DataProviders.createAuditLogController,
           ),
         ),
         GoRoute(
@@ -878,6 +875,9 @@ abstract final class AppRouter {
 
   static Widget _buildAdminDataScreen(BuildContext context) {
     return AnalyticsScreen(
+      controllerFactory: DataProviders.hasTransaction
+          ? DataProviders.createTransactionsController
+          : null,
       onBack: () {
         if (context.canPop()) {
           context.pop();

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
+import '../../providers/transactions/transactions_controller.dart';
 import '../../widgets/activity_tile.dart';
 import '../../widgets/bar_chart_card.dart';
 import '../../widgets/bottom_glass_overlay.dart';
@@ -32,12 +33,16 @@ import 'widgets/transaction_tile.dart';
 /// angka dihitung dari [AnalyticsViewData] + [AnalyticsFilter], sehingga
 /// pemetaan DTO API cukup menghasilkan model tampilan ini.
 ///
+/// Bila [controllerFactory] diberikan, layar terhubung ke [TransactionsController]
+/// dan merender status loading, data, empty, serta error/retry.
+///
 /// Ekspor Excel sengaja berupa callback [onExportExcel] agar pembuatan berkas
 /// tetap di lapisan data/API (tidak ada dependensi Excel di UI).
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({
     super.key,
     this.data,
+    this.controllerFactory,
     this.onExportExcel,
     this.onTransactionTap,
     this.onBack,
@@ -50,6 +55,9 @@ class AnalyticsScreen extends StatefulWidget {
 
   /// Data tampilan; bawaannya [AnalyticsViewData.sample].
   final AnalyticsViewData? data;
+
+  /// Factory untuk controller transaksi operasional.
+  final TransactionsController Function()? controllerFactory;
 
   /// Dipanggil saat pengguna meminta ekspor Excel.
   final Future<void> Function(AnalyticsExportRequest request)? onExportExcel;
@@ -73,27 +81,77 @@ class AnalyticsScreen extends StatefulWidget {
 }
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
-  late final AnalyticsViewData _data = widget.data ?? AnalyticsViewData.sample;
   final TextEditingController _searchController = TextEditingController();
+  TransactionsController? _controller;
+
+  AnalyticsViewData get _currentData =>
+      _controller?.state.viewData ?? widget.data ?? AnalyticsViewData.sample;
 
   AnalyticsFilter _filter = const AnalyticsFilter();
-  late DateTime _visibleMonth = DateTime(_data.month.year, _data.month.month);
+  late DateTime _visibleMonth;
+  bool _userChangedMonth = false;
 
   bool _isExporting = false;
 
   @override
+  void initState() {
+    super.initState();
+    final AnalyticsViewData initial =
+        widget.data ?? AnalyticsViewData.sample;
+    _visibleMonth = DateTime(initial.month.year, initial.month.month);
+
+    if (widget.controllerFactory != null) {
+      _controller = widget.controllerFactory!();
+      _controller!.addListener(_onControllerStateChanged);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _controller?.load();
+        }
+      });
+    }
+  }
+
+  void _onControllerStateChanged() {
+    if (!mounted) return;
+    final DateTime? dataMonth = _controller?.state.viewData?.month;
+    if (dataMonth != null && !_userChangedMonth) {
+      setState(() {
+        _visibleMonth = DateTime(dataMonth.year, dataMonth.month);
+      });
+    }
+  }
+
+  @override
   void dispose() {
+    _controller?.removeListener(_onControllerStateChanged);
     _searchController.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final DateTimeRange monthRange = monthRangeOf(_visibleMonth);
+    if (_controller != null) {
+      return AnimatedBuilder(
+        animation: _controller!,
+        builder: (BuildContext context, Widget? _) {
+          return _buildScreen(context, state: _controller!.state);
+        },
+      );
+    }
+    return _buildScreen(context);
+  }
+
+  Widget _buildScreen(BuildContext context, {TransactionsState? state}) {
+    final AnalyticsViewData data =
+        state?.viewData ?? widget.data ?? AnalyticsViewData.sample;
+
+    final DateTime currentMonth = _visibleMonth;
+    final DateTimeRange monthRange = monthRangeOf(currentMonth);
     final DateTimeRange range = _filter.range ?? monthRange;
     final AnalyticsFilter effectiveFilter = _filter.withRange(range);
 
-    final List<AnalyticsTransaction> visible = _data.transactions
+    final List<AnalyticsTransaction> visible = data.transactions
         .where(effectiveFilter.matches)
         .toList()
       ..sort((AnalyticsTransaction a, AnalyticsTransaction b) =>
@@ -101,7 +159,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     final AnalyticsSummary summary = AnalyticsSummary.from(visible);
     final AnalyticsSummary previous = AnalyticsSummary.from(
-      _data.transactions.where(
+      data.transactions.where(
         AnalyticsFilter(
           range: previousRangeOf(range),
           type: _filter.type,
@@ -120,7 +178,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         expenseCategories.length + incomeCategories.length;
 
     final String dateLabel = _filter.range == null
-        ? formatMonthYear(_visibleMonth)
+        ? formatMonthYear(currentMonth)
         : formatDateRange(_filter.range!);
 
     return Scaffold(
@@ -144,99 +202,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     onAddTap: widget.onAddTap,
                   ),
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        16 * scale,
-                        18 * scale,
-                        16 * scale,
-                        kBottomContentInset * scale,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          AnalyticsSearchBar(
-                            scale: scale,
-                            controller: _searchController,
-                            hint: _data.searchHint,
-                            showClear: _filter.query.isNotEmpty,
-                            onChanged: _onQueryChanged,
-                            onClear: _clearQuery,
-                            isExporting: _isExporting,
-                            onExport: () => _export(range, visible, summary),
-                          ),
-                          SizedBox(height: 16 * scale),
-                          AnalyticsFilterChips(
-                            scale: scale,
-                            totalCount: visible.length,
-                            type: _filter.type,
-                            category: _filter.category,
-                            dateLabel: _filter.range == null
-                                ? null
-                                : formatDateRange(_filter.range!),
-                            onTypeChanged: (TransactionType? type) {
-                              setState(() {
-                                _filter = _filter.withType(type);
-                              });
-                            },
-                            onCategoryTap: () => _pickCategory(range),
-                            onReset: _resetAll,
-                          ),
-                          SizedBox(height: 14 * scale),
-                          DateFilterCard(
-                            scale: scale,
-                            label: dateLabel,
-                            onTap: _pickDateRange,
-                            onPreviousMonth: () => _changeMonth(-1),
-                            onNextMonth: () => _changeMonth(1),
-                          ),
-                          SizedBox(height: 14 * scale),
-                          SummaryHeroCard(scale: scale, summary: summary),
-                          SizedBox(height: 18 * scale),
-                          CashFlowDonutCard(scale: scale, summary: summary),
-                          SizedBox(height: 18 * scale),
-                          BarChartCard(
-                            scale: scale,
-                            data: _buildChartData(
-                              range: range,
-                              summary: summary,
-                              visible: visible,
-                              growth: growth,
-                            ),
-                          ),
-                          SizedBox(height: 22 * scale),
-                          _SectionHeading(
-                            scale: scale,
-                            title: 'Rincian Transaksi',
-                            trailing: '$categoryCount Kategori Aktif',
-                          ),
-                          SizedBox(height: 12 * scale),
-                          CategoryBreakdownCard(
-                            scale: scale,
-                            type: TransactionType.expense,
-                            items: expenseCategories,
-                            total: summary.expense,
-                          ),
-                          SizedBox(height: 10 * scale),
-                          CategoryBreakdownCard(
-                            scale: scale,
-                            type: TransactionType.income,
-                            items: incomeCategories,
-                            total: summary.income,
-                          ),
-                          SizedBox(height: 22 * scale),
-                          _SectionHeading(
-                            scale: scale,
-                            title: 'Transaksi',
-                            trailing: '${visible.length} Transaksi',
-                          ),
-                          SizedBox(height: 12 * scale),
-                          _buildTransactionList(scale, visible),
-                          SizedBox(height: 22 * scale),
-                          _buildActivityHeader(scale),
-                          SizedBox(height: 12 * scale),
-                          _buildActivityList(scale),
-                        ],
-                      ),
+                    child: ifContent(
+                      state: state,
+                      scale: scale,
+                      range: range,
+                      visible: visible,
+                      summary: summary,
+                      growth: growth,
+                      dateLabel: dateLabel,
+                      categoryCount: categoryCount,
+                      expenseCategories: expenseCategories,
+                      incomeCategories: incomeCategories,
+                      data: data,
                     ),
                   ),
                 ],
@@ -244,6 +221,241 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget ifContent({
+    TransactionsState? state,
+    required double scale,
+    required DateTimeRange range,
+    required List<AnalyticsTransaction> visible,
+    required AnalyticsSummary summary,
+    required double growth,
+    required String dateLabel,
+    required int categoryCount,
+    required List<CategoryTotal> expenseCategories,
+    required List<CategoryTotal> incomeCategories,
+    required AnalyticsViewData data,
+  }) {
+    if (state != null && state.status == TransactionsStatus.loading) {
+      return _buildLoadingState(scale);
+    }
+    if (state != null && state.status == TransactionsStatus.error) {
+      return _buildErrorState(scale, state.errorMessage);
+    }
+    if (state != null && state.status == TransactionsStatus.empty) {
+      return _buildEmptyState(scale);
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        16 * scale,
+        18 * scale,
+        16 * scale,
+        kBottomContentInset * scale,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AnalyticsSearchBar(
+            scale: scale,
+            controller: _searchController,
+            hint: data.searchHint,
+            showClear: _filter.query.isNotEmpty,
+            onChanged: _onQueryChanged,
+            onClear: _clearQuery,
+            isExporting: _isExporting,
+            onExport: () => _export(range, visible, summary),
+          ),
+          SizedBox(height: 16 * scale),
+          AnalyticsFilterChips(
+            scale: scale,
+            totalCount: visible.length,
+            type: _filter.type,
+            category: _filter.category,
+            dateLabel: _filter.range == null
+                ? null
+                : formatDateRange(_filter.range!),
+            onTypeChanged: (TransactionType? type) {
+              setState(() {
+                _filter = _filter.withType(type);
+              });
+            },
+            onCategoryTap: () => _pickCategory(range),
+            onReset: _resetAll,
+          ),
+          SizedBox(height: 14 * scale),
+          DateFilterCard(
+            scale: scale,
+            label: dateLabel,
+            onTap: _pickDateRange,
+            onPreviousMonth: () => _changeMonth(-1),
+            onNextMonth: () => _changeMonth(1),
+          ),
+          SizedBox(height: 14 * scale),
+          SummaryHeroCard(scale: scale, summary: summary),
+          SizedBox(height: 18 * scale),
+          CashFlowDonutCard(scale: scale, summary: summary),
+          SizedBox(height: 18 * scale),
+          BarChartCard(
+            scale: scale,
+            data: _buildChartData(
+              range: range,
+              summary: summary,
+              visible: visible,
+              growth: growth,
+            ),
+          ),
+          SizedBox(height: 22 * scale),
+          _SectionHeading(
+            scale: scale,
+            title: 'Rincian Transaksi',
+            trailing: '$categoryCount Kategori Aktif',
+          ),
+          SizedBox(height: 12 * scale),
+          CategoryBreakdownCard(
+            scale: scale,
+            type: TransactionType.expense,
+            items: expenseCategories,
+            total: summary.expense,
+          ),
+          SizedBox(height: 10 * scale),
+          CategoryBreakdownCard(
+            scale: scale,
+            type: TransactionType.income,
+            items: incomeCategories,
+            total: summary.income,
+          ),
+          SizedBox(height: 22 * scale),
+          _SectionHeading(
+            scale: scale,
+            title: 'Daftar Transaksi',
+            trailing: '${visible.length} Transaksi',
+          ),
+          SizedBox(height: 12 * scale),
+          _buildTransactionList(scale, visible),
+          SizedBox(height: 22 * scale),
+          _buildActivityHeader(scale),
+          SizedBox(height: 12 * scale),
+          _buildActivityList(scale),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(double scale) {
+    return Center(
+      key: const Key('analytics_loading'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const CircularProgressIndicator(color: SojuColors.primary),
+          SizedBox(height: 12 * scale),
+          Text(
+            'Memuat data transaksi...',
+            style: TextStyle(
+              fontFamily: AppTypography.family,
+              fontSize: 14 * scale,
+              color: SojuColors.inkMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(double scale, String? errorMessage) {
+    return Center(
+      key: const Key('analytics_error'),
+      child: Padding(
+        padding: EdgeInsets.all(24 * scale),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.error_outline_rounded,
+              size: 48 * scale,
+              color: SojuColors.expense,
+            ),
+            SizedBox(height: 12 * scale),
+            Text(
+              errorMessage ?? 'Gagal memuat data transaksi.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 14 * scale,
+                fontWeight: FontWeight.w600,
+                color: SojuColors.ink,
+              ),
+            ),
+            SizedBox(height: 16 * scale),
+            ElevatedButton(
+              key: const Key('analytics_retry_button'),
+              onPressed: () => _controller?.load(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: SojuColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20 * scale),
+                ),
+              ),
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(double scale) {
+    return Center(
+      key: const Key('analytics_empty'),
+      child: Padding(
+        padding: EdgeInsets.all(24 * scale),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 56 * scale,
+              color: SojuColors.inkMuted,
+            ),
+            SizedBox(height: 12 * scale),
+            Text(
+              'Belum ada data transaksi',
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 16 * scale,
+                fontWeight: FontWeight.w700,
+                color: SojuColors.ink,
+              ),
+            ),
+            SizedBox(height: 6 * scale),
+            Text(
+              'Belum ada data transaksi operasional yang tercatat.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 13 * scale,
+                color: SojuColors.inkMuted,
+              ),
+            ),
+            SizedBox(height: 16 * scale),
+            ElevatedButton(
+              key: const Key('analytics_empty_retry_button'),
+              onPressed: () => _controller?.load(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: SojuColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20 * scale),
+                ),
+              ),
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -443,6 +655,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   void _changeMonth(int delta) {
     setState(() {
+      _userChangedMonth = true;
       _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
       _filter = _filter.withRange(null);
     });
@@ -470,7 +683,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Future<void> _pickCategory(DateTimeRange range) async {
     final Map<String, _CategoryOption> options = <String, _CategoryOption>{};
-    for (final AnalyticsTransaction transaction in _data.transactions) {
+    for (final AnalyticsTransaction transaction in _currentData.transactions) {
       if (!AnalyticsFilter(range: range).matches(transaction)) {
         continue;
       }

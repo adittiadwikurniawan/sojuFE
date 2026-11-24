@@ -1,31 +1,6 @@
 // lib/data/models/audit/audit_log_model.dart
 //
-// DTO `GET /api/v1/audit-log` (snake_case sesuai PRD Bagian 7, lihat §2.7).
-//
-// Bentuk yang disepakati (Phase A, kontrak mock):
-//
-// ```json
-// {
-//   "success": true,
-//   "data": {
-//     "logs": [
-//       {
-//         "id": "log-001",
-//         "waktu": "2026-11-17T09:24:00.000Z",
-//         "aksi": "tambah",
-//         "record_type": "transaksi",
-//         "record_nama": "Penjualan Sosis Solo #1023",
-//         "detail": "Jumlah 2 porsi, total Rp 36.000",
-//         "pengguna": "Rina"          // atau {"nama": "Rina"}
-//       }
-//     ],
-//     "pagination": {
-//       "page": 1, "per_page": 12, "total": 34,
-//       "total_pages": 3, "has_next": true
-//     }
-//   }
-// }
-// ```
+// DTO `GET /api/v1/audit-log` (snake_case dan camelCase backend Express).
 
 import '../../../domain/entities/audit_log_entity.dart';
 
@@ -51,23 +26,37 @@ class AuditLogEntryModel {
   /// Nama pengguna; `null` bila API tidak mengirim relasi pengguna.
   final String? pengguna;
 
-  /// Mengurai satu baris log; `waktu` dan `aksi` wajib ada.
-  ///
-  /// Melempar [FormatException] bila field wajib absen/tak valid.
+  /// Mengurai satu baris log; `waktu` dan `aksi` wajib ada atau di-fallback.
   factory AuditLogEntryModel.fromJson(Map<String, Object?> json) {
-    final DateTime waktu = _parseDateTime(json['waktu'] ?? json['time']);
-    final Object? rawAksi = json['aksi'] ?? json['action'];
+    final DateTime waktu = _parseDateTime(
+      json['waktu'] ?? json['time'] ?? json['dibuatPada'] ?? json['createdAt'],
+    );
+    final Object? rawAksi =
+        json['aksi'] ?? json['action'] ?? json['actionLabel'];
     if (rawAksi is! String || rawAksi.isEmpty) {
       throw const FormatException('Field `aksi` tidak valid.');
     }
+    final String aksi = rawAksi;
+
     return AuditLogEntryModel(
       id: json['id']?.toString(),
       waktu: waktu,
-      aksi: rawAksi,
-      recordTipe: json['record_type']?.toString(),
-      recordNama: (json['record_nama'] ?? json['record_name'])?.toString(),
+      aksi: aksi,
+      recordTipe: (json['record_type'] ??
+              json['recordType'] ??
+              json['tabelTarget'] ??
+              json['sheet'])
+          ?.toString(),
+      recordNama: (json['record_nama'] ??
+              json['record_name'] ??
+              json['recordLabel'] ??
+              json['labelRecord'] ??
+              json['targetNama'])
+          ?.toString(),
       detail: (json['detail'] ?? json['keterangan'])?.toString(),
-      pengguna: _parsePengguna(json['pengguna'] ?? json['user']),
+      pengguna: _parsePengguna(
+        json['pengguna'] ?? json['user'] ?? json['dibuatOleh'],
+      ),
     );
   }
 
@@ -100,23 +89,29 @@ class AuditLogPaginationModel {
   final int? totalPages;
   final bool hasNext;
 
-  /// Toleran terhadap pagination absen (fallback halaman tunggal).
   factory AuditLogPaginationModel.fromJson(Object? raw) {
     if (raw is! Map) {
       return const AuditLogPaginationModel(page: 1, hasNext: false);
     }
-    final int? currentPage = _asInt(raw['page'] ?? raw['current_page']);
-    final int? lastPage = _asInt(raw['total_pages'] ?? raw['last_page']);
+    final int? currentPage =
+        _asInt(raw['page'] ?? raw['current_page'] ?? raw['currentPage']);
+    final int? lastPage =
+        _asInt(raw['total_pages'] ?? raw['totalPages'] ?? raw['last_page']);
+    final int? total = _asInt(raw['total'] ?? raw['totalCount']);
+    final int? perPage = _asInt(raw['per_page'] ?? raw['limit'] ?? raw['pageSize']);
+
+    final bool hasNext = raw['has_next'] is bool
+        ? raw['has_next'] as bool
+        : (currentPage != null && lastPage != null
+            ? currentPage < lastPage
+            : false);
+
     return AuditLogPaginationModel(
       page: currentPage ?? 1,
-      perPage: _asInt(raw['per_page']),
-      total: _asInt(raw['total']),
+      perPage: perPage,
+      total: total,
       totalPages: lastPage,
-      hasNext: raw['has_next'] is bool
-          ? raw['has_next'] as bool
-          : (currentPage != null && lastPage != null
-              ? currentPage < lastPage
-              : false),
+      hasNext: hasNext,
     );
   }
 
@@ -139,14 +134,11 @@ class AuditLogPageModel {
   final List<AuditLogEntryModel> logs;
   final AuditLogPaginationModel pagination;
 
-  /// Mengurai isi `data`; `logs` wajib berupa list.
-  ///
-  /// Melempar [FormatException] bila bentuk tidak sesuai kontrak.
   factory AuditLogPageModel.fromJson(Object? raw) {
     if (raw is! Map) {
       throw const FormatException('Isi `data` audit-log bukan objek.');
     }
-    final Object? rawLogs = raw['logs'] ?? raw['items'];
+    final Object? rawLogs = raw['logs'] ?? raw['items'] ?? raw['data'];
     if (rawLogs is! List) {
       throw const FormatException('Field `logs` tidak ada pada data audit.');
     }
@@ -179,7 +171,6 @@ Map<String, Object?> _asMap(Object? raw, String field) {
   throw FormatException('Item `$field` bukan objek JSON.');
 }
 
-/// Memetakan `pengguna` berbentuk string maupun objek menjadi nama.
 String? _parsePengguna(Object? raw) {
   if (raw is String) {
     return raw.isEmpty ? null : raw;
@@ -190,6 +181,7 @@ String? _parsePengguna(Object? raw) {
       'name',
       'full_name',
       'username',
+      'email',
     ]) {
       final Object? value = raw[key];
       if (value is String && value.isNotEmpty) {
@@ -208,7 +200,6 @@ DateTime _parseDateTime(Object? raw) {
     }
   }
   if (raw is int) {
-    // Detik atau milidetik epoch.
     return raw > 100000000000
         ? DateTime.fromMillisecondsSinceEpoch(raw)
         : DateTime.fromMillisecondsSinceEpoch(raw * 1000);
