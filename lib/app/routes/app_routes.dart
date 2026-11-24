@@ -19,6 +19,7 @@ import '../../presentation/providers/customer/customer_orders_controller.dart';
 import '../../presentation/providers/customer/customer_profile_controller.dart';
 import '../../presentation/screens/activities/activities_screen.dart';
 import '../../presentation/screens/admin_orders/admin_orders_screen.dart';
+import '../../presentation/screens/admin_users/admin_users_screen.dart';
 import '../../presentation/screens/analytics/analytics_screen.dart';
 import '../../presentation/screens/audit/audit_screen.dart';
 import '../../presentation/screens/auth/auth_screen.dart';
@@ -602,17 +603,13 @@ abstract final class AppRouter {
         GoRoute(
           path: AppRoutes.adminUsers,
           builder: (BuildContext context, GoRouterState state) =>
-              SuperAdminModuleScreen(
-            key: const Key('admin_users_screen'),
-            title: 'Kelola Pengguna',
-            subtitle:
-                'Manajemen akun Admin & Super Admin beserta status akses.',
-            cardTitle: 'Daftar Pengelola Sistem',
-            cardDescription:
-                'Tambah akun pengelola baru, perbarui peran, nonaktifkan akses, '
-                'atau kirim tautan atur ulang password.',
-            icon: Icons.manage_accounts_outlined,
-            onBack: () => _popOrDashboard(context),
+              _AuthUserBuilder(
+            controller: authController,
+            builder: (BuildContext context, AuthUser? user) => AdminUsersScreen(
+              currentUser: user,
+              controllerFactory: DataProviders.createAdminUsersController,
+              onBack: () => _popOrDashboard(context),
+            ),
           ),
         ),
         GoRoute(

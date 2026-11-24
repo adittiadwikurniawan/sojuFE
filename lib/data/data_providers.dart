@@ -10,6 +10,7 @@ import '../core/services/api_client/api_client.dart';
 import '../core/services/token_storage/token_storage.dart';
 import '../domain/entities/sales_chat_entity.dart';
 import '../domain/repositories/admin_order_repository.dart';
+import '../domain/repositories/admin_users_repository.dart';
 import '../domain/repositories/audit_repository.dart';
 import '../domain/repositories/auth_repository.dart';
 import '../domain/repositories/customer_order_repository.dart';
@@ -18,6 +19,7 @@ import '../domain/repositories/dashboard_repository.dart';
 import '../domain/repositories/storefront_repository.dart';
 import '../domain/repositories/transaction_repository.dart';
 import '../domain/usecases/admin_order_usecases.dart';
+import '../domain/usecases/admin_users_usecases.dart';
 import '../domain/usecases/audit_usecases.dart';
 import '../domain/usecases/auth_usecases.dart';
 import '../domain/usecases/customer_order_usecases.dart';
@@ -30,11 +32,13 @@ import '../domain/usecases/sales_chat_usecases.dart';
 import '../domain/usecases/storefront_usecases.dart';
 import '../domain/usecases/transaction_usecases.dart';
 import '../presentation/providers/admin_orders/admin_orders_controller.dart';
+import '../presentation/providers/admin_users/admin_users_controller.dart';
 import '../presentation/providers/audit/audit_log_controller.dart';
 import '../presentation/providers/dashboard/dashboard_controller.dart';
 import '../presentation/providers/storefront/customer_cart_controller.dart';
 import '../presentation/providers/transactions/transactions_controller.dart';
 import 'datasources/mock/admin_order_mock_datasource.dart';
+import 'datasources/mock/admin_users_mock_datasource.dart';
 import 'datasources/mock/audit_mock_datasource.dart';
 import 'datasources/mock/customer_order_mock_datasource.dart';
 import 'datasources/mock/customer_profile_mock_datasource.dart';
@@ -44,6 +48,7 @@ import 'datasources/mock/profile_mock_datasource.dart';
 import 'datasources/mock/sales_chat_mock_datasource.dart';
 import 'datasources/mock/storefront_mock_datasource.dart';
 import 'datasources/remote/admin_order_remote_datasource.dart';
+import 'datasources/remote/admin_users_remote_datasource.dart';
 import 'datasources/remote/audit_remote_datasource.dart';
 import 'datasources/remote/auth_remote_datasource.dart';
 import 'datasources/remote/customer_order_remote_datasource.dart';
@@ -52,6 +57,7 @@ import 'datasources/remote/dashboard_remote_datasource.dart';
 import 'datasources/remote/storefront_remote_datasource.dart';
 import 'datasources/remote/transaction_remote_datasource.dart';
 import 'repositories/admin_order_repository_impl.dart';
+import 'repositories/admin_users_repository_impl.dart';
 import 'repositories/audit_repository_impl.dart';
 import 'repositories/auth_repository_impl.dart';
 import 'repositories/customer_order_repository_impl.dart';
@@ -71,11 +77,12 @@ abstract final class DataProviders {
   static CustomerOrderRepository? _customerOrderRepository;
   static CustomerProfileRepository? _customerProfileRepository;
 
-  // Repositories untuk admin operasional live REST (TASK-026)
+  // Repositories untuk admin operasional live REST (TASK-026 & TASK-027)
   static DashboardRepository? _dashboardRepository;
   static TransactionRepository? _transactionRepository;
   static AuditLogRepository? _auditLogRepository;
   static AdminOrderRepository? _adminOrderRepository;
+  static AdminUsersRepository? _adminUsersRepository;
 
   /// Mengonfigurasi dependency remote dari composition root (`main.dart`).
   ///
@@ -113,6 +120,9 @@ abstract final class DataProviders {
     );
     _adminOrderRepository = AdminOrderRepositoryImpl(
       AdminOrderRemoteDataSource(apiClient),
+    );
+    _adminUsersRepository = AdminUsersRepositoryImpl(
+      AdminUsersRemoteDataSource(apiClient),
     );
 
     resetCartController();
@@ -284,6 +294,49 @@ abstract final class DataProviders {
     );
   }
 
+  // --- SUPER_ADMIN Multi-User Management Providers (TASK-027) ---
+
+  static final AdminUsersMockDataSource _adminUsersMockDataSource =
+      AdminUsersMockDataSource();
+
+  static AdminUsersRepository get _adminUsers {
+    return _adminUsersRepository ??
+        AdminUsersRepositoryImpl(_adminUsersMockDataSource);
+  }
+
+  /// Usecase daftar akun admin `GET /api/v1/users`.
+  static GetAdminUsers getAdminUsers() => GetAdminUsers(_adminUsers);
+
+  /// Usecase pembuatan akun admin baru `POST /api/v1/users`.
+  static CreateAdminUser createAdminUser() => CreateAdminUser(_adminUsers);
+
+  /// Usecase pembaruan data akun admin `PATCH /api/v1/users/:id`.
+  static UpdateAdminUser updateAdminUser() => UpdateAdminUser(_adminUsers);
+
+  /// Usecase pembaruan status aktif akun admin `PATCH /api/v1/users/:id/status`.
+  static UpdateAdminUserStatus updateAdminUserStatus() =>
+      UpdateAdminUserStatus(_adminUsers);
+
+  /// Usecase nonaktifkan akun admin secara lunak `DELETE /api/v1/users/:id`.
+  static SoftDisableAdminUser softDisableAdminUser() =>
+      SoftDisableAdminUser(_adminUsers);
+
+  /// Usecase pemicuan email reset password `POST /api/v1/users/:id/reset-password`.
+  static TriggerAdminUserPasswordReset triggerAdminUserPasswordReset() =>
+      TriggerAdminUserPasswordReset(_adminUsers);
+
+  /// Factory controller Manajemen Multi-User Admin (`SUPER_ADMIN` only).
+  static AdminUsersController createAdminUsersController() {
+    return AdminUsersController(
+      getAdminUsers: getAdminUsers(),
+      createAdminUser: createAdminUser(),
+      updateAdminUser: updateAdminUser(),
+      updateAdminUserStatus: updateAdminUserStatus(),
+      softDisableAdminUser: softDisableAdminUser(),
+      triggerPasswordReset: triggerAdminUserPasswordReset(),
+    );
+  }
+
   /// Menghapus konfigurasi auth, etalase, pesanan, dan admin repos (dipakai test).
   static void resetAuth() {
     _authRepository = null;
@@ -294,6 +347,7 @@ abstract final class DataProviders {
     _transactionRepository = null;
     _auditLogRepository = null;
     _adminOrderRepository = null;
+    _adminUsersRepository = null;
     resetCartController();
   }
 
@@ -303,11 +357,13 @@ abstract final class DataProviders {
     TransactionRepository? transaction,
     AuditLogRepository? audit,
     AdminOrderRepository? adminOrder,
+    AdminUsersRepository? adminUsers,
   }) {
     if (dashboard != null) _dashboardRepository = dashboard;
     if (transaction != null) _transactionRepository = transaction;
     if (audit != null) _auditLogRepository = audit;
     if (adminOrder != null) _adminOrderRepository = adminOrder;
+    if (adminUsers != null) _adminUsersRepository = adminUsers;
   }
 
   static bool get hasAuth => _authRepository != null;
