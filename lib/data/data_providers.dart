@@ -20,11 +20,21 @@ import 'datasources/mock/help_mock_datasource.dart';
 import 'datasources/mock/profile_mock_datasource.dart';
 import 'datasources/mock/sales_chat_mock_datasource.dart';
 import 'datasources/mock/storefront_mock_datasource.dart';
+import 'datasources/mock/customer_order_mock_datasource.dart';
+import 'datasources/mock/customer_profile_mock_datasource.dart';
 import 'datasources/remote/auth_remote_datasource.dart';
 import 'datasources/remote/storefront_remote_datasource.dart';
+import 'datasources/remote/customer_order_remote_datasource.dart';
+import 'datasources/remote/customer_profile_remote_datasource.dart';
 import 'repositories/storefront_repository_impl.dart';
+import 'repositories/customer_order_repository_impl.dart';
+import 'repositories/customer_profile_repository_impl.dart';
 import '../domain/repositories/storefront_repository.dart';
+import '../domain/repositories/customer_order_repository.dart';
+import '../domain/repositories/customer_profile_repository.dart';
 import '../domain/usecases/storefront_usecases.dart';
+import '../domain/usecases/customer_order_usecases.dart';
+import '../domain/usecases/customer_profile_usecases.dart';
 import '../presentation/providers/storefront/customer_cart_controller.dart';
 import 'repositories/auth_repository_impl.dart';
 import 'repositories/free_table_repository_impl.dart';
@@ -36,6 +46,8 @@ import 'repositories/sales_chat_repository_impl.dart';
 abstract final class DataProviders {
   static AuthRepository? _authRepository;
   static StorefrontRepository? _storefrontRepository;
+  static CustomerOrderRepository? _customerOrderRepository;
+  static CustomerProfileRepository? _customerProfileRepository;
 
   /// Mengonfigurasi dependency remote dari composition root (`main.dart`).
   ///
@@ -53,6 +65,12 @@ abstract final class DataProviders {
     _storefrontRepository = StorefrontRepositoryImpl(
       StorefrontRemoteDataSource(apiClient),
       apiOrigin: apiOrigin,
+    );
+    _customerOrderRepository = CustomerOrderRepositoryImpl(
+      CustomerOrderRemoteDataSource(apiClient),
+    );
+    _customerProfileRepository = CustomerProfileRepositoryImpl(
+      CustomerProfileRemoteDataSource(apiClient),
     );
     resetCartController();
   }
@@ -101,10 +119,52 @@ abstract final class DataProviders {
   /// Usecase simpan keranjang `PUT /api/customer/keranjang`.
   static SaveCart saveCart() => SaveCart(_storefront);
 
-  /// Menghapus konfigurasi auth dan etalase (dipakai test).
+  static final CustomerOrderMockDataSource _customerOrderMockDataSource =
+      CustomerOrderMockDataSource();
+
+  static CustomerOrderRepository get _customerOrder {
+    return _customerOrderRepository ??
+        CustomerOrderRepositoryImpl(_customerOrderMockDataSource);
+  }
+
+  static final CustomerProfileMockDataSource _customerProfileMockDataSource =
+      CustomerProfileMockDataSource();
+
+  static CustomerProfileRepository get _customerProfile {
+    return _customerProfileRepository ??
+        CustomerProfileRepositoryImpl(_customerProfileMockDataSource);
+  }
+
+  /// Usecase checkout pesanan pelanggan `POST /api/customer/checkout`.
+  static CheckoutCustomerOrder checkoutCustomerOrder() =>
+      CheckoutCustomerOrder(_customerOrder);
+
+  /// Usecase daftar riwayat pesanan pelanggan `GET /api/customer/pesanan`.
+  static GetCustomerOrders getCustomerOrders() =>
+      GetCustomerOrders(_customerOrder);
+
+  /// Usecase detail pesanan pelanggan `GET /api/customer/pesanan/:id`.
+  static GetCustomerOrderDetail getCustomerOrderDetail() =>
+      GetCustomerOrderDetail(_customerOrder);
+
+  /// Usecase ambil profil pelanggan `GET /api/customer/profil`.
+  static GetCustomerProfile getCustomerProfile() =>
+      GetCustomerProfile(_customerProfile);
+
+  /// Usecase perbarui profil pelanggan `PATCH /api/customer/profil`.
+  static UpdateCustomerProfile updateCustomerProfile() =>
+      UpdateCustomerProfile(_customerProfile);
+
+  /// Usecase ganti password pelanggan `POST /api/customer/ubah-password`.
+  static ChangeCustomerPassword changeCustomerPassword() =>
+      ChangeCustomerPassword(_customerProfile);
+
+  /// Menghapus konfigurasi auth, etalase, dan pesanan pelanggan (dipakai test).
   static void resetAuth() {
     _authRepository = null;
     _storefrontRepository = null;
+    _customerOrderRepository = null;
+    _customerProfileRepository = null;
     resetCartController();
   }
 

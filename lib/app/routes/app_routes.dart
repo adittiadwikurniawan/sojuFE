@@ -18,6 +18,9 @@ import '../../presentation/providers/profile/profile_controller.dart';
 import '../../presentation/providers/sales_chat/sales_chat_controller.dart';
 import '../../presentation/providers/storefront/customer_cart_controller.dart';
 import '../../presentation/providers/storefront/customer_catalog_controller.dart';
+import '../../presentation/providers/customer/customer_checkout_controller.dart';
+import '../../presentation/providers/customer/customer_orders_controller.dart';
+import '../../presentation/providers/customer/customer_profile_controller.dart';
 import '../../presentation/screens/activities/activities_screen.dart';
 import '../../presentation/screens/analytics/analytics_screen.dart';
 import '../../presentation/screens/audit/audit_screen.dart';
@@ -31,6 +34,9 @@ import '../../presentation/screens/auth/widgets/auth_header.dart';
 import '../../presentation/screens/chatbot/chatbot_screen.dart';
 import '../../presentation/screens/customer/customer_cart_screen.dart';
 import '../../presentation/screens/customer/customer_catalog_screen.dart';
+import '../../presentation/screens/customer/customer_checkout_screen.dart';
+import '../../presentation/screens/customer/customer_orders_screen.dart';
+import '../../presentation/screens/customer/customer_profile_screen.dart';
 import '../../presentation/screens/dashboard/dashboard_screen.dart';
 import '../../presentation/screens/free_tables/free_table_category_screen.dart';
 import '../../presentation/screens/notifications/notifications_screen.dart';
@@ -421,7 +427,11 @@ abstract final class AppRouter {
             GoRoute(
               path: AppRoutes.customerOrders,
               builder: (BuildContext context, GoRouterState state) =>
-                  CustomerOrdersShellScreen(
+                  CustomerOrdersScreen(
+                controllerFactory: () => CustomerOrdersController(
+                  getOrders: DataProviders.getCustomerOrders(),
+                  getOrderDetail: DataProviders.getCustomerOrderDetail(),
+                ),
                 onBrowseMenu: () => context.go(AppRoutes.customerMenu),
               ),
             ),
@@ -431,8 +441,13 @@ abstract final class AppRouter {
                   _AuthUserBuilder(
                 controller: authController,
                 builder: (BuildContext context, AuthUser? user) =>
-                    CustomerAccountShellScreen(
+                    CustomerProfileScreen(
                   user: user,
+                  controllerFactory: () => CustomerProfileController(
+                    getProfile: DataProviders.getCustomerProfile(),
+                    updateProfile: DataProviders.updateCustomerProfile(),
+                    changePassword: DataProviders.changeCustomerPassword(),
+                  ),
                   onLogout: () async {
                     await authController?.logout();
                     if (context.mounted) {
@@ -447,15 +462,26 @@ abstract final class AppRouter {
         GoRoute(
           path: AppRoutes.customerCheckout,
           builder: (BuildContext context, GoRouterState state) =>
-              CustomerCheckoutShellScreen(
-            onBack: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.customerCart);
-              }
-            },
-            onViewOrders: () => context.go(AppRoutes.customerOrders),
+              _AuthUserBuilder(
+            controller: authController,
+            builder: (BuildContext context, AuthUser? user) =>
+                CustomerCheckoutScreen(
+              cartController: effectiveCartController,
+              user: user,
+              checkoutControllerFactory: () => CustomerCheckoutController(
+                checkoutOrder: DataProviders.checkoutCustomerOrder(),
+                initialAddress: user?.address ?? '',
+              ),
+              onBack: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go(AppRoutes.customerCart);
+                }
+              },
+              onViewOrders: () => context.go(AppRoutes.customerOrders),
+              onBrowseMenu: () => context.go(AppRoutes.customerMenu),
+            ),
           ),
         ),
 
