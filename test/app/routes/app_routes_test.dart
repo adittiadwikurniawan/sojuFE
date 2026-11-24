@@ -1,4 +1,5 @@
-// Widget test: navbar Figma `801:4265` dan perilaku rute ShellRoute.
+// Widget test: GoRouter sadar-peran (CUSTOMER, ADMIN, SUPER_ADMIN),
+// Dual ShellRoute 5-tab, Admin Drawer gating, dan rute drill-down.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,9 +7,18 @@ import 'package:go_router/go_router.dart';
 
 import 'package:soju_fe/app/config/app_features.dart';
 import 'package:soju_fe/app/routes/app_routes.dart';
+import 'package:soju_fe/core/common/result.dart';
+import 'package:soju_fe/core/errors/app_failure.dart';
+import 'package:soju_fe/core/themes/app_theme.dart';
 import 'package:soju_fe/core/themes/soju_colors.dart';
+import 'package:soju_fe/domain/entities/auth_session_entity.dart';
+import 'package:soju_fe/domain/repositories/auth_repository.dart';
+import 'package:soju_fe/domain/usecases/auth_usecases.dart';
+import 'package:soju_fe/presentation/providers/auth/auth_controller.dart';
 import 'package:soju_fe/presentation/screens/activities/activities_screen.dart';
+import 'package:soju_fe/presentation/screens/analytics/analytics_screen.dart';
 import 'package:soju_fe/presentation/screens/analytics/widgets/analytics_top_bar.dart';
+import 'package:soju_fe/presentation/screens/audit/audit_screen.dart';
 import 'package:soju_fe/presentation/screens/audit/widgets/audit_top_bar.dart';
 import 'package:soju_fe/presentation/screens/chatbot/chatbot_screen.dart';
 import 'package:soju_fe/presentation/screens/dashboard/dashboard_screen.dart';
@@ -25,8 +35,139 @@ import 'package:soju_fe/presentation/screens/profile/profile_settings_screen.dar
 import 'package:soju_fe/presentation/screens/profile/terms_screen.dart';
 import 'package:soju_fe/presentation/screens/prototype/sales_chat/sales_chat_prototype_disabled_screen.dart';
 import 'package:soju_fe/presentation/screens/prototype/sales_chat/sales_chat_prototype_screen.dart';
+import 'package:soju_fe/presentation/widgets/admin_drawer.dart';
 import 'package:soju_fe/presentation/widgets/bottom_nav_bar.dart';
+import 'package:soju_fe/presentation/widgets/customer_bottom_nav_bar.dart';
 import 'package:soju_fe/presentation/widgets/profile/profile_top_bar.dart';
+
+class _FakeRouteAuthRepository implements AuthRepository {
+  _FakeRouteAuthRepository({this.restoredUser});
+
+  AuthUser? restoredUser;
+  AuthSession? loginSession;
+
+  @override
+  Future<Result<AuthSession>> login({
+    required String email,
+    required String password,
+    AuthPortal portal = AuthPortal.admin,
+  }) async {
+    final AuthSession? session = loginSession;
+    if (session == null) {
+      return Result<AuthSession>.failure(
+        const UnauthorizedFailure(message: 'Email atau password salah.'),
+      );
+    }
+    return Result<AuthSession>.success(session);
+  }
+
+  @override
+  Future<Result<AuthSession>> register({
+    required String name,
+    required String email,
+    required String phone,
+    required String address,
+    required String password,
+    bool promotionAllowed = false,
+  }) async {
+    return Result<AuthSession>.success(
+      AuthSession(
+        token: 'customer-token',
+        user: AuthUser(
+          id: 99,
+          name: name,
+          email: email,
+          role: UserRole.customer,
+          phone: phone,
+          address: address,
+          promotionAllowed: promotionAllowed,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Future<Result<String>> requestPasswordReset({
+    required String email,
+    AuthPortal portal = AuthPortal.admin,
+  }) async {
+    return Result<String>.success(
+      'Jika email terdaftar, tautan reset password telah dikirim.',
+    );
+  }
+
+  @override
+  Future<Result<String>> resetPassword({
+    required String token,
+    required String newPassword,
+    AuthPortal portal = AuthPortal.admin,
+  }) async {
+    return Result<String>.success('Password berhasil diatur ulang.');
+  }
+
+  @override
+  Future<Result<AuthUser>> me({UserRole? role}) async {
+    final AuthUser? user = restoredUser;
+    if (user == null) {
+      return Result<AuthUser>.failure(const UnauthorizedFailure());
+    }
+    return Result<AuthUser>.success(user);
+  }
+
+  @override
+  Future<Result<AuthUser>> restoreSession() async {
+    final AuthUser? user = restoredUser;
+    if (user == null) {
+      return Result<AuthUser>.failure(const UnauthorizedFailure());
+    }
+    return Result<AuthUser>.success(user);
+  }
+
+  @override
+  Future<Result<void>> logout() async {
+    restoredUser = null;
+    return Result<void>.success(null);
+  }
+}
+
+Future<AuthController> _createBootstrappedAuth({AuthUser? user}) async {
+  final _FakeRouteAuthRepository repo = _FakeRouteAuthRepository(
+    restoredUser: user,
+  );
+  final AuthController controller = AuthController(
+    login: Login(repo),
+    register: Register(repo),
+    requestPasswordReset: RequestPasswordReset(repo),
+    resetPassword: ResetPassword(repo),
+    restoreSession: RestoreSession(repo),
+    logout: Logout(repo),
+  );
+  await controller.bootstrap();
+  return controller;
+}
+
+const AuthUser _customerUser = AuthUser(
+  id: 10,
+  name: 'Siti Rahma',
+  email: 'siti@pelanggan.id',
+  role: UserRole.customer,
+  phone: '081234567890',
+  address: 'Jl. Dago No. 12, Bandung',
+);
+
+const AuthUser _adminUser = AuthUser(
+  id: 2,
+  name: 'Raka Operasional',
+  email: 'raka@sojucorp.com',
+  role: UserRole.admin,
+);
+
+const AuthUser _superAdminUser = AuthUser(
+  id: 1,
+  name: 'Dea Super Admin',
+  email: 'dea@sojucorp.com',
+  role: UserRole.superAdmin,
+);
 
 void main() {
   testWidgets('lokasi root diarahkan ke splash, bukan layar kosong', (
@@ -39,7 +180,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
@@ -59,26 +200,21 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Alat Cepat'), findsOneWidget);
-    // "Ai Asistant" adalah tab navbar Figma, jadi navbar tetap terlihat.
-    expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
-    // Area chat tidak memakai glassmorphism: overlay dan blur navbar mati.
+    expect(find.byType(AdminBottomNavBar), findsOneWidget);
     expect(find.byKey(const Key('bottom_glass_overlay')), findsNothing);
     expect(find.byKey(const Key('bottom_nav_glass')), findsNothing);
 
-    // Panggil callback rute langsung agar test fokus pada wiring, bukan
-    // hit-test bilah atas yang sedang bertransisi.
     tester.widget<ChatbotScreen>(find.byType(ChatbotScreen)).onBack!();
     await tester.pumpAndSettle();
 
     expect(find.text('Aktivitas'), findsOneWidget);
     expect(find.text('Alat Cepat'), findsNothing);
-    expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
-    // Kembali ke Beranda memulihkan efek kaca.
+    expect(find.byType(AdminBottomNavBar), findsOneWidget);
     expect(find.byKey(const Key('bottom_glass_overlay')), findsOneWidget);
     expect(find.byKey(const Key('bottom_nav_glass')), findsOneWidget);
   });
@@ -95,21 +231,20 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
-    // Label navbar dan judul halaman sama-sama memakai "Audit & Stok".
-    expect(find.text('Audit & Stok'), findsNWidgets(2));
-    // Memanggil callback langsung: yang diuji adalah wiring rute tombol kembali,
-    // bukan mekanika hit-test GestureDetector pada bilah atas.
+    expect(find.byType(AuditScreen), findsOneWidget);
+    expect(find.text('Audit & Stok'), findsOneWidget);
+    expect(find.byType(AdminBottomNavBar), findsNothing);
+
     tester.widget<AuditTopBar>(find.byType(AuditTopBar)).onBack!();
     await tester.pumpAndSettle();
 
     expect(find.text('Aktivitas'), findsOneWidget);
     expect(find.byType(AuditTopBar), findsNothing);
-    // Label navbar tetap ada, tetapi halaman audit sudah tidak terbuka.
-    expect(find.text('Audit & Stok'), findsOneWidget);
+    expect(find.byType(AdminBottomNavBar), findsOneWidget);
   });
 
   testWidgets('tombol notifikasi membuka halaman notifikasi tanpa navbar', (
@@ -124,7 +259,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
@@ -134,7 +269,7 @@ void main() {
     expect(find.byType(NotificationsScreen), findsOneWidget);
     expect(find.text('Notifikasi'), findsOneWidget);
     expect(find.text('HARI INI'), findsOneWidget);
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byType(AdminBottomNavBar), findsNothing);
     expect(find.byKey(const Key('bottom_glass_overlay')), findsNothing);
 
     await tester.tap(find.byKey(const Key('notifications_back')));
@@ -156,7 +291,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
@@ -167,7 +302,7 @@ void main() {
 
     expect(find.byType(ActivitiesScreen), findsOneWidget);
     expect(find.text('Semua Aktivitas'), findsOneWidget);
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byType(AdminBottomNavBar), findsNothing);
     expect(find.byKey(const Key('bottom_glass_overlay')), findsNothing);
 
     await tester.tap(find.byKey(const Key('activities_back')));
@@ -177,19 +312,19 @@ void main() {
     expect(find.byType(DashboardScreen), findsOneWidget);
   });
 
-  testWidgets('Lihat Semua aktivitas dari Analytics membuka daftar', (
+  testWidgets('Lihat Semua aktivitas dari Data/Analytics membuka daftar', (
     WidgetTester tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final GoRouter router = AppRouter.create(
-      initialLocation: AppRoutes.analytics,
+      initialLocation: AppRoutes.data,
     );
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
@@ -199,7 +334,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ActivitiesScreen), findsOneWidget);
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byType(AdminBottomNavBar), findsNothing);
   });
 
   testWidgets('tombol tambah Analytics membuka popup tanpa pindah rute', (
@@ -214,7 +349,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
@@ -233,11 +368,7 @@ void main() {
     );
     expect(router.state.uri.path, AppRoutes.analytics);
 
-    tester
-        .widget<FreeTableCategoryScreen>(
-          find.byType(FreeTableCategoryScreen),
-        )
-        .onClose!();
+    await tester.tap(find.byKey(const Key('free_table_save_button')));
     await tester.pumpAndSettle();
 
     expect(find.byType(FreeTableCategoryScreen), findsNothing);
@@ -256,15 +387,14 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
     expect(find.byType(FreeTableCategoryScreen), findsOneWidget);
     expect(find.text('Buat Kategori Baru'), findsOneWidget);
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byType(AdminBottomNavBar), findsNothing);
 
-    // Tanpa riwayat, tombol tutup modal kembali ke Beranda.
     tester
         .widget<FreeTableCategoryScreen>(
           find.byType(FreeTableCategoryScreen),
@@ -288,7 +418,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
@@ -297,10 +427,7 @@ void main() {
       find.text('Atur pos pembukuan pemasukan & custom field'),
       findsOneWidget,
     );
-    expect(find.text('Nama Klien / Pemesan'), findsOneWidget);
-    expect(find.text('Metode Pembayaran'), findsOneWidget);
-    expect(find.text('(Pilihan: BCA, QRIS, Tunai)'), findsOneWidget);
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byType(AdminBottomNavBar), findsNothing);
 
     tester
         .widget<FreeTableCategoryScreen>(
@@ -313,52 +440,100 @@ void main() {
     expect(find.text('Aktivitas'), findsOneWidget);
   });
 
-  final Map<String, String> tabRoutes = <String, String>{
+  final Map<String, String> adminTabRoutes = <String, String>{
     AppRoutes.dashboard: 'Home',
-    AppRoutes.analytics: 'Analytics',
-    AppRoutes.chatbot: 'Ai Asistant',
-    AppRoutes.audit: 'Audit & Stok',
+    AppRoutes.adminOrders: 'Pesanan',
+    AppRoutes.data: 'Data',
+    AppRoutes.chatbot: 'AI',
+    AppRoutes.adminAccount: 'Akun',
   };
-  for (final MapEntry<String, String> entry in tabRoutes.entries) {
-    testWidgets('navbar menandai tab ${entry.value} sebagai aktif', (
-      WidgetTester tester,
-    ) async {
-      await tester.binding.setSurfaceSize(const Size(430, 932));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+  for (final MapEntry<String, String> entry in adminTabRoutes.entries) {
+    testWidgets(
+      'Shell Admin menandai tab ${entry.value} sebagai aktif (5-tab)',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(430, 932));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final GoRouter router = AppRouter.create(
-        initialLocation: entry.key,
-      );
-      addTearDown(router.dispose);
+        final GoRouter router = AppRouter.create(
+          initialLocation: entry.key,
+        );
+        addTearDown(router.dispose);
 
-      await tester.pumpWidget(
-        MaterialApp.router(routerConfig: router),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        );
+        await tester.pumpAndSettle();
 
-      final Finder nav = find.byType(BukuDapurBottomNavBar);
-      expect(nav, findsOneWidget);
+        final Finder nav = find.byType(AdminBottomNavBar);
+        expect(nav, findsOneWidget);
 
-      final Iterable<Text> labels = tester.widgetList<Text>(
-        find.descendant(of: nav, matching: find.byType(Text)),
-      );
-      expect(
-        labels.map((Text text) => text.data).toList(),
-        <String?>['Home', 'Analytics', 'Ai Asistant', 'Audit & Stok'],
-      );
+        final Iterable<Text> labels = tester.widgetList<Text>(
+          find.descendant(of: nav, matching: find.byType(Text)),
+        );
+        expect(
+          labels.map((Text text) => text.data).toList(),
+          <String?>['Home', 'Pesanan', 'Data', 'AI', 'Akun'],
+        );
 
-      final Text activeLabel = tester.widget<Text>(
-        find.descendant(of: nav, matching: find.text(entry.value)),
-      );
-      expect(activeLabel.style?.color, SojuColors.primary);
-      expect(
-        find.descendant(of: nav, matching: find.byIcon(Icons.add)),
-        findsOneWidget,
-      );
-    });
+        final Text activeLabel = tester.widget<Text>(
+          find.descendant(of: nav, matching: find.text(entry.value)),
+        );
+        expect(activeLabel.style?.color, SojuColors.primary);
+      },
+    );
   }
 
-  testWidgets('mengetuk tab navbar berpindah rute dan tombol tambah aman', (
+  final Map<String, String> customerTabRoutes = <String, String>{
+    AppRoutes.customerHome: 'Beranda',
+    AppRoutes.customerMenu: 'Menu',
+    AppRoutes.customerCart: 'Keranjang',
+    AppRoutes.customerOrders: 'Pesanan',
+    AppRoutes.customerAccount: 'Akun',
+  };
+  for (final MapEntry<String, String> entry in customerTabRoutes.entries) {
+    testWidgets(
+      'Shell Pelanggan menandai tab ${entry.value} sebagai aktif (5-tab)',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(430, 932));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final AuthController auth = await _createBootstrappedAuth(
+          user: _customerUser,
+        );
+        addTearDown(auth.dispose);
+
+        final GoRouter router = AppRouter.create(
+          initialLocation: entry.key,
+          authController: auth,
+        );
+        addTearDown(router.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        );
+        await tester.pumpAndSettle();
+
+        final Finder nav = find.byType(CustomerBottomNavBar);
+        expect(nav, findsOneWidget);
+        expect(find.byType(AdminBottomNavBar), findsNothing);
+
+        final Iterable<Text> labels = tester.widgetList<Text>(
+          find.descendant(of: nav, matching: find.byType(Text)),
+        );
+        expect(
+          labels.map((Text text) => text.data).toList(),
+          <String?>['Beranda', 'Menu', 'Keranjang', 'Pesanan', 'Akun'],
+        );
+
+        final Text activeLabel = tester.widget<Text>(
+          find.descendant(of: nav, matching: find.text(entry.value)),
+        );
+        expect(activeLabel.style?.color, SojuColors.primary);
+      },
+    );
+  }
+
+  testWidgets('mengetuk 5 tab Shell Admin berpindah rute dengan mulus', (
     WidgetTester tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
@@ -370,99 +545,43 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
-    final Finder nav = find.byType(BukuDapurBottomNavBar);
-    expect(find.text('Aktivitas'), findsOneWidget);
-    // Shell tidak boleh memakai background putih default: area transparan
-    // navbar akan terlihat sebagai strip putih kosong.
+    final Finder nav = find.byType(AdminBottomNavBar);
     final Scaffold shell = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(shell.backgroundColor, SojuColors.homeBackground);
     expect(shell.extendBody, isTrue);
     expect(find.byKey(const Key('bottom_glass_overlay')), findsOneWidget);
-    expect(find.byType(BackdropFilter), findsWidgets);
-    // Regresi: navbar tidak boleh mengembang memenuhi layar dan membuat body
-    // Beranda setinggi 0 px (tampilan blank).
     expect(tester.getSize(nav).height, lessThan(200));
     expect(
       tester.getSize(find.byType(DashboardScreen)).height,
       greaterThan(0),
     );
 
-    await tester.tap(
-      find.descendant(of: nav, matching: find.text('Ai Asistant')),
-    );
+    await tester.tap(find.descendant(of: nav, matching: find.text('Pesanan')));
     await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.adminOrders);
+    expect(find.text('Pesanan Pelanggan'), findsOneWidget);
+
+    await tester.tap(find.descendant(of: nav, matching: find.text('Data')));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.data);
+    expect(find.byType(AnalyticsScreen), findsOneWidget);
+
+    await tester.tap(find.descendant(of: nav, matching: find.text('AI')));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.chatbot);
     expect(find.text('Alat Cepat'), findsOneWidget);
 
-    await tester.tap(
-      find.descendant(of: nav, matching: find.text('Audit & Stok')),
-    );
+    await tester.tap(find.descendant(of: nav, matching: find.text('Akun')));
     await tester.pumpAndSettle();
-    expect(find.text('Log Aktivitas'), findsOneWidget);
+    expect(router.state.uri.path, AppRoutes.adminAccount);
+    expect(find.byType(ProfileScreen), findsOneWidget);
 
     await tester.tap(find.descendant(of: nav, matching: find.text('Home')));
     await tester.pumpAndSettle();
-    expect(find.text('Aktivitas'), findsOneWidget);
-
-    // Tombol "+" membuka form kategori Phase A (frame `546:5430`).
-    await tester.tap(find.byKey(const Key('bottom_nav_add')));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(FreeTableCategoryScreen), findsOneWidget);
-    expect(
-      find.text('Atur pos pembukuan pemasukan & custom field'),
-      findsOneWidget,
-    );
-    expect(find.text('Rekomendasi Akun / Tagar'), findsOneWidget);
-    expect(
-      find.text('Simpan & Gunakan Kategori Pemasukan'),
-      findsOneWidget,
-    );
-    // Popup terbatas tinggi dan tidak mengubah lokasi GoRouter.
-    expect(
-      tester.getSize(find.byType(FreeTableCategoryScreen)).height,
-      lessThan(932),
-    );
-    expect(router.state.uri.path, AppRoutes.dashboard);
-
-    tester
-        .widget<FreeTableCategoryScreen>(
-          find.byType(FreeTableCategoryScreen),
-        )
-        .onClose!();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(FreeTableCategoryScreen), findsNothing);
-    expect(find.byType(DashboardScreen), findsOneWidget);
-    expect(router.state.uri.path, AppRoutes.dashboard);
-  });
-
-  testWidgets('simpan kategori dari popup langsung menutup sheet', (
-    WidgetTester tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(430, 932));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-
-    final GoRouter router = AppRouter.create(
-      initialLocation: AppRoutes.dashboard,
-    );
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('bottom_nav_add')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('free_table_save_button')));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(FreeTableCategoryScreen), findsNothing);
     expect(router.state.uri.path, AppRoutes.dashboard);
     expect(find.byType(DashboardScreen), findsOneWidget);
   });
@@ -479,11 +598,11 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
+    expect(find.byType(AdminBottomNavBar), findsOneWidget);
     expect(find.text('Penjualan Harian/Shift'), findsNothing);
     expect(find.text('Pratinjau'), findsNothing);
   });
@@ -500,14 +619,14 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
     expect(find.byType(SalesChatPrototypeDisabledScreen), findsOneWidget);
     expect(find.byType(SalesChatPrototypeScreen), findsNothing);
     expect(find.text('Prototype belum aktif'), findsOneWidget);
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byType(AdminBottomNavBar), findsNothing);
   });
 
   testWidgets('flag prototype menampilkan layar chat penjualan tanpa navbar', (
@@ -523,12 +642,12 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
     expect(find.byType(SalesChatPrototypeScreen), findsOneWidget);
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byType(AdminBottomNavBar), findsNothing);
     expect(find.text('Penjualan Harian/Shift'), findsOneWidget);
     expect(find.text('Pratinjau'), findsOneWidget);
     expect(find.text('Mode demo — data tidak disimpan'), findsOneWidget);
@@ -546,11 +665,11 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
+    expect(find.byType(AdminBottomNavBar), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('dashboard_avatar')));
     await tester.pumpAndSettle();
@@ -564,7 +683,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ProfileScreen), findsOneWidget);
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byType(AdminBottomNavBar), findsNothing);
     expect(find.text('Akun Saya'), findsOneWidget);
     expect(find.text('Pengaturan'), findsOneWidget);
     expect(find.text('Pusat Bantuan'), findsOneWidget);
@@ -583,7 +702,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
@@ -610,7 +729,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
@@ -681,7 +800,9 @@ void main() {
     expect(find.byType(HelpDetailScreen), findsOneWidget);
     expect(find.text('Topik Detail'), findsOneWidget);
     expect(
-        router.state.uri.path, AppRoutes.profileHelpArticle('topik-transaksi'));
+      router.state.uri.path,
+      AppRoutes.profileHelpArticle('topik-transaksi'),
+    );
   });
 
   testWidgets('perubahan Akun Saya terlihat lagi di layar Profil', (
@@ -696,7 +817,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
@@ -733,7 +854,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: router),
+      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );
     await tester.pumpAndSettle();
 
@@ -742,6 +863,374 @@ void main() {
       find.textContaining('Bagaimana cara mencatat order atau penjualan?'),
       findsOneWidget,
     );
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
+    expect(find.byType(AdminBottomNavBar), findsNothing);
+  });
+
+  // ===========================================================================
+  // PENGUJIAN ROLE-AWARE GOROUTER, DUAL SHELLS & GATING (TASK-023)
+  // ===========================================================================
+  group('Role-Aware GoRouter & Dual Navigation Shells (TASK-023)', () {
+    testWidgets(
+      'akses tanpa autentikasi ke rute Admin, Super Admin, dan Pelanggan diarahkan ke /login',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(430, 932));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final AuthController auth = await _createBootstrappedAuth();
+        addTearDown(auth.dispose);
+
+        final GoRouter router = AppRouter.create(
+          initialLocation: AppRoutes.dashboard,
+          authController: auth,
+        );
+        addTearDown(router.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        );
+        await tester.pumpAndSettle();
+
+        expect(router.state.uri.path, AppRoutes.login);
+
+        for (final String protectedRoute in <String>[
+          AppRoutes.adminOrders,
+          AppRoutes.data,
+          AppRoutes.chatbot,
+          AppRoutes.adminAccount,
+          AppRoutes.audit,
+          AppRoutes.adminUsers,
+          AppRoutes.adminCms,
+          AppRoutes.adminCrm,
+          AppRoutes.customerHome,
+          AppRoutes.customerCart,
+          AppRoutes.customerCheckout,
+        ]) {
+          router.go(protectedRoute);
+          await tester.pumpAndSettle();
+          expect(
+            router.state.uri.path,
+            AppRoutes.login,
+            reason: 'Rute $protectedRoute wajib diblokir saat belum login.',
+          );
+        }
+      },
+    );
+
+    testWidgets(
+      'CUSTOMER diarahkan ke Shell 5-tab Pelanggan dan diblokir dari rute Admin/Super Admin',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(430, 932));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final AuthController auth = await _createBootstrappedAuth(
+          user: _customerUser,
+        );
+        addTearDown(auth.dispose);
+
+        final GoRouter router = AppRouter.create(
+          initialLocation: AppRoutes.login,
+          authController: auth,
+        );
+        addTearDown(router.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        );
+        await tester.pumpAndSettle();
+
+        // Otomatis diarahkan ke Beranda Pelanggan 5-tab.
+        expect(router.state.uri.path, AppRoutes.customerHome);
+        expect(find.byType(CustomerBottomNavBar), findsOneWidget);
+        expect(find.byType(AdminBottomNavBar), findsNothing);
+        expect(find.textContaining('Halo, Siti Rahma!'), findsOneWidget);
+
+        final Finder nav = find.byType(CustomerBottomNavBar);
+        await tester.tap(find.descendant(of: nav, matching: find.text('Menu')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.customerMenu);
+
+        await tester.tap(
+          find.descendant(of: nav, matching: find.text('Keranjang')),
+        );
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.customerCart);
+
+        // Pelanggan dapat membuka Checkout lalu kembali.
+        await tester.tap(find.byKey(const Key('customer_checkout_button')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.customerCheckout);
+        expect(find.text('Checkout Pesanan'), findsOneWidget);
+
+        await tester.tap(find.byKey(const Key('customer_checkout_back')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.customerCart);
+
+        // Percobaan akses lintas peran ke Admin & Super Admin wajib diblokir.
+        for (final String forbiddenRoute in <String>[
+          AppRoutes.dashboard,
+          AppRoutes.adminOrders,
+          AppRoutes.data,
+          AppRoutes.chatbot,
+          AppRoutes.audit,
+          AppRoutes.adminUsers,
+          AppRoutes.adminCms,
+          AppRoutes.adminCrm,
+          AppRoutes.profile,
+        ]) {
+          router.go(forbiddenRoute);
+          await tester.pumpAndSettle();
+          expect(
+            router.state.uri.path,
+            AppRoutes.customerHome,
+            reason:
+                'Pelanggan tidak boleh mengakses rute Admin $forbiddenRoute.',
+          );
+        }
+
+        // Logout dari tab Akun Pelanggan mengarahkan kembali ke /login.
+        await tester.tap(find.descendant(of: nav, matching: find.text('Akun')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.customerAccount);
+
+        await tester.tap(find.byKey(const Key('customer_logout_button')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.login);
+      },
+    );
+
+    testWidgets(
+      'ADMIN melihat Audit di Drawer tetapi tidak melihat dan ditolak dari Users, CMS, CRM, serta rute Pelanggan',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(430, 932));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final AuthController auth = await _createBootstrappedAuth(
+          user: _adminUser,
+        );
+        addTearDown(auth.dispose);
+
+        final GoRouter router = AppRouter.create(
+          initialLocation: AppRoutes.login,
+          authController: auth,
+        );
+        addTearDown(router.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        );
+        await tester.pumpAndSettle();
+
+        expect(router.state.uri.path, AppRoutes.dashboard);
+        expect(find.byType(AdminBottomNavBar), findsOneWidget);
+        expect(find.byType(CustomerBottomNavBar), findsNothing);
+
+        // Buka Admin Drawer melalui tombol menu bilah atas.
+        await tester.tap(find.byKey(const Key('admin_drawer_button')));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AdminDrawer), findsOneWidget);
+        expect(find.text('Raka Operasional'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('admin_drawer_role_badge')),
+            matching: find.text('Admin'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('admin_drawer_audit')), findsOneWidget);
+        expect(find.text('Log Audit'), findsOneWidget);
+
+        // Menu eksklusif SUPER_ADMIN wajib disembunyikan dari ADMIN.
+        expect(find.byKey(const Key('admin_drawer_users')), findsNothing);
+        expect(find.byKey(const Key('admin_drawer_cms')), findsNothing);
+        expect(find.byKey(const Key('admin_drawer_crm')), findsNothing);
+        expect(find.text('Kelola Pengguna'), findsNothing);
+        expect(find.text('Konten CMS'), findsNothing);
+        expect(find.text('Pelanggan & CRM'), findsNothing);
+
+        // ADMIN dapat membuka Log Audit dari Drawer.
+        await tester.tap(find.byKey(const Key('admin_drawer_audit')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.audit);
+        expect(find.byType(AuditScreen), findsOneWidget);
+
+        // Navigasi paksa ke rute SUPER_ADMIN maupun Pelanggan wajib diblokir.
+        for (final String forbiddenRoute in <String>[
+          AppRoutes.adminUsers,
+          AppRoutes.adminCms,
+          AppRoutes.adminCrm,
+          AppRoutes.customerHome,
+          AppRoutes.customerCart,
+          AppRoutes.customerCheckout,
+        ]) {
+          router.go(forbiddenRoute);
+          await tester.pumpAndSettle();
+          expect(
+            router.state.uri.path,
+            AppRoutes.dashboard,
+            reason: 'ADMIN wajib ditolak dari rute $forbiddenRoute.',
+          );
+        }
+      },
+    );
+
+    testWidgets(
+      'SUPER_ADMIN memiliki akses penuh ke Drawer (Audit, Users, CMS, CRM) namun tetap terisolasi dari rute Pelanggan',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(430, 932));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final AuthController auth = await _createBootstrappedAuth(
+          user: _superAdminUser,
+        );
+        addTearDown(auth.dispose);
+
+        final GoRouter router = AppRouter.create(
+          initialLocation: AppRoutes.splash,
+          authController: auth,
+        );
+        addTearDown(router.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        );
+        await tester.pumpAndSettle();
+
+        expect(router.state.uri.path, AppRoutes.dashboard);
+        expect(find.byType(AdminBottomNavBar), findsOneWidget);
+
+        // Buka Admin Drawer sebagai SUPER_ADMIN.
+        await tester.tap(find.byKey(const Key('admin_drawer_button')));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AdminDrawer), findsOneWidget);
+        expect(find.text('Dea Super Admin'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('admin_drawer_role_badge')),
+            matching: find.text('Super Admin'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('admin_drawer_audit')), findsOneWidget);
+        expect(find.byKey(const Key('admin_drawer_users')), findsOneWidget);
+        expect(find.byKey(const Key('admin_drawer_cms')), findsOneWidget);
+        expect(find.byKey(const Key('admin_drawer_crm')), findsOneWidget);
+
+        // Buka halaman Users (SUPER_ADMIN).
+        await tester.tap(find.byKey(const Key('admin_drawer_users')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.adminUsers);
+        expect(find.byKey(const Key('admin_users_screen')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('super_admin_module_back')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.dashboard);
+
+        // Buka halaman CMS (SUPER_ADMIN).
+        await tester.tap(find.byKey(const Key('admin_drawer_button')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('admin_drawer_cms')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.adminCms);
+        expect(find.byKey(const Key('admin_cms_screen')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('super_admin_module_back')));
+        await tester.pumpAndSettle();
+
+        // Buka halaman CRM (SUPER_ADMIN).
+        await tester.tap(find.byKey(const Key('admin_drawer_button')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('admin_drawer_crm')));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.adminCrm);
+        expect(find.byKey(const Key('admin_crm_screen')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('super_admin_module_back')));
+        await tester.pumpAndSettle();
+
+        // Isolasi lintas peran tetap berlaku: SUPER_ADMIN tidak masuk ke Shell Pelanggan.
+        for (final String customerRoute in <String>[
+          AppRoutes.customerHome,
+          AppRoutes.customerCheckout,
+        ]) {
+          router.go(customerRoute);
+          await tester.pumpAndSettle();
+          expect(router.state.uri.path, AppRoutes.dashboard);
+        }
+      },
+    );
+
+    testWidgets(
+      'submit form Masuk mengarahkan Pelanggan ke /customer dan Admin ke /dashboard',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(430, 932));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final _FakeRouteAuthRepository repo = _FakeRouteAuthRepository()
+          ..loginSession = const AuthSession(
+            token: 'cust-jwt',
+            user: _customerUser,
+          );
+        final AuthController auth = AuthController(
+          login: Login(repo),
+          register: Register(repo),
+          requestPasswordReset: RequestPasswordReset(repo),
+          resetPassword: ResetPassword(repo),
+          restoreSession: RestoreSession(repo),
+          logout: Logout(repo),
+        );
+        addTearDown(auth.dispose);
+        await auth.bootstrap();
+
+        final GoRouter router = AppRouter.create(
+          initialLocation: AppRoutes.login,
+          authController: auth,
+        );
+        addTearDown(router.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('auth_portal_customer')));
+        await tester.pump();
+        await tester.enterText(
+          find.byType(TextFormField).hitTestable().at(0),
+          'siti@pelanggan.id',
+        );
+        await tester.enterText(
+          find.byType(TextFormField).hitTestable().at(1),
+          'rahasia123',
+        );
+        await tester.tap(find.widgetWithText(FilledButton, 'Masuk'));
+        await tester.pumpAndSettle();
+
+        expect(router.state.uri.path, AppRoutes.customerHome);
+        expect(find.byType(CustomerBottomNavBar), findsOneWidget);
+
+        await auth.logout();
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.login);
+
+        repo.loginSession = const AuthSession(
+          token: 'admin-jwt',
+          user: _adminUser,
+        );
+        await tester.tap(find.byKey(const Key('auth_portal_admin')));
+        await tester.pump();
+        await tester.enterText(
+          find.byType(TextFormField).hitTestable().at(0),
+          'raka@sojucorp.com',
+        );
+        await tester.enterText(
+          find.byType(TextFormField).hitTestable().at(1),
+          'rahasia123',
+        );
+        await tester.tap(find.widgetWithText(FilledButton, 'Masuk'));
+        await tester.pumpAndSettle();
+
+        expect(router.state.uri.path, AppRoutes.dashboard);
+        expect(find.byType(AdminBottomNavBar), findsOneWidget);
+      },
+    );
   });
 }

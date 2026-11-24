@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/themes/soju_colors.dart';
 import '../../data/data_providers.dart';
-import '../config/app_features.dart';
 import '../../data/datasources/mock/audit_mock_datasource.dart';
 import '../../data/repositories/audit_repository_impl.dart';
 import '../../domain/entities/auth_session_entity.dart';
@@ -36,6 +35,7 @@ import '../../presentation/screens/onboarding/splash_screen.dart';
 import '../../presentation/screens/profile/change_password_screen.dart';
 import '../../presentation/screens/profile/help_detail_screen.dart';
 import '../../presentation/screens/profile/help_topics_screen.dart';
+import '../../presentation/screens/profile/models/profile_view_data.dart';
 import '../../presentation/screens/profile/notification_preferences_screen.dart';
 import '../../presentation/screens/profile/profile_account_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
@@ -43,21 +43,27 @@ import '../../presentation/screens/profile/profile_settings_screen.dart';
 import '../../presentation/screens/profile/terms_screen.dart';
 import '../../presentation/screens/prototype/sales_chat/sales_chat_prototype_disabled_screen.dart';
 import '../../presentation/screens/prototype/sales_chat/sales_chat_prototype_screen.dart';
+import '../../presentation/widgets/admin_drawer.dart';
 import '../../presentation/widgets/bottom_glass_overlay.dart';
 import '../../presentation/widgets/bottom_nav_bar.dart';
+import '../../presentation/widgets/customer_bottom_nav_bar.dart';
+import '../../presentation/widgets/role_shell_screens.dart';
+import '../config/app_features.dart';
 
-/// Segment rute aplikasi.
+/// Segment rute aplikasi SOJU lintas peran (`AD-08`, `AD-11`).
 abstract final class AppRoutes {
+  // --- Publik & Autentikasi ---
+
   /// Layar splash / sambutan.
   static const String splash = '/splash';
 
   /// Carousel onboarding.
   static const String onboarding = '/onboarding';
 
-  /// Masuk ke akun yang sudah ada.
+  /// Masuk ke akun Admin/Super Admin atau Pelanggan.
   static const String login = '/login';
 
-  /// Pendaftaran akun baru.
+  /// Pendaftaran akun Pelanggan baru.
   static const String register = '/register';
 
   /// Permintaan tautan reset password.
@@ -66,19 +72,66 @@ abstract final class AppRoutes {
   /// Pengaturan ulang password menggunakan token satu kali pakai.
   static const String resetPassword = '/reset-password';
 
-  /// Beranda (ringkasan dashboard) setelah pendaftaran.
+  // --- Shell Pelanggan (`UserRole.customer`, 5 Tab + Checkout) ---
+
+  /// Tab 1 Pelanggan: Beranda.
+  static const String customerHome = '/customer';
+
+  /// Tab 2 Pelanggan: Menu katalog publik.
+  static const String customerMenu = '/customer/menu';
+
+  /// Tab 3 Pelanggan: Keranjang belanja.
+  static const String customerCart = '/customer/keranjang';
+
+  /// Tab 4 Pelanggan: Riwayat pesanan pelanggan.
+  static const String customerOrders = '/customer/pesanan';
+
+  /// Tab 5 Pelanggan: Akun & profil pelanggan.
+  static const String customerAccount = '/customer/akun';
+
+  /// Halaman Checkout pengiriman pelanggan (khusus `CUSTOMER`).
+  static const String customerCheckout = '/customer/checkout';
+
+  // --- Shell Admin & Super Admin (`ADMIN` + `SUPER_ADMIN`, 5 Tab) ---
+
+  /// Tab 1 Admin: Home / ringkasan dashboard.
   static const String dashboard = '/dashboard';
 
-  /// Analitik arus kas: ditampilkan pada tab Analytics (mock, tanpa API).
+  /// Tab 2 Admin: Pengelola pesanan pelanggan.
+  static const String adminOrders = '/orders';
+
+  /// Tab 3 Admin: Data & transaksi operasional.
+  static const String data = '/data';
+
+  /// Alias rute analitik/transaksi lama di dalam Shell Admin.
   static const String analytics = '/analytics';
 
-  /// Chatbot Soju: tab "Ai Asistant" pada navbar Figma (mock, tanpa API).
+  /// Tab 4 Admin: Asisten AI Hybrid RAG.
   static const String chatbot = '/chatbot';
 
-  /// Audit & Stok: log aktivitas baca-saja (mock Phase A).
+  /// Alias semantik tab AI Admin.
+  static const String ai = chatbot;
+
+  /// Tab 5 Admin: Akun pengelola di dalam Shell Admin.
+  static const String adminAccount = '/account';
+
+  // --- Admin Drawer (`Audit` untuk keduanya; `Users`, `CMS`, `CRM` khusus `SUPER_ADMIN`) ---
+
+  /// Drawer Admin & Super Admin: Log Audit & Stok.
   static const String audit = '/audit';
 
-  /// Menu Profil (frame `546:5561`), di luar shell tanpa navbar.
+  /// Drawer khusus `SUPER_ADMIN`: Manajemen multi-user Admin.
+  static const String adminUsers = '/admin/users';
+
+  /// Drawer khusus `SUPER_ADMIN`: Konten CMS publik.
+  static const String adminCms = '/admin/cms';
+
+  /// Drawer khusus `SUPER_ADMIN`: Ringkasan Pelanggan & CRM.
+  static const String adminCrm = '/admin/crm';
+
+  // --- Drill-down & Utilitas Admin (di luar navbar bawah) ---
+
+  /// Menu Profil penuh tanpa navbar bawah (frame `546:5561`).
   static const String profile = '/profile';
 
   /// Edit data akun dan foto profil (frame `546:5592`).
@@ -87,7 +140,7 @@ abstract final class AppRoutes {
   /// Pengaturan akun (frame `546:5611`).
   static const String profileSettings = '/profile/settings';
 
-  /// Form ganti password (mengikuti pola form auth).
+  /// Form ganti password.
   static const String profileChangePassword = '/profile/settings/password';
 
   /// Preferensi notifikasi (frame `546:5634`).
@@ -115,21 +168,14 @@ abstract final class AppRoutes {
   /// Modal form Buat Kategori Baru Tabel Bebas (frame `546:5163`).
   static const String freeTableCreate = '/free-tables/create';
 
-  /// Deep link form Buat Kategori Baru (frame `546:5430`). Tombol `+` navbar
-  /// membuka form yang sama sebagai popup tanpa berpindah rute.
+  /// Deep link form Buat Kategori Baru (frame `546:5430`).
   static const String categoryCreate = '/categories/create';
 
   /// Prototype chat input penjualan harian/shift (di luar shell produksi).
-  /// Default nonaktif; lihat `AppFeatures.salesChatPrototype`.
   static const String salesChatPrototype = '/prototype/sales-chat';
 }
 
 /// Menampilkan form Buat Kategori Baru sebagai popup tanpa mengubah rute.
-///
-/// Popup memakai bottom sheet terbatas tinggi agar tidak menutupi seluruh
-/// layar. Form tetap memakai [FreeTableCategoryScreen] yang sudah berbentuk
-/// sheet, dan otomatis ditutup setelah penyimpanan berhasil. Rute
-/// [AppRoutes.categoryCreate] tetap tersedia untuk deep link langsung.
 Future<void> _showCategoryCreatePopup(BuildContext context) {
   final double maxHeight = MediaQuery.sizeOf(context).height * 0.78;
 
@@ -159,15 +205,14 @@ Future<void> _showCategoryCreatePopup(BuildContext context) {
   );
 }
 
-/// Konfigurasi GoRouter aplikasi (lihat `ARCHITECTURE.md` §2.4).
+/// Konfigurasi GoRouter sadar-peran (`AD-08`, `AD-11`, `TASK-023`).
 abstract final class AppRouter {
-  /// Membuat instance [GoRouter].
+  /// Membuat instance [GoRouter] dengan pemisahan ketat dua ShellRoute
+  /// (Pelanggan vs Admin/Super Admin) dan guard lintas peran.
   ///
-  /// [initialLocation] dapat diubah untuk deep link maupun pengujian.
-  ///
-  /// [authController] di-inject dari composition root. Bila `null` (mis. pada
-  /// widget test lama), auth memakai perilaku navigasi lama tanpa guard agar
-  /// test yang sudah ada tetap fokus pada layar masing-masing.
+  /// Bila [authController] bernilai `null` (khusus widget test terisolasi),
+  /// rute dapat dirender langsung tanpa redirect sesi agar test komponen lama
+  /// tetap terfokus pada layar masing-masing.
   static GoRouter create({
     String initialLocation = AppRoutes.splash,
     AppFeatures features = const AppFeatures(),
@@ -182,13 +227,16 @@ abstract final class AppRouter {
               return _authRedirect(authController, state);
             },
       routes: <RouteBase>[
-        // Path root dipakai browser/web dan beberapa platform saat aplikasi
-        // dibuka pertama kali. Tanpa redirect ini GoRouter tidak punya rute
-        // yang cocok dan layar tampil kosong.
         GoRoute(
           path: '/',
-          redirect: (BuildContext context, GoRouterState state) =>
-              AppRoutes.splash,
+          redirect: (BuildContext context, GoRouterState state) {
+            if (authController != null &&
+                authController.state.isAuthenticated &&
+                authController.state.user != null) {
+              return homeRouteForRole(authController.state.role);
+            }
+            return AppRoutes.splash;
+          },
         ),
         GoRoute(
           path: AppRoutes.splash,
@@ -280,53 +328,277 @@ abstract final class AppRouter {
             );
           },
         ),
-        // Notifikasi di luar shell: frame Figma `546:1841` tidak memuat
-        // navbar, hanya header dengan tombol kembali.
+
+        // =====================================================================
+        // SHELL 1: PELANGGAN (`UserRole.customer`)
+        // 5 Tab: Beranda | Menu | Keranjang | Pesanan | Akun
+        // =====================================================================
+        ShellRoute(
+          builder: (BuildContext context, GoRouterState state, Widget child) {
+            return _CustomerShell(
+              activeTab: customerNavTabFor(state.uri.path),
+              child: child,
+            );
+          },
+          routes: <RouteBase>[
+            GoRoute(
+              path: AppRoutes.customerHome,
+              builder: (BuildContext context, GoRouterState state) =>
+                  _AuthUserBuilder(
+                controller: authController,
+                builder: (BuildContext context, AuthUser? user) =>
+                    CustomerHomeShellScreen(
+                  user: user,
+                  onBrowseMenu: () => context.go(AppRoutes.customerMenu),
+                  onViewOrders: () => context.go(AppRoutes.customerOrders),
+                ),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.customerMenu,
+              builder: (BuildContext context, GoRouterState state) =>
+                  CustomerMenuShellScreen(
+                onOpenCart: () => context.go(AppRoutes.customerCart),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.customerCart,
+              builder: (BuildContext context, GoRouterState state) =>
+                  CustomerCartShellScreen(
+                onCheckout: () => context.push(AppRoutes.customerCheckout),
+                onBrowseMenu: () => context.go(AppRoutes.customerMenu),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.customerOrders,
+              builder: (BuildContext context, GoRouterState state) =>
+                  CustomerOrdersShellScreen(
+                onBrowseMenu: () => context.go(AppRoutes.customerMenu),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.customerAccount,
+              builder: (BuildContext context, GoRouterState state) =>
+                  _AuthUserBuilder(
+                controller: authController,
+                builder: (BuildContext context, AuthUser? user) =>
+                    CustomerAccountShellScreen(
+                  user: user,
+                  onLogout: () async {
+                    await authController?.logout();
+                    if (context.mounted) {
+                      context.go(AppRoutes.login);
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: AppRoutes.customerCheckout,
+          builder: (BuildContext context, GoRouterState state) =>
+              CustomerCheckoutShellScreen(
+            onBack: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.customerCart);
+              }
+            },
+            onViewOrders: () => context.go(AppRoutes.customerOrders),
+          ),
+        ),
+
+        // =====================================================================
+        // SHELL 2: ADMIN & SUPER ADMIN (`UserRole.admin` | `UserRole.superAdmin`)
+        // 5 Tab: Home | Pesanan | Data | AI | Akun + Admin Drawer
+        // =====================================================================
+        ShellRoute(
+          builder: (BuildContext context, GoRouterState state, Widget child) {
+            return _AdminShell(
+              activeTab: adminNavTabFor(state.uri.path),
+              currentPath: state.uri.path,
+              authController: authController,
+              child: child,
+            );
+          },
+          routes: <RouteBase>[
+            GoRoute(
+              path: AppRoutes.dashboard,
+              builder: (BuildContext context, GoRouterState state) =>
+                  _AuthUserBuilder(
+                controller: authController,
+                builder: (BuildContext context, AuthUser? user) {
+                  final ProfileViewData profileData = user == null
+                      ? ProfileViewData.sample
+                      : ProfileViewData(
+                          name: user.name,
+                          email: user.email,
+                          role: user.role.label,
+                          avatarAsset: ProfileViewData.sample.avatarAsset,
+                          phone: user.phone ?? ProfileViewData.sample.phone,
+                        );
+
+                  return DashboardScreen(
+                    profile: profileData,
+                    onMenuTap: () => _AdminShellScope.openDrawerOf(context),
+                    onViewProfile: () => context.push(AppRoutes.profile),
+                    onSeeAllActivities: () =>
+                        context.push(AppRoutes.activities),
+                    onAnalyticsTap: () => context.go(AppRoutes.data),
+                    onNotificationTap: () =>
+                        context.push(AppRoutes.notifications),
+                    onQuickCommand: (_) => context.go(AppRoutes.chatbot),
+                    onSendCommand: (_) => context.go(AppRoutes.chatbot),
+                    onLogout: () async {
+                      await authController?.logout();
+                      if (context.mounted) {
+                        context.go(AppRoutes.login);
+                      }
+                    },
+                  );
+                },
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.adminOrders,
+              builder: (BuildContext context, GoRouterState state) =>
+                  AdminOrdersShellScreen(
+                onMenuTap: () => _AdminShellScope.openDrawerOf(context),
+                onNotificationTap: () => context.push(AppRoutes.notifications),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.data,
+              builder: (BuildContext context, GoRouterState state) =>
+                  _buildAdminDataScreen(context),
+            ),
+            GoRoute(
+              path: AppRoutes.analytics,
+              builder: (BuildContext context, GoRouterState state) =>
+                  _buildAdminDataScreen(context),
+            ),
+            GoRoute(
+              path: AppRoutes.chatbot,
+              builder: (BuildContext context, GoRouterState state) =>
+                  ChatbotScreen(
+                onBack: () => context.go(AppRoutes.dashboard),
+                onNotificationTap: () => context.push(AppRoutes.notifications),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.adminAccount,
+              builder: (BuildContext context, GoRouterState state) =>
+                  ProfileScreen(
+                onBack: () => context.go(AppRoutes.dashboard),
+                onAccount: () async {
+                  await context.push(AppRoutes.profileAccount);
+                },
+                onSettings: () => context.push(AppRoutes.profileSettings),
+                onHelp: () => context.push(AppRoutes.profileHelp),
+                controllerFactory: () => ProfileController(
+                  getProfile: DataProviders.getProfile(),
+                  updateProfile: DataProviders.updateProfile(),
+                  updateProfilePhoto: DataProviders.updateProfilePhoto(),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // =====================================================================
+        // RUTE DRAWER ADMIN & SUPER ADMIN
+        // =====================================================================
+        GoRoute(
+          path: AppRoutes.audit,
+          builder: (BuildContext context, GoRouterState state) => AuditScreen(
+            onBack: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.dashboard);
+              }
+            },
+            controllerFactory: () => AuditLogController(
+              getAuditLogs: GetAuditLogs(
+                AuditRepositoryImpl(AuditMockDataSource()),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.adminUsers,
+          builder: (BuildContext context, GoRouterState state) =>
+              SuperAdminModuleScreen(
+            key: const Key('admin_users_screen'),
+            title: 'Kelola Pengguna',
+            subtitle:
+                'Manajemen akun Admin & Super Admin beserta status akses.',
+            cardTitle: 'Daftar Pengelola Sistem',
+            cardDescription:
+                'Tambah akun pengelola baru, perbarui peran, nonaktifkan akses, '
+                'atau kirim tautan atur ulang password.',
+            icon: Icons.manage_accounts_outlined,
+            onBack: () => _popOrDashboard(context),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.adminCms,
+          builder: (BuildContext context, GoRouterState state) =>
+              SuperAdminModuleScreen(
+            key: const Key('admin_cms_screen'),
+            title: 'Konten CMS',
+            subtitle:
+                'Pengelolaan konten halaman publik & informasi brand SOJU.',
+            cardTitle: 'Manajemen Konten Publik',
+            cardDescription:
+                'Tinjau dan kelola konten publik toko yang tampil pada kanal '
+                'pelanggan SOJU.',
+            icon: Icons.web_outlined,
+            onBack: () => _popOrDashboard(context),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.adminCrm,
+          builder: (BuildContext context, GoRouterState state) =>
+              SuperAdminModuleScreen(
+            key: const Key('admin_crm_screen'),
+            title: 'Pelanggan & CRM',
+            subtitle:
+                'Ringkasan data pelanggan terdaftar dan preferensi promosi.',
+            cardTitle: 'Ikhtisar Pelanggan & CRM',
+            cardDescription:
+                'Pantau ringkasan pelanggan aktif dan segmentasi promosi toko '
+                'secara aman.',
+            icon: Icons.groups_outlined,
+            onBack: () => _popOrDashboard(context),
+          ),
+        ),
+
+        // =====================================================================
+        // RUTE DRILL-DOWN & MODAL ADMIN (DI LUAR SHELL)
+        // =====================================================================
         GoRoute(
           path: AppRoutes.notifications,
           builder: (BuildContext context, GoRouterState state) =>
               NotificationsScreen(
-            onBack: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.dashboard);
-              }
-            },
-            // Aksi rekonsiliasi membuka Analytics.
+            onBack: () => _popOrDashboard(context),
             onReconcile: () => context.go(AppRoutes.analytics),
           ),
         ),
-        // Daftar aktivitas "Lihat Semua": halaman drill-down di luar shell,
-        // sehingga tidak ada navbar dan tombol kembali selalu tersedia.
         GoRoute(
           path: AppRoutes.activities,
           builder: (BuildContext context, GoRouterState state) =>
               ActivitiesScreen(
-            onBack: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.dashboard);
-              }
-            },
+            onBack: () => _popOrDashboard(context),
           ),
         ),
-        // Menu Profil dan turunannya. Semua berada di luar shell agar
-        // memakai header sendiri tanpa navbar, sesuai frame Figma.
         GoRoute(
           path: AppRoutes.profile,
           builder: (BuildContext context, GoRouterState state) {
-            void back() {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.dashboard);
-              }
-            }
-
             return ProfileScreen(
-              onBack: back,
+              onBack: () => _popOrDashboard(context),
               onAccount: () async {
                 await context.push(AppRoutes.profileAccount);
               },
@@ -486,25 +758,16 @@ abstract final class AppRouter {
             );
           },
         ),
-        // Prototype chat input penjualan harian/shift. Halaman ini berada
-        // di luar shell dan tidak muncul di navbar produksi. Flag default
-        // `false`; aktifkan hanya untuk demo lokal.
         GoRoute(
           path: AppRoutes.salesChatPrototype,
           builder: (BuildContext context, GoRouterState state) {
-            void back() {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.dashboard);
-              }
-            }
-
             if (!features.salesChatPrototype) {
-              return SalesChatPrototypeDisabledScreen(onBack: back);
+              return SalesChatPrototypeDisabledScreen(
+                onBack: () => _popOrDashboard(context),
+              );
             }
             return SalesChatPrototypeScreen(
-              onBack: back,
+              onBack: () => _popOrDashboard(context),
               controllerFactory: () => SalesChatController(
                 parseRecap: DataProviders.parseSalesChatRecap(),
                 initialDraft: DataProviders.salesChatSampleDraft(),
@@ -513,151 +776,136 @@ abstract final class AppRouter {
             );
           },
         ),
-        // Modal Tabel Bebas di luar shell: tidak memakai navbar dan boleh
-        // dibuka dari layar mana pun saat entry point tersedia.
         GoRoute(
           path: AppRoutes.freeTableCreate,
           builder: (BuildContext context, GoRouterState state) =>
               FreeTableCategoryScreen(
-            onClose: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.dashboard);
-              }
-            },
-            // Phase A: mock. Phase B: ganti factory di DataProviders.
+            onClose: () => _popOrDashboard(context),
             controllerFactory: () => FreeTableCategoryController(
               createCategory: DataProviders.createFreeTableCategory(),
             ),
           ),
         ),
-        // Deep link Buat Kategori Baru (frame `546:5430`). Tombol `+` navbar
-        // memakai popup; rute ini tetap ada untuk akses langsung.
-        // Phase A tetap mock: tidak ada endpoint mutasi yang dipanggil.
         GoRoute(
           path: AppRoutes.categoryCreate,
           builder: (BuildContext context, GoRouterState state) =>
               FreeTableCategoryScreen(
-            onClose: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.dashboard);
-              }
-            },
+            onClose: () => _popOrDashboard(context),
             controllerFactory: () => FreeTableCategoryController(
               createCategory: DataProviders.createFreeTableCategory(),
               initialState: const FreeTableCategoryState.incomeExample(),
             ),
           ),
         ),
-        // Navbar Figma `801:4265`: Home, Analytics, +, Ai Asistant, Audit & Stok.
-        // Empat tab berlabel memakai satu shell internal (ARCHITECTURE.md §2.4);
-        // splash dan auth tetap di luar shell (layar penuh).
-        ShellRoute(
-          builder: (BuildContext context, GoRouterState state, Widget child) {
-            return _BukuDapurShell(
-              activeTab: _bottomNavTabFor(state.uri.path),
-              child: child,
-            );
-          },
-          routes: <RouteBase>[
-            GoRoute(
-              path: AppRoutes.dashboard,
-              builder: (BuildContext context, GoRouterState state) =>
-                  DashboardScreen(
-                onViewProfile: () => context.push(AppRoutes.profile),
-                onSeeAllActivities: () => context.push(AppRoutes.activities),
-                onAnalyticsTap: () => context.go(AppRoutes.analytics),
-                onNotificationTap: () => context.push(AppRoutes.notifications),
-                onQuickCommand: (_) {
-                  context.push(AppRoutes.chatbot);
-                },
-                onSendCommand: (_) {
-                  context.push(AppRoutes.chatbot);
-                },
-                onLogout: () async {
-                  await authController?.logout();
-                  if (context.mounted) {
-                    context.go(AppRoutes.login);
-                  }
-                },
-              ),
-            ),
-            GoRoute(
-              path: AppRoutes.analytics,
-              builder: (BuildContext context, GoRouterState state) =>
-                  AnalyticsScreen(
-                onBack: () {
-                  if (context.canPop()) {
-                    context.pop();
-                  } else {
-                    context.go(AppRoutes.dashboard);
-                  }
-                },
-                onNotificationTap: () => context.push(AppRoutes.notifications),
-                onAddTap: () => _showCategoryCreatePopup(context),
-                onSeeAllActivities: () => context.push(AppRoutes.activities),
-              ),
-            ),
-            GoRoute(
-              path: AppRoutes.chatbot,
-              builder: (BuildContext context, GoRouterState state) =>
-                  ChatbotScreen(
-                onBack: () => context.go(AppRoutes.dashboard),
-                onNotificationTap: () => context.push(AppRoutes.notifications),
-              ),
-            ),
-            GoRoute(
-              path: AppRoutes.audit,
-              builder: (BuildContext context, GoRouterState state) =>
-                  AuditScreen(
-                onBack: () {
-                  if (context.canPop()) {
-                    context.pop();
-                  } else {
-                    context.go(AppRoutes.dashboard);
-                  }
-                },
-                // Phase A: data mock. Phase B: ganti hanya factory ini ke
-                // repository REST — UI, usecase, dan entity tidak berubah.
-                controllerFactory: () => AuditLogController(
-                  getAuditLogs: GetAuditLogs(
-                    AuditRepositoryImpl(AuditMockDataSource()),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
 
-  /// Menentukan tab navbar aktif dari lokasi URI saat ini.
-  static BottomNavTab _bottomNavTabFor(String path) {
-    final String location = path.length > 1 && path.endsWith('/')
-        ? path.substring(0, path.length - 1)
-        : path;
+  static Widget _buildAdminDataScreen(BuildContext context) {
+    return AnalyticsScreen(
+      onBack: () {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go(AppRoutes.dashboard);
+        }
+      },
+      onNotificationTap: () => context.push(AppRoutes.notifications),
+      onAddTap: () => _showCategoryCreatePopup(context),
+      onSeeAllActivities: () => context.push(AppRoutes.activities),
+    );
+  }
+
+  static void _popOrDashboard(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.dashboard);
+    }
+  }
+
+  /// Rute beranda utama berdasarkan [role] pengguna yang sedang login.
+  static String homeRouteForRole(UserRole? role) {
+    return role == UserRole.customer
+        ? AppRoutes.customerHome
+        : AppRoutes.dashboard;
+  }
+
+  /// Menentukan tab aktif pada navbar 5-tab Admin dari path URI.
+  static AdminNavTab adminNavTabFor(String path) {
+    final String location = _normalizePath(path);
     return switch (location) {
-      AppRoutes.analytics => BottomNavTab.analytics,
-      AppRoutes.chatbot => BottomNavTab.aiAssistant,
-      AppRoutes.audit => BottomNavTab.audit,
-      _ => BottomNavTab.home,
+      AppRoutes.adminOrders => AdminNavTab.orders,
+      AppRoutes.data || AppRoutes.analytics => AdminNavTab.data,
+      AppRoutes.chatbot => AdminNavTab.ai,
+      AppRoutes.adminAccount => AdminNavTab.account,
+      _ => AdminNavTab.home,
     };
   }
 
-  /// Rute tujuan untuk setiap tab navbar.
-  static String _pathFor(BottomNavTab tab) => switch (tab) {
-        BottomNavTab.home => AppRoutes.dashboard,
-        BottomNavTab.analytics => AppRoutes.analytics,
-        BottomNavTab.aiAssistant => AppRoutes.chatbot,
-        BottomNavTab.audit => AppRoutes.audit,
+  /// Rute tujuan untuk setiap tab pada navbar 5-tab Admin.
+  static String pathForAdminTab(AdminNavTab tab) => switch (tab) {
+        AdminNavTab.home => AppRoutes.dashboard,
+        AdminNavTab.orders => AppRoutes.adminOrders,
+        AdminNavTab.data => AppRoutes.data,
+        AdminNavTab.ai => AppRoutes.chatbot,
+        AdminNavTab.account => AppRoutes.adminAccount,
       };
 
-  /// Rute yang boleh diakses tanpa sesi.
-  static const Set<String> _publicLocations = <String>{
+  /// Menentukan tab aktif pada navbar 5-tab Pelanggan dari path URI.
+  static CustomerNavTab customerNavTabFor(String path) {
+    final String location = _normalizePath(path);
+    return switch (location) {
+      AppRoutes.customerMenu => CustomerNavTab.menu,
+      AppRoutes.customerCart ||
+      AppRoutes.customerCheckout =>
+        CustomerNavTab.keranjang,
+      AppRoutes.customerOrders => CustomerNavTab.pesanan,
+      AppRoutes.customerAccount => CustomerNavTab.akun,
+      _ => CustomerNavTab.beranda,
+    };
+  }
+
+  /// Rute tujuan untuk setiap tab pada navbar 5-tab Pelanggan.
+  static String pathForCustomerTab(CustomerNavTab tab) => switch (tab) {
+        CustomerNavTab.beranda => AppRoutes.customerHome,
+        CustomerNavTab.menu => AppRoutes.customerMenu,
+        CustomerNavTab.keranjang => AppRoutes.customerCart,
+        CustomerNavTab.pesanan => AppRoutes.customerOrders,
+        CustomerNavTab.akun => AppRoutes.customerAccount,
+      };
+
+  /// Rute tujuan untuk setiap item [AdminDrawerItem].
+  static String pathForAdminDrawer(AdminDrawerItem item) => switch (item) {
+        AdminDrawerItem.audit => AppRoutes.audit,
+        AdminDrawerItem.users => AppRoutes.adminUsers,
+        AdminDrawerItem.cms => AppRoutes.adminCms,
+        AdminDrawerItem.crm => AppRoutes.adminCrm,
+      };
+
+  /// Menentukan item Drawer yang cocok dengan path saat ini (bila ada).
+  static AdminDrawerItem? adminDrawerItemFor(String path) {
+    final String location = _normalizePath(path);
+    return switch (location) {
+      AppRoutes.audit => AdminDrawerItem.audit,
+      AppRoutes.adminUsers => AdminDrawerItem.users,
+      AppRoutes.adminCms => AdminDrawerItem.cms,
+      AppRoutes.adminCrm => AdminDrawerItem.crm,
+      _ => null,
+    };
+  }
+
+  static String _normalizePath(String path) {
+    if (path.isEmpty) {
+      return '/';
+    }
+    return path.length > 1 && path.endsWith('/')
+        ? path.substring(0, path.length - 1)
+        : path;
+  }
+
+  /// Rute publik/auth yang dapat diakses tanpa sesi login.
+  static const Set<String> _publicAuthLocations = <String>{
     '/',
     AppRoutes.splash,
     AppRoutes.onboarding,
@@ -667,35 +915,94 @@ abstract final class AppRouter {
     AppRoutes.resetPassword,
   };
 
+  /// Apakah [location] termasuk ruang rute Pelanggan (`/customer` & `/customer/*`).
+  static bool _isCustomerRoute(String location) {
+    return location == AppRoutes.customerHome ||
+        location.startsWith('${AppRoutes.customerHome}/');
+  }
+
+  /// Apakah [location] dikunci khusus untuk `SUPER_ADMIN` (`Users`, `CMS`, `CRM`).
+  static bool _isSuperAdminOnlyRoute(String location) {
+    return location == AppRoutes.adminUsers ||
+        location.startsWith('${AppRoutes.adminUsers}/') ||
+        location == AppRoutes.adminCms ||
+        location.startsWith('${AppRoutes.adminCms}/') ||
+        location == AppRoutes.adminCrm ||
+        location.startsWith('${AppRoutes.adminCrm}/');
+  }
+
   static String? _authRedirect(
     AuthController controller,
     GoRouterState state,
   ) {
     final AuthStatus status = controller.state.status;
-    final String location = state.matchedLocation;
-    final bool isPublic = _publicLocations.contains(location) ||
-        location.startsWith('/prototype/');
+    final String rawLocation =
+        state.matchedLocation.isEmpty ? state.uri.path : state.matchedLocation;
+    final String location = _normalizePath(rawLocation);
+    final bool isPublicAuth = _publicAuthLocations.contains(location);
 
-    // Jangan memindahkan layar saat token sedang divalidasi.
+    // Tahan perpindahan saat bootstrap sedang memvalidasi token tersimpan,
+    // namun jangan biarkan rute terlindung dirender sebelum sesi selesai dicek.
     if (status == AuthStatus.checking) {
-      return null;
+      return isPublicAuth ? null : AppRoutes.splash;
     }
 
-    if (status == AuthStatus.authenticated) {
-      if (location == AppRoutes.login ||
-          location == AppRoutes.register ||
-          location == AppRoutes.splash ||
-          location == AppRoutes.onboarding) {
+    final AuthUser? user = controller.state.user;
+    if (status == AuthStatus.authenticated && user != null) {
+      final UserRole role = user.role;
+      final String roleHome = homeRouteForRole(role);
+
+      if (isPublicAuth) {
+        return roleHome;
+      }
+
+      // Isolasi Pelanggan: hanya boleh mengakses rute `/customer` & `/customer/*`.
+      if (role.isCustomer) {
+        return _isCustomerRoute(location) ? null : AppRoutes.customerHome;
+      }
+
+      // Isolasi Admin & Super Admin: tidak boleh mengakses rute Pelanggan.
+      if (_isCustomerRoute(location)) {
         return AppRoutes.dashboard;
       }
+
+      // Gating ketat `SUPER_ADMIN`: `ADMIN` biasa ditolak dari Users, CMS, CRM.
+      if (!role.isSuperAdmin && _isSuperAdminOnlyRoute(location)) {
+        return AppRoutes.dashboard;
+      }
+
       return null;
     }
 
-    if (!isPublic) {
+    if (!isPublicAuth) {
       return AppRoutes.login;
     }
 
     return null;
+  }
+}
+
+/// Helper reaktif yang membangun ulang anak saat user di [AuthController] berubah.
+class _AuthUserBuilder extends StatelessWidget {
+  const _AuthUserBuilder({
+    required this.builder,
+    this.controller,
+  });
+
+  final AuthController? controller;
+  final Widget Function(BuildContext context, AuthUser? user) builder;
+
+  @override
+  Widget build(BuildContext context) {
+    final AuthController? auth = controller;
+    if (auth == null) {
+      return builder(context, null);
+    }
+    return ListenableBuilder(
+      listenable: auth,
+      builder: (BuildContext context, Widget? _) =>
+          builder(context, auth.state.user),
+    );
   }
 }
 
@@ -720,7 +1027,7 @@ class _AuthRoute extends StatelessWidget {
         key: ValueKey<String>('${initialTab.name}_${initialPortal.name}'),
         initialTab: initialTab,
         initialPortal: initialPortal,
-        // Fallback khusus test/route lama tanpa composition root.
+        // Fallback khusus test terisolasi tanpa composition root.
         onLoginSubmit: (_) => context.go(AppRoutes.dashboard),
         onRegisterSubmit: (_) => context.go(AppRoutes.dashboard),
         onForgotPasswordWithPortal: (AuthPortal portal) => context.go(
@@ -750,7 +1057,7 @@ class _AuthRoute extends StatelessWidget {
               portal: data.portal,
             );
             if (success && context.mounted) {
-              context.go(AppRoutes.dashboard);
+              context.go(AppRouter.homeRouteForRole(auth.state.role));
             }
           },
           onRegisterSubmit: (RegisterFormData data) async {
@@ -763,7 +1070,7 @@ class _AuthRoute extends StatelessWidget {
               promotionAllowed: data.promotionAllowed,
             );
             if (success && context.mounted) {
-              context.go(AppRoutes.dashboard);
+              context.go(AppRouter.homeRouteForRole(auth.state.role));
             }
           },
           onForgotPasswordWithPortal: (AuthPortal portal) => context.go(
@@ -777,65 +1084,150 @@ class _AuthRoute extends StatelessWidget {
   }
 }
 
-/// Shell internal yang memasang navbar Figma `801:4265`.
-///
-/// Navbar berada di `bottomNavigationBar` Scaffold sehingga selalu menempel
-/// di bawah layar; lebar dibatasi 480px dan dirata-tengah seperti konten
-/// layar lainnya. Safe area ditangani oleh [BukuDapurBottomNavBar].
-class _BukuDapurShell extends StatelessWidget {
-  const _BukuDapurShell({required this.activeTab, required this.child});
+/// Scope pembuka [AdminDrawer] bagi layar di dalam [_AdminShell] yang memiliki
+/// `Scaffold` internal sendiri.
+class _AdminShellScope extends InheritedWidget {
+  const _AdminShellScope({
+    required this.openDrawer,
+    required super.child,
+  });
 
-  final BottomNavTab activeTab;
+  final VoidCallback openDrawer;
+
+  static void openDrawerOf(BuildContext context) {
+    final _AdminShellScope? scope =
+        context.dependOnInheritedWidgetOfExactType<_AdminShellScope>();
+    if (scope != null) {
+      scope.openDrawer();
+      return;
+    }
+    Scaffold.maybeOf(context)?.openDrawer();
+  }
+
+  @override
+  bool updateShouldNotify(_AdminShellScope oldWidget) =>
+      oldWidget.openDrawer != openDrawer;
+}
+
+/// Shell 5-tab untuk `ADMIN` dan `SUPER_ADMIN` lengkap dengan [AdminDrawer].
+class _AdminShell extends StatefulWidget {
+  const _AdminShell({
+    required this.activeTab,
+    required this.currentPath,
+    required this.child,
+    this.authController,
+  });
+
+  final AdminNavTab activeTab;
+  final String currentPath;
+  final AuthController? authController;
   final Widget child;
+
+  @override
+  State<_AdminShell> createState() => _AdminShellState();
+}
+
+class _AdminShellState extends State<_AdminShell> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  void _openDrawer() {
+    _scaffoldKey.currentState?.openDrawer();
+  }
 
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.sizeOf(context).width;
     final double scale = (width > 480 ? 480 : width) / 430;
-
-    // Area chat Ai Asistant tidak memakai glassmorphism agar composer dan
-    // navbar tetap solid saat mengetik atau mengirim pesan.
-    final bool glassEnabled = activeTab != BottomNavTab.aiAssistant;
+    final bool glassEnabled = widget.activeTab != AdminNavTab.ai;
 
     return Scaffold(
-      // Navbar punya area transparan 30 px di atas bar putih. Samakan dengan
-      // latar layar agar tidak muncul strip putih kosong di atas navbar.
+      key: _scaffoldKey,
       backgroundColor: SojuColors.homeBackground,
-      // Body ikut turun di belakang navbar supaya lapisan kaca dapat
-      // memblur konten yang sedang digulir.
-      // Pada tab chat, body tidak melewati navbar. Ini membuat composer
-      // menempel tepat di atas navbar tanpa celah putih kosong.
       extendBody: glassEnabled,
-      body: Stack(
-        children: <Widget>[
-          Positioned.fill(child: child),
-          if (glassEnabled)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: IgnorePointer(
-                child: BottomGlassOverlay(scale: scale),
-              ),
-            ),
-        ],
+      drawer: _AuthUserBuilder(
+        controller: widget.authController,
+        builder: (BuildContext context, AuthUser? user) {
+          final UserRole effectiveRole = user?.role ?? UserRole.admin;
+          return AdminDrawer(
+            role: effectiveRole,
+            userName: user?.name ?? ProfileViewData.sample.name,
+            userEmail: user?.email ?? ProfileViewData.sample.email,
+            selectedItem: AppRouter.adminDrawerItemFor(widget.currentPath),
+            onSelectItem: (AdminDrawerItem item) {
+              Navigator.of(context).pop();
+              context.push(AppRouter.pathForAdminDrawer(item));
+            },
+            onLogout: () async {
+              Navigator.of(context).pop();
+              await widget.authController?.logout();
+              if (context.mounted) {
+                context.go(AppRoutes.login);
+              }
+            },
+          );
+        },
       ),
-      // `Center(heightFactor: 1)` penting: `Align` tanpa heightFactor akan
-      // mengembang setinggi Scaffold dan membuat body berukuran 0 px.
+      body: _AdminShellScope(
+        openDrawer: _openDrawer,
+        child: Stack(
+          key: const Key('admin_shell_body'),
+          children: <Widget>[
+            Positioned.fill(child: widget.child),
+            if (glassEnabled)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: IgnorePointer(
+                  child: BottomGlassOverlay(scale: scale),
+                ),
+              ),
+          ],
+        ),
+      ),
       bottomNavigationBar: Center(
         heightFactor: 1,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
-          child: BukuDapurBottomNavBar(
-            activeTab: activeTab,
+          child: AdminBottomNavBar(
+            activeTab: widget.activeTab,
             glassEnabled: glassEnabled,
-            onTabSelected: (BottomNavTab tab) {
-              context.go(AppRouter._pathFor(tab));
+            onTabSelected: (AdminNavTab tab) {
+              context.go(AppRouter.pathForAdminTab(tab));
             },
-            // Tombol "+" membuka form kategori Phase A (frame `546:5430`)
-            // sebagai popup, bukan perpindahan rute.
-            // Form hanya mengirim draf ke datasource mock; belum ada HTTP.
-            onAddTap: () => _showCategoryCreatePopup(context),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shell 5-tab untuk Pelanggan (`UserRole.customer`):
+/// `Beranda | Menu | Keranjang | Pesanan | Akun`.
+class _CustomerShell extends StatelessWidget {
+  const _CustomerShell({
+    required this.activeTab,
+    required this.child,
+  });
+
+  final CustomerNavTab activeTab;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: const Key('customer_shell_scaffold'),
+      backgroundColor: SojuColors.homeBackground,
+      body: child,
+      bottomNavigationBar: Center(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: CustomerBottomNavBar(
+            activeTab: activeTab,
+            onTabSelected: (CustomerNavTab tab) {
+              context.go(AppRouter.pathForCustomerTab(tab));
+            },
           ),
         ),
       ),

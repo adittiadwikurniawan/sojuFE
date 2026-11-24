@@ -25,6 +25,7 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
     super.key,
     this.data = DashboardViewData.sample,
+    this.onMenuTap,
     this.onAvatarTap,
     this.onSearchTap,
     this.onNotificationTap,
@@ -39,6 +40,7 @@ class DashboardScreen extends StatefulWidget {
   });
 
   final DashboardViewData data;
+  final VoidCallback? onMenuTap;
   final VoidCallback? onAvatarTap;
   final VoidCallback? onSearchTap;
   final VoidCallback? onNotificationTap;
@@ -115,6 +117,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         topInset: topInset,
                         searchHint: widget.data.searchHint,
                         avatarAsset: widget.data.avatarAsset,
+                        onMenuTap: widget.onMenuTap,
                         onAvatarTap: widget.onAvatarTap ??
                             () => showProfileMenu(
                                   context,

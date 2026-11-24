@@ -14,6 +14,7 @@ class DashboardTopBar extends StatelessWidget {
     required this.topInset,
     required this.searchHint,
     required this.avatarAsset,
+    this.onMenuTap,
     this.onAvatarTap,
     this.onSearchTap,
     this.onNotificationTap,
@@ -27,6 +28,7 @@ class DashboardTopBar extends StatelessWidget {
 
   final String searchHint;
   final String avatarAsset;
+  final VoidCallback? onMenuTap;
   final VoidCallback? onAvatarTap;
   final VoidCallback? onSearchTap;
   final VoidCallback? onNotificationTap;
@@ -55,6 +57,30 @@ class DashboardTopBar extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
+          if (onMenuTap != null) ...<Widget>[
+            Semantics(
+              button: true,
+              label: 'Menu Admin',
+              child: GestureDetector(
+                key: const Key('admin_drawer_button'),
+                onTap: onMenuTap,
+                child: Container(
+                  width: 46 * scale,
+                  height: 46 * scale,
+                  decoration: const BoxDecoration(
+                    color: SojuColors.field,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.menu_rounded,
+                    size: 23 * scale,
+                    color: SojuColors.ink,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 12 * scale),
+          ],
           GestureDetector(
             key: const Key('dashboard_avatar'),
             onTap: onAvatarTap,
