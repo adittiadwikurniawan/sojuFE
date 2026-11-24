@@ -16,6 +16,8 @@ import '../../presentation/providers/profile/help_topics_controller.dart';
 import '../../presentation/providers/profile/notification_preferences_controller.dart';
 import '../../presentation/providers/profile/profile_controller.dart';
 import '../../presentation/providers/sales_chat/sales_chat_controller.dart';
+import '../../presentation/providers/storefront/customer_cart_controller.dart';
+import '../../presentation/providers/storefront/customer_catalog_controller.dart';
 import '../../presentation/screens/activities/activities_screen.dart';
 import '../../presentation/screens/analytics/analytics_screen.dart';
 import '../../presentation/screens/audit/audit_screen.dart';
@@ -27,6 +29,8 @@ import '../../presentation/screens/auth/models/reset_password_form_data.dart';
 import '../../presentation/screens/auth/reset_password_screen.dart';
 import '../../presentation/screens/auth/widgets/auth_header.dart';
 import '../../presentation/screens/chatbot/chatbot_screen.dart';
+import '../../presentation/screens/customer/customer_cart_screen.dart';
+import '../../presentation/screens/customer/customer_catalog_screen.dart';
 import '../../presentation/screens/dashboard/dashboard_screen.dart';
 import '../../presentation/screens/free_tables/free_table_category_screen.dart';
 import '../../presentation/screens/notifications/notifications_screen.dart';
@@ -357,14 +361,25 @@ abstract final class AppRouter {
             GoRoute(
               path: AppRoutes.customerMenu,
               builder: (BuildContext context, GoRouterState state) =>
-                  CustomerMenuShellScreen(
+                  CustomerCatalogScreen(
+                catalogControllerFactory: () => CustomerCatalogController(
+                  getProducts: DataProviders.getCatalogProducts(),
+                ),
+                cartControllerFactory: () => CustomerCartController(
+                  getCart: DataProviders.getCart(),
+                  saveCart: DataProviders.saveCart(),
+                ),
                 onOpenCart: () => context.go(AppRoutes.customerCart),
               ),
             ),
             GoRoute(
               path: AppRoutes.customerCart,
               builder: (BuildContext context, GoRouterState state) =>
-                  CustomerCartShellScreen(
+                  CustomerCartScreen(
+                controllerFactory: () => CustomerCartController(
+                  getCart: DataProviders.getCart(),
+                  saveCart: DataProviders.saveCart(),
+                ),
                 onCheckout: () => context.push(AppRoutes.customerCheckout),
                 onBrowseMenu: () => context.go(AppRoutes.customerMenu),
               ),

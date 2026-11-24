@@ -19,7 +19,12 @@ import 'datasources/mock/free_table_mock_datasource.dart';
 import 'datasources/mock/help_mock_datasource.dart';
 import 'datasources/mock/profile_mock_datasource.dart';
 import 'datasources/mock/sales_chat_mock_datasource.dart';
+import 'datasources/mock/storefront_mock_datasource.dart';
 import 'datasources/remote/auth_remote_datasource.dart';
+import 'datasources/remote/storefront_remote_datasource.dart';
+import 'repositories/storefront_repository_impl.dart';
+import '../domain/repositories/storefront_repository.dart';
+import '../domain/usecases/storefront_usecases.dart';
 import 'repositories/auth_repository_impl.dart';
 import 'repositories/free_table_repository_impl.dart';
 import 'repositories/help_repository_impl.dart';
@@ -29,6 +34,7 @@ import 'repositories/sales_chat_repository_impl.dart';
 /// Factory dependency data tingkat aplikasi.
 abstract final class DataProviders {
   static AuthRepository? _authRepository;
+  static StorefrontRepository? _storefrontRepository;
 
   /// Mengonfigurasi dependency remote dari composition root (`main.dart`).
   ///
@@ -37,16 +43,43 @@ abstract final class DataProviders {
   static void configure({
     required ApiClient apiClient,
     required TokenStorage tokenStorage,
+    String apiOrigin = '',
   }) {
     _authRepository = AuthRepositoryImpl(
       AuthRemoteDataSource(apiClient),
       tokenStorage,
     );
+    _storefrontRepository = StorefrontRepositoryImpl(
+      StorefrontRemoteDataSource(apiClient),
+      apiOrigin: apiOrigin,
+    );
   }
+
+  /// Apakah repository etalase Pelanggan (TASK-024) sudah dikonfigurasi.
+  static bool get hasStorefront => _storefrontRepository != null;
+
+  static final StorefrontMockDataSource _storefrontMockDataSource =
+      StorefrontMockDataSource();
+
+  static StorefrontRepository get _storefront {
+    return _storefrontRepository ??
+        StorefrontRepositoryImpl(_storefrontMockDataSource);
+  }
+
+  /// Usecase katalog produk publik `/api/public/products`.
+  static GetCatalogProducts getCatalogProducts() =>
+      GetCatalogProducts(_storefront);
+
+  /// Usecase baca keranjang `GET /api/customer/keranjang`.
+  static GetCart getCart() => GetCart(_storefront);
+
+  /// Usecase simpan keranjang `PUT /api/customer/keranjang`.
+  static SaveCart saveCart() => SaveCart(_storefront);
 
   /// Menghapus konfigurasi auth (dipakai test).
   static void resetAuth() {
     _authRepository = null;
+    _storefrontRepository = null;
   }
 
   static bool get hasAuth => _authRepository != null;

@@ -28,6 +28,7 @@ void main() {
   DataProviders.configure(
     apiClient: apiClient,
     tokenStorage: tokenStorage,
+    apiOrigin: AppConfig.apiOrigin,
   );
 
   final AuthController authController = AuthController(
