@@ -209,7 +209,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Alat Cepat'), findsOneWidget);
-    expect(find.byType(AdminBottomNavBar), findsOneWidget);
+    expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
     expect(find.byKey(const Key('bottom_glass_overlay')), findsNothing);
     expect(find.byKey(const Key('bottom_nav_glass')), findsNothing);
 
@@ -218,7 +218,7 @@ void main() {
 
     expect(find.text('Aktivitas'), findsOneWidget);
     expect(find.text('Alat Cepat'), findsNothing);
-    expect(find.byType(AdminBottomNavBar), findsOneWidget);
+    expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
     expect(find.byKey(const Key('bottom_glass_overlay')), findsOneWidget);
     expect(find.byKey(const Key('bottom_nav_glass')), findsOneWidget);
   });
@@ -240,15 +240,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AuditScreen), findsOneWidget);
-    expect(find.text('Audit & Stok'), findsOneWidget);
-    expect(find.byType(AdminBottomNavBar), findsNothing);
+    expect(find.text('Audit & Stok'), findsWidgets);
+    expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
 
     tester.widget<AuditTopBar>(find.byType(AuditTopBar)).onBack!();
     await tester.pumpAndSettle();
 
     expect(find.text('Aktivitas'), findsOneWidget);
     expect(find.byType(AuditTopBar), findsNothing);
-    expect(find.byType(AdminBottomNavBar), findsOneWidget);
+    expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
   });
 
   testWidgets('tombol notifikasi membuka halaman notifikasi tanpa navbar', (
@@ -273,7 +273,7 @@ void main() {
     expect(find.byType(NotificationsScreen), findsOneWidget);
     expect(find.text('Notifikasi'), findsOneWidget);
     expect(find.text('HARI INI'), findsOneWidget);
-    expect(find.byType(AdminBottomNavBar), findsNothing);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
     expect(find.byKey(const Key('bottom_glass_overlay')), findsNothing);
 
     await tester.tap(find.byKey(const Key('notifications_back')));
@@ -306,7 +306,7 @@ void main() {
 
     expect(find.byType(ActivitiesScreen), findsOneWidget);
     expect(find.text('Semua Aktivitas'), findsOneWidget);
-    expect(find.byType(AdminBottomNavBar), findsNothing);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
     expect(find.byKey(const Key('bottom_glass_overlay')), findsNothing);
 
     await tester.tap(find.byKey(const Key('activities_back')));
@@ -338,7 +338,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ActivitiesScreen), findsOneWidget);
-    expect(find.byType(AdminBottomNavBar), findsNothing);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
   });
 
   testWidgets('tombol tambah Analytics membuka popup tanpa pindah rute', (
@@ -397,7 +397,7 @@ void main() {
 
     expect(find.byType(FreeTableCategoryScreen), findsOneWidget);
     expect(find.text('Buat Kategori Baru'), findsOneWidget);
-    expect(find.byType(AdminBottomNavBar), findsNothing);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
 
     tester
         .widget<FreeTableCategoryScreen>(
@@ -431,7 +431,7 @@ void main() {
       find.text('Atur pos pembukuan pemasukan & custom field'),
       findsOneWidget,
     );
-    expect(find.byType(AdminBottomNavBar), findsNothing);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
 
     tester
         .widget<FreeTableCategoryScreen>(
@@ -446,14 +446,13 @@ void main() {
 
   final Map<String, String> adminTabRoutes = <String, String>{
     AppRoutes.dashboard: 'Home',
-    AppRoutes.adminOrders: 'Pesanan',
-    AppRoutes.data: 'Data',
-    AppRoutes.chatbot: 'AI',
-    AppRoutes.adminAccount: 'Akun',
+    AppRoutes.analytics: 'Analytics',
+    AppRoutes.chatbot: 'Ai Asistant',
+    AppRoutes.audit: 'Audit & Stok',
   };
   for (final MapEntry<String, String> entry in adminTabRoutes.entries) {
     testWidgets(
-      'Shell Admin menandai tab ${entry.value} sebagai aktif (5-tab)',
+      'Shell Admin menandai tab ${entry.value} sebagai aktif pada navbar Figma',
       (WidgetTester tester) async {
         await tester.binding.setSurfaceSize(const Size(430, 932));
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -468,7 +467,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final Finder nav = find.byType(AdminBottomNavBar);
+        final Finder nav = find.byType(BukuDapurBottomNavBar);
         expect(nav, findsOneWidget);
 
         final Iterable<Text> labels = tester.widgetList<Text>(
@@ -476,7 +475,7 @@ void main() {
         );
         expect(
           labels.map((Text text) => text.data).toList(),
-          <String?>['Home', 'Pesanan', 'Data', 'AI', 'Akun'],
+          <String?>['Home', 'Analytics', 'Ai Asistant', 'Audit & Stok'],
         );
 
         final Text activeLabel = tester.widget<Text>(
@@ -519,7 +518,7 @@ void main() {
 
         final Finder nav = find.byType(CustomerBottomNavBar);
         expect(nav, findsOneWidget);
-        expect(find.byType(AdminBottomNavBar), findsNothing);
+        expect(find.byType(BukuDapurBottomNavBar), findsNothing);
 
         final Iterable<Text> labels = tester.widgetList<Text>(
           find.descendant(of: nav, matching: find.byType(Text)),
@@ -537,7 +536,7 @@ void main() {
     );
   }
 
-  testWidgets('mengetuk 5 tab Shell Admin berpindah rute dengan mulus', (
+  testWidgets('mengetuk tab navbar Figma Shell Admin berpindah rute dengan mulus', (
     WidgetTester tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
@@ -553,7 +552,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final Finder nav = find.byType(AdminBottomNavBar);
+    final Finder nav = find.byType(BukuDapurBottomNavBar);
     final Scaffold shell = tester.widget<Scaffold>(find.byType(Scaffold).first);
     expect(shell.backgroundColor, SojuColors.homeBackground);
     expect(shell.extendBody, isTrue);
@@ -564,25 +563,24 @@ void main() {
       greaterThan(0),
     );
 
-    await tester.tap(find.descendant(of: nav, matching: find.text('Pesanan')));
+    await tester.tap(find.descendant(of: nav, matching: find.text('Analytics')));
     await tester.pumpAndSettle();
-    expect(router.state.uri.path, AppRoutes.adminOrders);
-    expect(find.text('Pesanan Pelanggan'), findsOneWidget);
-
-    await tester.tap(find.descendant(of: nav, matching: find.text('Data')));
-    await tester.pumpAndSettle();
-    expect(router.state.uri.path, AppRoutes.data);
+    expect(router.state.uri.path, AppRoutes.analytics);
     expect(find.byType(AnalyticsScreen), findsOneWidget);
 
-    await tester.tap(find.descendant(of: nav, matching: find.text('AI')));
+    await tester.tap(
+      find.descendant(of: nav, matching: find.text('Ai Asistant')),
+    );
     await tester.pumpAndSettle();
     expect(router.state.uri.path, AppRoutes.chatbot);
     expect(find.text('Alat Cepat'), findsOneWidget);
 
-    await tester.tap(find.descendant(of: nav, matching: find.text('Akun')));
+    await tester.tap(
+      find.descendant(of: nav, matching: find.text('Audit & Stok')),
+    );
     await tester.pumpAndSettle();
-    expect(router.state.uri.path, AppRoutes.adminAccount);
-    expect(find.byType(ProfileScreen), findsOneWidget);
+    expect(router.state.uri.path, AppRoutes.audit);
+    expect(find.byType(AuditScreen), findsOneWidget);
 
     await tester.tap(find.descendant(of: nav, matching: find.text('Home')));
     await tester.pumpAndSettle();
@@ -606,7 +604,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(AdminBottomNavBar), findsOneWidget);
+    expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
     expect(find.text('Penjualan Harian/Shift'), findsNothing);
     expect(find.text('Pratinjau'), findsNothing);
   });
@@ -630,7 +628,7 @@ void main() {
     expect(find.byType(SalesChatPrototypeDisabledScreen), findsOneWidget);
     expect(find.byType(SalesChatPrototypeScreen), findsNothing);
     expect(find.text('Prototype belum aktif'), findsOneWidget);
-    expect(find.byType(AdminBottomNavBar), findsNothing);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
   });
 
   testWidgets('flag prototype menampilkan layar chat penjualan tanpa navbar', (
@@ -651,7 +649,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SalesChatPrototypeScreen), findsOneWidget);
-    expect(find.byType(AdminBottomNavBar), findsNothing);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
     expect(find.text('Penjualan Harian/Shift'), findsOneWidget);
     expect(find.text('Pratinjau'), findsOneWidget);
     expect(find.text('Mode demo — data tidak disimpan'), findsOneWidget);
@@ -673,7 +671,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(AdminBottomNavBar), findsOneWidget);
+    expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('dashboard_avatar')));
     await tester.pumpAndSettle();
@@ -687,7 +685,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ProfileScreen), findsOneWidget);
-    expect(find.byType(AdminBottomNavBar), findsNothing);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
     expect(find.text('Akun Saya'), findsOneWidget);
     expect(find.text('Pengaturan'), findsOneWidget);
     expect(find.text('Pusat Bantuan'), findsOneWidget);
@@ -867,7 +865,7 @@ void main() {
       find.textContaining('Bagaimana cara mencatat order atau penjualan?'),
       findsOneWidget,
     );
-    expect(find.byType(AdminBottomNavBar), findsNothing);
+    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
   });
 
   // ===========================================================================
@@ -945,7 +943,7 @@ void main() {
         // Otomatis diarahkan ke Beranda Pelanggan 5-tab.
         expect(router.state.uri.path, AppRoutes.customerHome);
         expect(find.byType(CustomerBottomNavBar), findsOneWidget);
-        expect(find.byType(AdminBottomNavBar), findsNothing);
+        expect(find.byType(BukuDapurBottomNavBar), findsNothing);
         expect(find.textContaining('Halo, Siti Rahma!'), findsOneWidget);
 
         final Finder nav = find.byType(CustomerBottomNavBar);
@@ -1025,7 +1023,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(router.state.uri.path, AppRoutes.dashboard);
-        expect(find.byType(AdminBottomNavBar), findsOneWidget);
+        expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
         expect(find.byType(CustomerBottomNavBar), findsNothing);
 
         // Buka Admin Drawer melalui tombol menu bilah atas.
@@ -1041,6 +1039,7 @@ void main() {
           ),
           findsOneWidget,
         );
+        expect(find.byKey(const Key('admin_drawer_orders')), findsOneWidget);
         expect(find.byKey(const Key('admin_drawer_audit')), findsOneWidget);
         expect(find.text('Log Audit'), findsOneWidget);
 
@@ -1049,7 +1048,7 @@ void main() {
         expect(find.byKey(const Key('admin_drawer_cms')), findsNothing);
         expect(find.byKey(const Key('admin_drawer_crm')), findsNothing);
         expect(find.text('Kelola Pengguna'), findsNothing);
-        expect(find.text('Konten CMS'), findsNothing);
+        expect(find.text('Konten CMS & Produk'), findsNothing);
         expect(find.text('Pelanggan & CRM'), findsNothing);
 
         // ADMIN dapat membuka Log Audit dari Drawer.
@@ -1101,7 +1100,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(router.state.uri.path, AppRoutes.dashboard);
-        expect(find.byType(AdminBottomNavBar), findsOneWidget);
+        expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
 
         // Buka Admin Drawer sebagai SUPER_ADMIN.
         await tester.tap(find.byKey(const Key('admin_drawer_button')));
@@ -1142,6 +1141,8 @@ void main() {
 
         // Buka halaman CRM (SUPER_ADMIN).
         await tester.tap(find.byKey(const Key('admin_drawer_button')));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.byKey(const Key('admin_drawer_crm')));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const Key('admin_drawer_crm')));
         await tester.pumpAndSettle();
@@ -1233,7 +1234,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(router.state.uri.path, AppRoutes.dashboard);
-        expect(find.byType(AdminBottomNavBar), findsOneWidget);
+        expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
       },
     );
 

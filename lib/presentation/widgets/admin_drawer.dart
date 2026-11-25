@@ -12,10 +12,22 @@ import '../../domain/entities/auth_session_entity.dart';
 
 /// Item menu pada [AdminDrawer] beserta aturan pembatasan peran (`AD-08`).
 enum AdminDrawerItem {
+  orders(
+    label: 'Pesanan Pelanggan',
+    subtitle: 'Kelola antrean pesanan masuk',
+    icon: Icons.receipt_long_outlined,
+    superAdminOnly: false,
+  ),
   audit(
     label: 'Log Audit',
     subtitle: 'Riwayat aktivitas operasional',
     icon: Icons.fact_check_outlined,
+    superAdminOnly: false,
+  ),
+  profile(
+    label: 'Akun & Pengaturan',
+    subtitle: 'Profil pengelola, password & bantuan',
+    icon: Icons.person_outline_rounded,
     superAdminOnly: false,
   ),
   users(
@@ -25,8 +37,8 @@ enum AdminDrawerItem {
     superAdminOnly: true,
   ),
   cms(
-    label: 'Konten CMS',
-    subtitle: 'Pengaturan konten & informasi publik',
+    label: 'Konten CMS & Produk',
+    subtitle: 'Konten publik & katalog menu SOJU',
     icon: Icons.web_outlined,
     superAdminOnly: true,
   ),
@@ -113,10 +125,10 @@ class AdminDrawer extends StatelessWidget {
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
               children: <Widget>[
                 const _SectionHeading(title: 'MENU OPERASIONAL'),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 for (final AdminDrawerItem item in operationalItems)
                   _DrawerTile(
                     key: Key('admin_drawer_${item.name}'),
@@ -125,11 +137,11 @@ class AdminDrawer extends StatelessWidget {
                     onTap: () => onSelectItem(item),
                   ),
                 if (superAdminItems.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 10),
                   const Divider(height: 1, color: SojuColors.hairline),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   const _SectionHeading(title: 'KHUSUS SUPER ADMIN'),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   for (final AdminDrawerItem item in superAdminItems)
                     _DrawerTile(
                       key: Key('admin_drawer_${item.name}'),
@@ -329,7 +341,7 @@ class _DrawerTile extends StatelessWidget {
     final Color bg = selected ? SojuColors.infoSoft : Colors.transparent;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Material(
         color: bg,
         borderRadius: BorderRadius.circular(14),
@@ -337,7 +349,7 @@ class _DrawerTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: <Widget>[
                 Container(

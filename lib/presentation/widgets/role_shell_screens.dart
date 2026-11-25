@@ -20,43 +20,457 @@ class CustomerHomeShellScreen extends StatelessWidget {
     this.user,
     this.onBrowseMenu,
     this.onViewOrders,
+    this.onOpenCart,
+    this.cartCount = 0,
   });
 
   final AuthUser? user;
   final VoidCallback? onBrowseMenu;
   final VoidCallback? onViewOrders;
+  final VoidCallback? onOpenCart;
+  final int cartCount;
+
+  String _initials(String name) {
+    final List<String> parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((String s) => s.isNotEmpty)
+        .toList(growable: false);
+    if (parts.isEmpty) return 'P';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
     final String greetingName =
         (user?.name.trim().isNotEmpty ?? false) ? user!.name : 'Pelanggan';
+    final double topInset = MediaQuery.paddingOf(context).top;
 
-    return _SojuShellPageScaffold(
+    return Scaffold(
       key: const Key('customer_home_screen'),
-      title: 'Beranda Pelanggan',
-      subtitle: 'Halo, $greetingName! Pesan menu favoritmu dari SOJU.',
-      badgeLabel: 'Pelanggan',
-      children: <Widget>[
-        _InfoActionCard(
-          icon: Icons.restaurant_menu_rounded,
-          title: 'Katalog Menu SOJU',
-          description:
-              'Jelajahi pilihan menu makanan dan minuman terbaru kami.',
-          actionKey: const Key('customer_home_open_menu'),
-          actionLabel: 'Lihat Menu',
-          onAction: onBrowseMenu,
+      backgroundColor: SojuColors.homeBackground,
+      body: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final double maxWidth = math.min(constraints.maxWidth, 640);
+          return Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: maxWidth,
+              height: constraints.maxHeight,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  18,
+                  topInset + 16,
+                  18,
+                  kBottomContentInset,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: SojuColors.infoSoft,
+                          child: Text(
+                            _initials(greetingName),
+                            style: const TextStyle(
+                              fontFamily: AppTypography.family,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: SojuColors.primaryDeep,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              const Text(
+                                'Selamat datang,',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.family,
+                                  fontSize: 12,
+                                  color: SojuColors.inkMuted,
+                                ),
+                              ),
+                              Text(
+                                'Halo, $greetingName!',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.family,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: SojuColors.ink,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        _HeaderSquareAction(
+                          icon: Icons.shopping_cart_outlined,
+                          tooltip: 'Keranjang',
+                          badgeCount: cartCount,
+                          onTap: onOpenCart ?? onBrowseMenu,
+                        ),
+                        const SizedBox(width: 8),
+                        _HeaderSquareAction(
+                          icon: Icons.receipt_long_outlined,
+                          tooltip: 'Pesanan',
+                          onTap: onViewOrders,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: <Color>[
+                            Color(0xFFEAF2FF),
+                            Color(0xFFD6E6FF),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: SojuColors.freeTableBlueBorder60),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                RichText(
+                                  text: const TextSpan(
+                                    style: TextStyle(
+                                      fontFamily: AppTypography.family,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      color: SojuColors.ink,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(text: 'Hemat hingga '),
+                                      TextSpan(
+                                        text: '50%',
+                                        style: TextStyle(
+                                          color: SojuColors.expense,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Penawaran terbatas untuk menu pilihan SOJU hari ini.',
+                                  style: TextStyle(
+                                    fontFamily: AppTypography.family,
+                                    fontSize: 12.5,
+                                    height: 1.4,
+                                    color: SojuColors.inkMuted,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                FilledButton(
+                                  key: const Key('customer_home_open_menu'),
+                                  onPressed: onBrowseMenu,
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: SojuColors.primary,
+                                    foregroundColor: SojuColors.surface,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 10,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Pesan Sekarang',
+                                    style: TextStyle(
+                                      fontFamily: AppTypography.family,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            width: 84,
+                            height: 84,
+                            decoration: BoxDecoration(
+                              color: SojuColors.surface.withOpacity(0.85),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(
+                              Icons.fastfood_rounded,
+                              size: 42,
+                              color: SojuColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        const Text(
+                          'Kategori',
+                          style: TextStyle(
+                            fontFamily: AppTypography.family,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: SojuColors.ink,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: onBrowseMenu,
+                          child: const Text(
+                            'Lihat Semua',
+                            style: TextStyle(
+                              fontFamily: AppTypography.family,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: SojuColors.inkMuted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: <Widget>[
+                          for (final (String label, bool active) in <(String, bool)>[
+                            ('Semua', true),
+                            ('Minuman', false),
+                            ('Makanan', false),
+                            ('Camilan', false),
+                            ('Paket', false),
+                          ]) ...<Widget>[
+                            InkWell(
+                              onTap: onBrowseMenu,
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: active
+                                      ? SojuColors.primary
+                                      : SojuColors.surface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: active
+                                        ? SojuColors.primary
+                                        : SojuColors.hairline,
+                                  ),
+                                ),
+                                child: Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontFamily: AppTypography.family,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: active
+                                        ? SojuColors.surface
+                                        : SojuColors.ink,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        const Expanded(
+                          child: Text(
+                            'Menu Pilihan untuk Kamu',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: AppTypography.family,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: SojuColors.ink,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: onBrowseMenu,
+                          child: const Text(
+                            'Lihat Semua',
+                            style: TextStyle(
+                              fontFamily: AppTypography.family,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: SojuColors.inkMuted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: _HomeHighlightCard(
+                            title: 'Menu Minuman',
+                            subtitle: 'Segar & favorit',
+                            icon: Icons.local_bar_rounded,
+                            onTap: onBrowseMenu,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _HomeHighlightCard(
+                            title: 'Menu Makanan',
+                            subtitle: 'Siap santap',
+                            icon: Icons.rice_bowl_rounded,
+                            onTap: onBrowseMenu,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _InfoActionCard(
+                      icon: Icons.receipt_long_rounded,
+                      title: 'Status Pesanan',
+                      description:
+                          'Pantau progres pesanan yang sedang diproses hingga selesai.',
+                      actionKey: const Key('customer_home_open_orders'),
+                      actionLabel: 'Lihat Pesanan',
+                      onAction: onViewOrders,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HeaderSquareAction extends StatelessWidget {
+  const _HeaderSquareAction({
+    required this.icon,
+    required this.tooltip,
+    this.badgeCount = 0,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final int badgeCount;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: SojuColors.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: SojuColors.hairline),
+          ),
+          alignment: Alignment.center,
+          child: Badge(
+            isLabelVisible: badgeCount > 0,
+            label: Text('$badgeCount'),
+            child: Icon(icon, size: 20, color: SojuColors.ink),
+          ),
         ),
-        const SizedBox(height: 14),
-        _InfoActionCard(
-          icon: Icons.receipt_long_rounded,
-          title: 'Status Pesanan',
-          description:
-              'Pantau progres pesanan yang sedang diproses hingga selesai.',
-          actionKey: const Key('customer_home_open_orders'),
-          actionLabel: 'Lihat Pesanan',
-          onAction: onViewOrders,
+      ),
+    );
+  }
+}
+
+class _HomeHighlightCard extends StatelessWidget {
+  const _HomeHighlightCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: SojuColors.surface,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: SojuColors.hairline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                height: 76,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: SojuColors.infoSoft,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 34, color: SojuColors.primary),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: AppTypography.family,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: SojuColors.ink,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontFamily: AppTypography.family,
+                  fontSize: 12,
+                  color: SojuColors.inkMuted,
+                ),
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -196,8 +196,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _buildLoadingState(scale)
               else if (state != null && state.status == DashboardStatus.error)
                 _buildErrorState(scale, state.errorMessage)
-              else if (state != null && state.status == DashboardStatus.empty)
-                _buildEmptyState(scale)
               else ...<Widget>[
                 SizedBox(height: 16 * scale),
                 _buildMetrics(scale, effectiveData),
@@ -312,54 +310,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildEmptyState(double scale) {
-    return Padding(
+  Widget _buildInlineEmptyActivities(double scale) {
+    return Container(
       key: const Key('dashboard_empty'),
-      padding: EdgeInsets.all(24 * scale),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              Icons.dashboard_outlined,
-              size: 56 * scale,
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: 18 * scale,
+        vertical: 24 * scale,
+      ),
+      decoration: BoxDecoration(
+        color: SojuColors.surface,
+        borderRadius: BorderRadius.circular(18 * scale),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            Icons.dashboard_outlined,
+            size: 36 * scale,
+            color: SojuColors.inkMuted,
+          ),
+          SizedBox(height: 10 * scale),
+          Text(
+            'Belum ada aktivitas operasional',
+            style: TextStyle(
+              fontFamily: AppTypography.family,
+              fontSize: 14 * scale,
+              fontWeight: FontWeight.w700,
+              color: SojuColors.ink,
+            ),
+          ),
+          SizedBox(height: 4 * scale),
+          Text(
+            'Aktivitas kas dan pesanan terbaru akan otomatis muncul di sini.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppTypography.family,
+              fontSize: 12.5 * scale,
               color: SojuColors.inkMuted,
             ),
-            SizedBox(height: 12 * scale),
-            Text(
-              'Belum ada data operasional',
-              style: TextStyle(
-                fontFamily: AppTypography.family,
-                fontSize: 16 * scale,
-                fontWeight: FontWeight.w700,
-                color: SojuColors.ink,
-              ),
-            ),
-            SizedBox(height: 6 * scale),
-            Text(
-              'Data ringkasan kas dan aktivitas operasional masih kosong.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppTypography.family,
-                fontSize: 13 * scale,
-                color: SojuColors.inkMuted,
-              ),
-            ),
-            SizedBox(height: 16 * scale),
-            ElevatedButton(
+          ),
+          if (_controller != null) ...<Widget>[
+            SizedBox(height: 14 * scale),
+            OutlinedButton(
               key: const Key('dashboard_empty_retry_button'),
               onPressed: () => _controller?.load(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: SojuColors.primary,
-                foregroundColor: Colors.white,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: SojuColors.primary,
+                side: const BorderSide(color: SojuColors.primary),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20 * scale),
                 ),
               ),
-              child: const Text('Coba Lagi'),
+              child: const Text('Muat Ulang'),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -420,6 +426,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildActivities(double scale, DashboardViewData data) {
+    if (data.activities.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16 * scale),
+        child: _buildInlineEmptyActivities(scale),
+      );
+    }
+
     final List<Widget> children = <Widget>[];
     for (int i = 0; i < data.activities.length; i++) {
       if (i > 0) {

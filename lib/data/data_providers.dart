@@ -9,6 +9,8 @@
 import '../core/services/api_client/api_client.dart';
 import '../core/services/token_storage/token_storage.dart';
 import '../domain/entities/sales_chat_entity.dart';
+import '../domain/repositories/admin_cms_repository.dart';
+import '../domain/repositories/admin_crm_repository.dart';
 import '../domain/repositories/admin_order_repository.dart';
 import '../domain/repositories/admin_users_repository.dart';
 import '../domain/repositories/ai_chat_repository.dart';
@@ -17,8 +19,12 @@ import '../domain/repositories/auth_repository.dart';
 import '../domain/repositories/customer_order_repository.dart';
 import '../domain/repositories/customer_profile_repository.dart';
 import '../domain/repositories/dashboard_repository.dart';
+import '../domain/repositories/free_table_repository.dart';
+import '../domain/repositories/profile_repository.dart';
 import '../domain/repositories/storefront_repository.dart';
 import '../domain/repositories/transaction_repository.dart';
+import '../domain/usecases/admin_cms_usecases.dart';
+import '../domain/usecases/admin_crm_usecases.dart';
 import '../domain/usecases/admin_order_usecases.dart';
 import '../domain/usecases/admin_users_usecases.dart';
 import '../domain/usecases/ai_chat_usecases.dart';
@@ -33,6 +39,8 @@ import '../domain/usecases/profile_usecases.dart';
 import '../domain/usecases/sales_chat_usecases.dart';
 import '../domain/usecases/storefront_usecases.dart';
 import '../domain/usecases/transaction_usecases.dart';
+import '../presentation/providers/admin_cms/admin_cms_controller.dart';
+import '../presentation/providers/admin_crm/admin_crm_controller.dart';
 import '../presentation/providers/admin_orders/admin_orders_controller.dart';
 import '../presentation/providers/admin_users/admin_users_controller.dart';
 import '../presentation/providers/ai/ai_chat_controller.dart';
@@ -40,6 +48,8 @@ import '../presentation/providers/audit/audit_log_controller.dart';
 import '../presentation/providers/dashboard/dashboard_controller.dart';
 import '../presentation/providers/storefront/customer_cart_controller.dart';
 import '../presentation/providers/transactions/transactions_controller.dart';
+import 'datasources/mock/admin_cms_mock_datasource.dart';
+import 'datasources/mock/admin_crm_mock_datasource.dart';
 import 'datasources/mock/admin_order_mock_datasource.dart';
 import 'datasources/mock/admin_users_mock_datasource.dart';
 import 'datasources/mock/ai_chat_mock_datasource.dart';
@@ -51,6 +61,8 @@ import 'datasources/mock/help_mock_datasource.dart';
 import 'datasources/mock/profile_mock_datasource.dart';
 import 'datasources/mock/sales_chat_mock_datasource.dart';
 import 'datasources/mock/storefront_mock_datasource.dart';
+import 'datasources/remote/admin_cms_remote_datasource.dart';
+import 'datasources/remote/admin_crm_remote_datasource.dart';
 import 'datasources/remote/admin_order_remote_datasource.dart';
 import 'datasources/remote/admin_users_remote_datasource.dart';
 import 'datasources/remote/ai_chat_remote_datasource.dart';
@@ -59,8 +71,12 @@ import 'datasources/remote/auth_remote_datasource.dart';
 import 'datasources/remote/customer_order_remote_datasource.dart';
 import 'datasources/remote/customer_profile_remote_datasource.dart';
 import 'datasources/remote/dashboard_remote_datasource.dart';
+import 'datasources/remote/free_table_remote_datasource.dart';
+import 'datasources/remote/profile_remote_datasource.dart';
 import 'datasources/remote/storefront_remote_datasource.dart';
 import 'datasources/remote/transaction_remote_datasource.dart';
+import 'repositories/admin_cms_repository_impl.dart';
+import 'repositories/admin_crm_repository_impl.dart';
 import 'repositories/admin_order_repository_impl.dart';
 import 'repositories/admin_users_repository_impl.dart';
 import 'repositories/ai_chat_repository_impl.dart';
@@ -89,7 +105,11 @@ abstract final class DataProviders {
   static AuditLogRepository? _auditLogRepository;
   static AdminOrderRepository? _adminOrderRepository;
   static AdminUsersRepository? _adminUsersRepository;
+  static AdminCmsRepository? _adminCmsRepository;
+  static AdminCrmRepository? _adminCrmRepository;
   static AiChatRepository? _aiChatRepository;
+  static FreeTableRepository? _freeTableRepository;
+  static ProfileRepository? _profileRepository;
 
   /// Mengonfigurasi dependency remote dari composition root (`main.dart`).
   ///
@@ -131,8 +151,20 @@ abstract final class DataProviders {
     _adminUsersRepository = AdminUsersRepositoryImpl(
       AdminUsersRemoteDataSource(apiClient),
     );
+    _adminCmsRepository = AdminCmsRepositoryImpl(
+      AdminCmsRemoteDataSource(apiClient),
+    );
+    _adminCrmRepository = AdminCrmRepositoryImpl(
+      AdminCrmRemoteDataSource(apiClient),
+    );
     _aiChatRepository = AiChatRepositoryImpl(
       AiChatRemoteDataSource(apiClient),
+    );
+    _freeTableRepository = FreeTableRepositoryImpl(
+      FreeTableRemoteDataSource(apiClient),
+    );
+    _profileRepository = ProfileRepositoryImpl(
+      ProfileRemoteDataSource(apiClient),
     );
 
     resetCartController();
@@ -386,6 +418,48 @@ abstract final class DataProviders {
     );
   }
 
+  // --- SUPER_ADMIN CMS, Produk & CRM Providers ---
+
+  static final AdminCmsMockDataSource _adminCmsMockDataSource =
+      AdminCmsMockDataSource();
+
+  static AdminCmsRepository get _adminCms {
+    return _adminCmsRepository ??
+        AdminCmsRepositoryImpl(_adminCmsMockDataSource);
+  }
+
+  static AdminCmsController createAdminCmsController() {
+    return AdminCmsController(
+      getCmsContents: GetCmsContents(_adminCms),
+      saveCmsContent: SaveCmsContent(_adminCms),
+      deleteCmsContent: DeleteCmsContent(_adminCms),
+      getAdminProducts: GetAdminProducts(_adminCms),
+      createAdminProduct: CreateAdminProduct(_adminCms),
+      updateAdminProduct: UpdateAdminProduct(_adminCms),
+      deleteAdminProduct: DeleteAdminProduct(_adminCms),
+    );
+  }
+
+  static final AdminCrmMockDataSource _adminCrmMockDataSource =
+      AdminCrmMockDataSource();
+
+  static AdminCrmRepository get _adminCrm {
+    return _adminCrmRepository ??
+        AdminCrmRepositoryImpl(_adminCrmMockDataSource);
+  }
+
+  static AdminCrmController createAdminCrmController() {
+    return AdminCrmController(
+      getCustomerSummary: GetAdminCustomerSummary(_adminCrm),
+      getCustomers: GetAdminCustomers(_adminCrm),
+      updateCustomerStatus: UpdateAdminCustomerStatus(_adminCrm),
+      getCampaigns: GetCrmCampaigns(_adminCrm),
+      previewCampaignTarget: PreviewCrmCampaignTarget(_adminCrm),
+      saveCampaign: SaveCrmCampaign(_adminCrm),
+      deleteCampaign: DeleteCrmCampaign(_adminCrm),
+    );
+  }
+
   /// Menghapus konfigurasi auth, etalase, pesanan, dan admin repos (dipakai test).
   static void resetAuth() {
     _authRepository = null;
@@ -397,7 +471,11 @@ abstract final class DataProviders {
     _auditLogRepository = null;
     _adminOrderRepository = null;
     _adminUsersRepository = null;
+    _adminCmsRepository = null;
+    _adminCrmRepository = null;
     _aiChatRepository = null;
+    _freeTableRepository = null;
+    _profileRepository = null;
     resetCartController();
   }
 
@@ -408,6 +486,8 @@ abstract final class DataProviders {
     AuditLogRepository? audit,
     AdminOrderRepository? adminOrder,
     AdminUsersRepository? adminUsers,
+    AdminCmsRepository? adminCms,
+    AdminCrmRepository? adminCrm,
     AiChatRepository? aiChat,
   }) {
     if (dashboard != null) _dashboardRepository = dashboard;
@@ -415,6 +495,8 @@ abstract final class DataProviders {
     if (audit != null) _auditLogRepository = audit;
     if (adminOrder != null) _adminOrderRepository = adminOrder;
     if (adminUsers != null) _adminUsersRepository = adminUsers;
+    if (adminCms != null) _adminCmsRepository = adminCms;
+    if (adminCrm != null) _adminCrmRepository = adminCrm;
     if (aiChat != null) _aiChatRepository = aiChat;
   }
 
@@ -449,18 +531,21 @@ abstract final class DataProviders {
   /// Usecase logout lokal.
   static Logout logout() => Logout(_auth);
 
-  /// Mock profil dibagi antar-route agar perubahan foto/data tetap terlihat
-  /// saat pengguna berpindah layar. Phase B: ganti dengan datasource remote.
+  /// Mock profil dibagi antar-route saat belum dikonfigurasi remote (test).
   static final ProfileMockDataSource _profileDataSource =
       ProfileMockDataSource();
 
+  static ProfileRepository get _profile {
+    return _profileRepository ?? ProfileRepositoryImpl(_profileDataSource);
+  }
+
   static const HelpMockDataSource _helpDataSource = HelpMockDataSource();
 
-  /// Usecase pembuatan kategori Tabel Bebas (Phase A: mock).
+  /// Usecase pembuatan kategori Tabel Bebas / Jenis Transaksi.
   static CreateFreeTableCategory createFreeTableCategory() {
-    return const CreateFreeTableCategory(
-      FreeTableRepositoryImpl(FreeTableMockDataSource()),
-    );
+    final FreeTableRepository repo = _freeTableRepository ??
+        const FreeTableRepositoryImpl(FreeTableMockDataSource());
+    return CreateFreeTableCategory(repo);
   }
 
   /// Usecase penyusunan draft prototype chat penjualan (Phase A: mock).
@@ -478,39 +563,26 @@ abstract final class DataProviders {
     return SalesChatMockDataSource.sampleDraft;
   }
 
-  /// Usecase pengambilan profil akun (Phase A: mock).
-  static GetProfile getProfile() {
-    return GetProfile(ProfileRepositoryImpl(_profileDataSource));
-  }
+  /// Usecase pengambilan profil akun.
+  static GetProfile getProfile() => GetProfile(_profile);
 
-  /// Usecase penyimpanan data profil (Phase A: mock).
-  static UpdateProfile updateProfile() {
-    return UpdateProfile(ProfileRepositoryImpl(_profileDataSource));
-  }
+  /// Usecase penyimpanan data profil.
+  static UpdateProfile updateProfile() => UpdateProfile(_profile);
 
-  /// Usecase penggantian foto profil (Phase A: mock).
-  static UpdateProfilePhoto updateProfilePhoto() {
-    return UpdateProfilePhoto(ProfileRepositoryImpl(_profileDataSource));
-  }
+  /// Usecase penggantian foto profil.
+  static UpdateProfilePhoto updateProfilePhoto() =>
+      UpdateProfilePhoto(_profile);
 
-  /// Usecase perubahan password (Phase A: mock).
-  static ChangePassword changePassword() {
-    return ChangePassword(ProfileRepositoryImpl(_profileDataSource));
-  }
+  /// Usecase perubahan password.
+  static ChangePassword changePassword() => ChangePassword(_profile);
 
-  /// Usecase pengambilan preferensi notifikasi (Phase A: mock).
-  static GetNotificationPreferences getNotificationPreferences() {
-    return GetNotificationPreferences(
-      ProfileRepositoryImpl(_profileDataSource),
-    );
-  }
+  /// Usecase pengambilan preferensi notifikasi.
+  static GetNotificationPreferences getNotificationPreferences() =>
+      GetNotificationPreferences(_profile);
 
-  /// Usecase penyimpanan preferensi notifikasi (Phase A: mock).
-  static UpdateNotificationPreferences updateNotificationPreferences() {
-    return UpdateNotificationPreferences(
-      ProfileRepositoryImpl(_profileDataSource),
-    );
-  }
+  /// Usecase penyimpanan preferensi notifikasi.
+  static UpdateNotificationPreferences updateNotificationPreferences() =>
+      UpdateNotificationPreferences(_profile);
 
   /// Usecase daftar topik bantuan (Phase A: mock).
   static GetHelpTopics getHelpTopics() {

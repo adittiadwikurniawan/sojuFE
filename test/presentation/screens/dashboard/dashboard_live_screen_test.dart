@@ -10,6 +10,7 @@ import 'package:soju_fe/domain/usecases/dashboard_usecases.dart';
 import 'package:soju_fe/presentation/providers/dashboard/dashboard_controller.dart';
 import 'package:soju_fe/presentation/screens/dashboard/dashboard_screen.dart';
 import 'package:soju_fe/presentation/screens/dashboard/models/dashboard_view_data.dart';
+import 'package:soju_fe/presentation/screens/dashboard/widgets/revenue_chart_card.dart';
 
 class _FakeDashboardRepository implements DashboardRepository {
   Result<DashboardSummaryEntity>? result;
@@ -65,41 +66,44 @@ void main() {
       expect(find.text('Memuat ringkasan operasional...'), findsOneWidget);
     });
 
-    testWidgets('renders empty state when operational data is empty and allows retry', (
-      WidgetTester tester,
-    ) async {
-      await tester.binding.setSurfaceSize(const Size(430, 932));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+    testWidgets(
+      'keeps RevenueChartCard visible when operational data is zero and allows reload',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(430, 932));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      fakeRepo.result = Result.success(
-        const DashboardSummaryEntity(
-          cashBalance: 0,
-          newOrdersCount: 0,
-          recentActivities: <DashboardActivityData>[],
-        ),
-      );
+        fakeRepo.result = Result.success(
+          const DashboardSummaryEntity(
+            cashBalance: 0,
+            newOrdersCount: 0,
+            recentActivities: <DashboardActivityData>[],
+          ),
+        );
 
-      await tester.pumpWidget(createWidgetUnderTest());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('dashboard_empty')), findsOneWidget);
-      expect(find.text('Belum ada data operasional'), findsOneWidget);
-      expect(find.byKey(const Key('dashboard_empty_retry_button')), findsOneWidget);
+        expect(find.byType(RevenueChartCard), findsOneWidget);
+        expect(find.text('Total Penghasilan'), findsOneWidget);
+        expect(find.byKey(const Key('dashboard_empty')), findsOneWidget);
 
-      // Now change repo to return live data and tap retry button
-      fakeRepo.result = Result.success(
-        const DashboardSummaryEntity(
-          cashBalance: 5000000,
-          newOrdersCount: 3,
-        ),
-      );
-      await tester.tap(find.byKey(const Key('dashboard_empty_retry_button')));
-      await tester.pumpAndSettle();
+        fakeRepo.result = Result.success(
+          const DashboardSummaryEntity(
+            cashBalance: 5000000,
+            newOrdersCount: 3,
+          ),
+        );
+        final Finder retryBtn =
+            find.byKey(const Key('dashboard_empty_retry_button'));
+        await tester.ensureVisible(retryBtn);
+        await tester.pumpAndSettle();
+        await tester.tap(retryBtn);
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('dashboard_empty')), findsNothing);
-      expect(find.text('Rp 5000000'), findsOneWidget);
-      expect(find.text('3 Pesanan'), findsOneWidget);
-    });
+        expect(find.text('Rp 5.000.000'), findsWidgets);
+        expect(find.text('3 Pesanan'), findsOneWidget);
+      },
+    );
 
     testWidgets('renders error state on failure and allows retry', (
       WidgetTester tester,
@@ -118,7 +122,6 @@ void main() {
       expect(find.text('Koneksi ke backend terputus'), findsOneWidget);
       expect(find.byKey(const Key('dashboard_retry_button')), findsOneWidget);
 
-      // Fix repo and tap retry
       fakeRepo.result = Result.success(
         const DashboardSummaryEntity(
           cashBalance: 2500000,
@@ -129,7 +132,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('dashboard_error')), findsNothing);
-      expect(find.text('Rp 2500000'), findsOneWidget);
+      expect(find.text('Rp 2.500.000'), findsWidgets);
       expect(find.text('7 Pesanan'), findsOneWidget);
     });
 
@@ -149,9 +152,10 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
-      expect(find.text('Rp 8000000'), findsOneWidget);
+      expect(find.byType(RevenueChartCard), findsOneWidget);
+      expect(find.text('Rp 8.000.000'), findsWidgets);
       expect(find.text('15 Pesanan'), findsOneWidget);
-      expect(find.text('Live REST'), findsOneWidget);
+      expect(find.text('Pengeluaran'), findsWidgets);
       expect(find.text('Aktivitas'), findsOneWidget);
     });
   });

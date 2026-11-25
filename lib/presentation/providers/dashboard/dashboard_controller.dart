@@ -1,14 +1,18 @@
 // lib/presentation/providers/dashboard/dashboard_controller.dart
 //
 // Controller untuk Beranda / Dashboard Operasional Admin.
-// Menangani state: loading, data, error, dan retry.
+// Menangani state: loading, data, empty, error, dan retry.
 
-import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart' show DateTimeRange, ChangeNotifier;
+
 import '../../../core/common/result.dart';
 import '../../../core/errors/app_failure.dart';
 import '../../../domain/entities/dashboard_entity.dart';
 import '../../../domain/usecases/dashboard_usecases.dart';
 import '../../screens/dashboard/models/dashboard_view_data.dart';
+import '../../utils/format.dart';
 
 enum DashboardStatus { loading, data, empty, error }
 
@@ -56,6 +60,34 @@ class DashboardController extends ChangeNotifier {
   DashboardState _state = const DashboardState.initial();
   DashboardState get state => _state;
 
+  static RevenueSummary _buildFallbackLiveChart(DashboardSummaryEntity summary) {
+    final DateTime today = dateOnly(DateTime.now());
+    final DateTime start = today.subtract(const Duration(days: 6));
+    final List<RevenueDayData> zeroDays = <RevenueDayData>[
+      for (int i = 0; i < 7; i++)
+        RevenueDayData(
+          label: weekdayShort(start.add(Duration(days: i))),
+          thisWeek: 0,
+          lastWeek: 0,
+        ),
+    ];
+
+    final int headline = summary.periodIncome > 0
+        ? summary.periodIncome
+        : math.max(0, summary.cashBalance);
+
+    return RevenueSummary(
+      title: 'Total Penghasilan',
+      dateLabel: formatDateRange(DateTimeRange(start: start, end: today)),
+      total: formatRupiah(headline),
+      growth: '0%',
+      axisMax: 500,
+      days: zeroDays,
+      lastWeekLegend: 'Pengeluaran',
+      thisWeekLegend: 'Pemasukan',
+    );
+  }
+
   Future<void> load({String? period}) async {
     final String targetPeriod = period ?? _state.period;
     _state = _state.copyWith(
@@ -84,37 +116,58 @@ class DashboardController extends ChangeNotifier {
         final bool isActivityEmpty = summary.recentActivities.isEmpty;
         final bool isZeroOperational = summary.cashBalance == 0 &&
             summary.newOrdersCount == 0 &&
+            summary.todayIncome == 0 &&
+            summary.periodIncome == 0 &&
+            summary.periodExpense == 0 &&
             isChartEmpty &&
             isActivityEmpty;
+
+        final RevenueSummary effectiveRevenue =
+            (summary.revenueSummary != null &&
+                    summary.revenueSummary!.days.isNotEmpty)
+                ? summary.revenueSummary!
+                : _buildFallbackLiveChart(summary);
+
+        final int displayedExpense = summary.periodExpense > 0
+            ? summary.periodExpense
+            : summary.todayExpense;
 
         final DashboardViewData mappedViewData = DashboardViewData(
           avatarAsset: 'assets/images/avatar_profil.png',
           searchHint: 'Cari Kas Mu',
           metrics: <DashboardMetricData>[
             DashboardMetricData(
-              title: 'Saldo Kas',
-              value: 'Rp ${summary.cashBalance}',
-              note: 'Kas Operasional',
-              titleSize: 15.4,
+              title: summary.todayIncome > 0
+                  ? 'Penghasilan Hari Ini'
+                  : 'Saldo Kas',
+              value: formatRupiah(
+                summary.todayIncome > 0
+                    ? summary.todayIncome
+                    : summary.cashBalance,
+              ),
+              note: summary.todayIncome > 0
+                  ? 'Saldo Kas ${formatRupiah(summary.cashBalance)}'
+                  : 'Kas Operasional Bersih',
+              titleSize: 13.4,
             ),
             DashboardMetricData(
-              title: 'Pesanan Baru',
-              value: '${summary.newOrdersCount} Pesanan',
-              note: 'Menunggu konfirmasi / proses',
+              title: 'Total Transaksi',
+              value: summary.totalTransactions > 0
+                  ? '${summary.totalTransactions} Transaksi'
+                  : '${summary.newOrdersCount} Pesanan',
+              note: summary.totalTransactions > 0
+                  ? '${summary.newOrdersCount} Pesanan Pelanggan'
+                  : 'Menunggu konfirmasi / proses',
             ),
-            const DashboardMetricData(
-              title: 'Status Sinkronisasi',
-              value: 'Live REST',
-              note: 'Terhubung ke server',
+            DashboardMetricData(
+              title: 'Pengeluaran',
+              value: formatRupiah(displayedExpense),
+              note: 'Belanja Bahan / Operasional',
             ),
           ],
-          revenue: summary.revenueSummary ?? DashboardViewData.sample.revenue,
+          revenue: effectiveRevenue,
           assistant: DashboardViewData.sample.assistant,
-          activities: summary.recentActivities.isNotEmpty
-              ? summary.recentActivities
-              : (isZeroOperational
-                  ? const <DashboardActivityData>[]
-                  : DashboardViewData.sample.activities),
+          activities: summary.recentActivities,
         );
 
         _state = _state.copyWith(

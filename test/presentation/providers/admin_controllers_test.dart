@@ -96,7 +96,7 @@ void main() {
 
       expect(controller.state.status, DashboardStatus.data);
       expect(controller.state.summary?.cashBalance, 1200000);
-      expect(controller.state.viewData?.metrics.first.value, 'Rp 1200000');
+      expect(controller.state.viewData?.metrics.first.value, 'Rp 1.200.000');
     });
 
     test('handles failure and sets error state', () async {

@@ -13,6 +13,8 @@ class DashboardSummaryEntity {
     required this.newOrdersCount,
     this.todayIncome = 0,
     this.todayExpense = 0,
+    this.periodIncome = 0,
+    this.periodExpense = 0,
     this.totalTransactions = 0,
     this.revenueSummary,
     this.recentActivities = const <DashboardActivityData>[],
@@ -29,6 +31,12 @@ class DashboardSummaryEntity {
 
   /// Pengeluaran hari ini.
   final int todayExpense;
+
+  /// Total pemasukan pada periode grafik aktif.
+  final int periodIncome;
+
+  /// Total pengeluaran pada periode grafik aktif.
+  final int periodExpense;
 
   /// Total transaksi pada periode.
   final int totalTransactions;

@@ -18,6 +18,8 @@ import '../../presentation/providers/customer/customer_checkout_controller.dart'
 import '../../presentation/providers/customer/customer_orders_controller.dart';
 import '../../presentation/providers/customer/customer_profile_controller.dart';
 import '../../presentation/screens/activities/activities_screen.dart';
+import '../../presentation/screens/admin_cms/admin_cms_screen.dart';
+import '../../presentation/screens/admin_crm/admin_crm_screen.dart';
 import '../../presentation/screens/admin_orders/admin_orders_screen.dart';
 import '../../presentation/screens/admin_users/admin_users_screen.dart';
 import '../../presentation/screens/analytics/analytics_screen.dart';
@@ -395,10 +397,16 @@ abstract final class AppRouter {
                   _AuthUserBuilder(
                 controller: authController,
                 builder: (BuildContext context, AuthUser? user) =>
-                    CustomerHomeShellScreen(
-                  user: user,
-                  onBrowseMenu: () => context.go(AppRoutes.customerMenu),
-                  onViewOrders: () => context.go(AppRoutes.customerOrders),
+                    ListenableBuilder(
+                  listenable: effectiveCartController,
+                  builder: (BuildContext context, _) =>
+                      CustomerHomeShellScreen(
+                    user: user,
+                    cartCount: effectiveCartController.totalQuantity,
+                    onBrowseMenu: () => context.go(AppRoutes.customerMenu),
+                    onViewOrders: () => context.go(AppRoutes.customerOrders),
+                    onOpenCart: () => context.go(AppRoutes.customerCart),
+                  ),
                 ),
               ),
             ),
@@ -485,12 +493,12 @@ abstract final class AppRouter {
 
         // =====================================================================
         // SHELL 2: ADMIN & SUPER ADMIN (`UserRole.admin` | `UserRole.superAdmin`)
-        // 5 Tab: Home | Pesanan | Data | AI | Akun + Admin Drawer
+        // Navbar Figma (`Home | Analytics | + | Ai Asistant | Audit & Stok`) + Drawer
         // =====================================================================
         ShellRoute(
           builder: (BuildContext context, GoRouterState state, Widget child) {
             return _AdminShell(
-              activeTab: adminNavTabFor(state.uri.path),
+              activeTab: bottomNavTabFor(state.uri.path),
               currentPath: state.uri.path,
               authController: authController,
               child: child,
@@ -522,7 +530,7 @@ abstract final class AppRouter {
                     onViewProfile: () => context.push(AppRoutes.profile),
                     onSeeAllActivities: () =>
                         context.push(AppRoutes.activities),
-                    onAnalyticsTap: () => context.go(AppRoutes.data),
+                    onAnalyticsTap: () => context.go(AppRoutes.analytics),
                     onNotificationTap: () =>
                         context.push(AppRoutes.notifications),
                     onQuickCommand: (_) => context.go(AppRoutes.chatbot),
@@ -538,21 +546,12 @@ abstract final class AppRouter {
               ),
             ),
             GoRoute(
-              path: AppRoutes.adminOrders,
-              builder: (BuildContext context, GoRouterState state) =>
-                  AdminOrdersScreen(
-                controllerFactory: DataProviders.createAdminOrdersController,
-                onMenuTap: () => _AdminShellScope.openDrawerOf(context),
-                onNotificationTap: () => context.push(AppRoutes.notifications),
-              ),
-            ),
-            GoRoute(
-              path: AppRoutes.data,
+              path: AppRoutes.analytics,
               builder: (BuildContext context, GoRouterState state) =>
                   _buildAdminDataScreen(context),
             ),
             GoRoute(
-              path: AppRoutes.analytics,
+              path: AppRoutes.data,
               builder: (BuildContext context, GoRouterState state) =>
                   _buildAdminDataScreen(context),
             ),
@@ -572,20 +571,17 @@ abstract final class AppRouter {
               ),
             ),
             GoRoute(
-              path: AppRoutes.adminAccount,
+              path: AppRoutes.audit,
               builder: (BuildContext context, GoRouterState state) =>
-                  ProfileScreen(
-                onBack: () => context.go(AppRoutes.dashboard),
-                onAccount: () async {
-                  await context.push(AppRoutes.profileAccount);
+                  AuditScreen(
+                onBack: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(AppRoutes.dashboard);
+                  }
                 },
-                onSettings: () => context.push(AppRoutes.profileSettings),
-                onHelp: () => context.push(AppRoutes.profileHelp),
-                controllerFactory: () => ProfileController(
-                  getProfile: DataProviders.getProfile(),
-                  updateProfile: DataProviders.updateProfile(),
-                  updateProfilePhoto: DataProviders.updateProfilePhoto(),
-                ),
+                controllerFactory: DataProviders.createAuditLogController,
               ),
             ),
           ],
@@ -595,16 +591,28 @@ abstract final class AppRouter {
         // RUTE DRAWER ADMIN & SUPER ADMIN
         // =====================================================================
         GoRoute(
-          path: AppRoutes.audit,
-          builder: (BuildContext context, GoRouterState state) => AuditScreen(
-            onBack: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.dashboard);
-              }
+          path: AppRoutes.adminOrders,
+          builder: (BuildContext context, GoRouterState state) =>
+              AdminOrdersScreen(
+            controllerFactory: DataProviders.createAdminOrdersController,
+            onBack: () => _popOrDashboard(context),
+            onNotificationTap: () => context.push(AppRoutes.notifications),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.adminAccount,
+          builder: (BuildContext context, GoRouterState state) => ProfileScreen(
+            onBack: () => _popOrDashboard(context),
+            onAccount: () async {
+              await context.push(AppRoutes.profileAccount);
             },
-            controllerFactory: DataProviders.createAuditLogController,
+            onSettings: () => context.push(AppRoutes.profileSettings),
+            onHelp: () => context.push(AppRoutes.profileHelp),
+            controllerFactory: () => ProfileController(
+              getProfile: DataProviders.getProfile(),
+              updateProfile: DataProviders.updateProfile(),
+              updateProfilePhoto: DataProviders.updateProfilePhoto(),
+            ),
           ),
         ),
         GoRoute(
@@ -622,32 +630,16 @@ abstract final class AppRouter {
         GoRoute(
           path: AppRoutes.adminCms,
           builder: (BuildContext context, GoRouterState state) =>
-              SuperAdminModuleScreen(
-            key: const Key('admin_cms_screen'),
-            title: 'Konten CMS',
-            subtitle:
-                'Pengelolaan konten halaman publik & informasi brand SOJU.',
-            cardTitle: 'Manajemen Konten Publik',
-            cardDescription:
-                'Tinjau dan kelola konten publik toko yang tampil pada kanal '
-                'pelanggan SOJU.',
-            icon: Icons.web_outlined,
+              AdminCmsScreen(
+            controllerFactory: DataProviders.createAdminCmsController,
             onBack: () => _popOrDashboard(context),
           ),
         ),
         GoRoute(
           path: AppRoutes.adminCrm,
           builder: (BuildContext context, GoRouterState state) =>
-              SuperAdminModuleScreen(
-            key: const Key('admin_crm_screen'),
-            title: 'Pelanggan & CRM',
-            subtitle:
-                'Ringkasan data pelanggan terdaftar dan preferensi promosi.',
-            cardTitle: 'Ikhtisar Pelanggan & CRM',
-            cardDescription:
-                'Pantau ringkasan pelanggan aktif dan segmentasi promosi toko '
-                'secara aman.',
-            icon: Icons.groups_outlined,
+              AdminCrmScreen(
+            controllerFactory: DataProviders.createAdminCrmController,
             onBack: () => _popOrDashboard(context),
           ),
         ),
@@ -910,7 +902,26 @@ abstract final class AppRouter {
         : AppRoutes.dashboard;
   }
 
-  /// Menentukan tab aktif pada navbar 5-tab Admin dari path URI.
+  /// Menentukan tab aktif pada navbar Figma [BukuDapurBottomNavBar] dari path URI.
+  static BottomNavTab bottomNavTabFor(String path) {
+    final String location = _normalizePath(path);
+    return switch (location) {
+      AppRoutes.analytics || AppRoutes.data => BottomNavTab.analytics,
+      AppRoutes.chatbot => BottomNavTab.aiAssistant,
+      AppRoutes.audit => BottomNavTab.audit,
+      _ => BottomNavTab.home,
+    };
+  }
+
+  /// Rute tujuan untuk setiap tab pada [BukuDapurBottomNavBar].
+  static String pathForBottomNavTab(BottomNavTab tab) => switch (tab) {
+        BottomNavTab.home => AppRoutes.dashboard,
+        BottomNavTab.analytics => AppRoutes.analytics,
+        BottomNavTab.aiAssistant => AppRoutes.chatbot,
+        BottomNavTab.audit => AppRoutes.audit,
+      };
+
+  /// Menentukan tab aktif pada navbar 5-tab Admin dari path URI (kompatibilitas).
   static AdminNavTab adminNavTabFor(String path) {
     final String location = _normalizePath(path);
     return switch (location) {
@@ -922,7 +933,7 @@ abstract final class AppRouter {
     };
   }
 
-  /// Rute tujuan untuk setiap tab pada navbar 5-tab Admin.
+  /// Rute tujuan untuk setiap tab pada navbar 5-tab Admin (kompatibilitas).
   static String pathForAdminTab(AdminNavTab tab) => switch (tab) {
         AdminNavTab.home => AppRoutes.dashboard,
         AdminNavTab.orders => AppRoutes.adminOrders,
@@ -956,7 +967,9 @@ abstract final class AppRouter {
 
   /// Rute tujuan untuk setiap item [AdminDrawerItem].
   static String pathForAdminDrawer(AdminDrawerItem item) => switch (item) {
+        AdminDrawerItem.orders => AppRoutes.adminOrders,
         AdminDrawerItem.audit => AppRoutes.audit,
+        AdminDrawerItem.profile => AppRoutes.profile,
         AdminDrawerItem.users => AppRoutes.adminUsers,
         AdminDrawerItem.cms => AppRoutes.adminCms,
         AdminDrawerItem.crm => AppRoutes.adminCrm,
@@ -966,7 +979,9 @@ abstract final class AppRouter {
   static AdminDrawerItem? adminDrawerItemFor(String path) {
     final String location = _normalizePath(path);
     return switch (location) {
+      AppRoutes.adminOrders => AdminDrawerItem.orders,
       AppRoutes.audit => AdminDrawerItem.audit,
+      AppRoutes.profile || AppRoutes.adminAccount => AdminDrawerItem.profile,
       AppRoutes.adminUsers => AdminDrawerItem.users,
       AppRoutes.adminCms => AdminDrawerItem.cms,
       AppRoutes.adminCrm => AdminDrawerItem.crm,
@@ -1188,7 +1203,9 @@ class _AdminShellScope extends InheritedWidget {
       oldWidget.openDrawer != openDrawer;
 }
 
-/// Shell 5-tab untuk `ADMIN` dan `SUPER_ADMIN` lengkap dengan [AdminDrawer].
+/// Shell untuk `ADMIN` dan `SUPER_ADMIN` yang memakai navbar Figma asli
+/// ([BukuDapurBottomNavBar]: `Home | Analytics | + | Ai Asistant | Audit & Stok`)
+/// lengkap dengan [AdminDrawer].
 class _AdminShell extends StatefulWidget {
   const _AdminShell({
     required this.activeTab,
@@ -1197,7 +1214,7 @@ class _AdminShell extends StatefulWidget {
     this.authController,
   });
 
-  final AdminNavTab activeTab;
+  final BottomNavTab activeTab;
   final String currentPath;
   final AuthController? authController;
   final Widget child;
@@ -1217,7 +1234,7 @@ class _AdminShellState extends State<_AdminShell> {
   Widget build(BuildContext context) {
     final double width = MediaQuery.sizeOf(context).width;
     final double scale = (width > 480 ? 480 : width) / 430;
-    final bool glassEnabled = widget.activeTab != AdminNavTab.ai;
+    final bool glassEnabled = widget.activeTab != BottomNavTab.aiAssistant;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -1234,7 +1251,12 @@ class _AdminShellState extends State<_AdminShell> {
             selectedItem: AppRouter.adminDrawerItemFor(widget.currentPath),
             onSelectItem: (AdminDrawerItem item) {
               Navigator.of(context).pop();
-              context.push(AppRouter.pathForAdminDrawer(item));
+              final String target = AppRouter.pathForAdminDrawer(item);
+              if (item == AdminDrawerItem.audit) {
+                context.go(target);
+              } else {
+                context.push(target);
+              }
             },
             onLogout: () async {
               Navigator.of(context).pop();
@@ -1268,12 +1290,13 @@ class _AdminShellState extends State<_AdminShell> {
         heightFactor: 1,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
-          child: AdminBottomNavBar(
+          child: BukuDapurBottomNavBar(
             activeTab: widget.activeTab,
             glassEnabled: glassEnabled,
-            onTabSelected: (AdminNavTab tab) {
-              context.go(AppRouter.pathForAdminTab(tab));
+            onTabSelected: (BottomNavTab tab) {
+              context.go(AppRouter.pathForBottomNavTab(tab));
             },
+            onAddTap: () => _showCategoryCreatePopup(context),
           ),
         ),
       ),

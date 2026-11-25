@@ -10,6 +10,7 @@ import 'package:soju_fe/domain/usecases/transaction_usecases.dart';
 import 'package:soju_fe/presentation/providers/transactions/transactions_controller.dart';
 import 'package:soju_fe/presentation/screens/analytics/analytics_screen.dart';
 import 'package:soju_fe/presentation/screens/analytics/models/analytics_transaction.dart';
+import 'package:soju_fe/presentation/widgets/bar_chart_card.dart';
 
 class _FakeTransactionRepository implements TransactionRepository {
   Result<List<TransactionEntity>>? result;
@@ -74,39 +75,45 @@ void main() {
       expect(find.text('Memuat data transaksi...'), findsOneWidget);
     });
 
-    testWidgets('renders empty state when transaction list is empty and allows retry', (
-      WidgetTester tester,
-    ) async {
-      await tester.binding.setSurfaceSize(const Size(430, 932));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+    testWidgets(
+      'keeps BarChartCard visible when transaction list is empty and allows reload',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(430, 932));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      fakeRepo.result = Result.success(<TransactionEntity>[]);
+        fakeRepo.result = Result.success(<TransactionEntity>[]);
 
-      await tester.pumpWidget(createWidgetUnderTest());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('analytics_empty')), findsOneWidget);
-      expect(find.text('Belum ada data transaksi'), findsOneWidget);
-      expect(find.byKey(const Key('analytics_empty_retry_button')), findsOneWidget);
+        expect(find.byType(BarChartCard), findsOneWidget);
+        expect(find.text('Tren Arus Kas Harian'), findsOneWidget);
 
-      // Now change repo to return live data and tap retry button
-      fakeRepo.result = Result.success(<TransactionEntity>[
-        TransactionEntity(
-          id: 2,
-          code: 'TRX-102',
-          title: 'Penjualan Dimsum',
-          category: 'Siap Saji',
-          date: DateTime(2026, 11, 24),
-          type: TransactionType.income,
-          amount: 50000,
-        ),
-      ]);
-      await tester.tap(find.byKey(const Key('analytics_empty_retry_button')));
-      await tester.pumpAndSettle();
+        final Finder retryBtn =
+            find.byKey(const Key('analytics_empty_retry_button'));
+        await tester.ensureVisible(retryBtn);
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('analytics_empty')), findsOneWidget);
+        expect(find.text('Belum ada data transaksi'), findsOneWidget);
 
-      expect(find.byKey(const Key('analytics_empty')), findsNothing);
-      expect(find.text('Penjualan Dimsum'), findsOneWidget);
-    });
+        fakeRepo.result = Result.success(<TransactionEntity>[
+          TransactionEntity(
+            id: 2,
+            code: 'TRX-102',
+            title: 'Penjualan Dimsum',
+            category: 'Siap Saji',
+            date: DateTime(2026, 11, 24),
+            type: TransactionType.income,
+            amount: 50000,
+          ),
+        ]);
+        await tester.tap(retryBtn);
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('analytics_empty')), findsNothing);
+        expect(find.text('Penjualan Dimsum'), findsOneWidget);
+      },
+    );
 
     testWidgets('renders error state on failure and allows retry', (
       WidgetTester tester,
@@ -125,7 +132,6 @@ void main() {
       expect(find.text('Gagal mengambil data transaksi'), findsOneWidget);
       expect(find.byKey(const Key('analytics_retry_button')), findsOneWidget);
 
-      // Fix repo and tap retry
       fakeRepo.result = Result.success(<TransactionEntity>[
         TransactionEntity(
           id: 3,

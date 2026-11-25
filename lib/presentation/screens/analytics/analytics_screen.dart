@@ -244,9 +244,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     if (state != null && state.status == TransactionsStatus.error) {
       return _buildErrorState(scale, state.errorMessage);
     }
-    if (state != null && state.status == TransactionsStatus.empty) {
-      return _buildEmptyState(scale);
-    }
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
@@ -334,7 +331,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             trailing: '${visible.length} Transaksi',
           ),
           SizedBox(height: 12 * scale),
-          _buildTransactionList(scale, visible),
+          _buildTransactionList(scale, visible, state: state),
           SizedBox(height: 22 * scale),
           _buildActivityHeader(scale),
           SizedBox(height: 12 * scale),
@@ -408,58 +405,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildEmptyState(double scale) {
-    return Center(
-      key: const Key('analytics_empty'),
-      child: Padding(
-        padding: EdgeInsets.all(24 * scale),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 56 * scale,
-              color: SojuColors.inkMuted,
-            ),
-            SizedBox(height: 12 * scale),
-            Text(
-              'Belum ada data transaksi',
-              style: TextStyle(
-                fontFamily: AppTypography.family,
-                fontSize: 16 * scale,
-                fontWeight: FontWeight.w700,
-                color: SojuColors.ink,
-              ),
-            ),
-            SizedBox(height: 6 * scale),
-            Text(
-              'Belum ada data transaksi operasional yang tercatat.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppTypography.family,
-                fontSize: 13 * scale,
-                color: SojuColors.inkMuted,
-              ),
-            ),
-            SizedBox(height: 16 * scale),
-            ElevatedButton(
-              key: const Key('analytics_empty_retry_button'),
-              onPressed: () => _controller?.load(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: SojuColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20 * scale),
-                ),
-              ),
-              child: const Text('Coba Lagi'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   BarChartData _buildChartData({
     required DateTimeRange range,
     required AnalyticsSummary summary,
@@ -507,10 +452,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Widget _buildTransactionList(
     double scale,
-    List<AnalyticsTransaction> visible,
-  ) {
+    List<AnalyticsTransaction> visible, {
+    TransactionsState? state,
+  }) {
     if (visible.isEmpty) {
+      final bool isLiveEmpty =
+          state != null && state.status == TransactionsStatus.empty;
       return Container(
+        key: isLiveEmpty ? const Key('analytics_empty') : null,
         width: double.infinity,
         padding: EdgeInsets.symmetric(
           horizontal: 18 * scale,
@@ -529,7 +478,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
             SizedBox(height: 8 * scale),
             Text(
-              'Belum ada transaksi pada filter ini',
+              isLiveEmpty
+                  ? 'Belum ada data transaksi'
+                  : 'Belum ada transaksi pada filter ini',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: AppTypography.family,
@@ -539,10 +490,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
             ),
             SizedBox(height: 10 * scale),
-            TextButton(
-              onPressed: _resetAll,
-              child: const Text('Reset filter'),
-            ),
+            if (isLiveEmpty && _controller != null)
+              OutlinedButton(
+                key: const Key('analytics_empty_retry_button'),
+                onPressed: () => _controller?.load(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: SojuColors.primary,
+                  side: const BorderSide(color: SojuColors.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20 * scale),
+                  ),
+                ),
+                child: const Text('Muat Ulang'),
+              )
+            else
+              TextButton(
+                onPressed: _resetAll,
+                child: const Text('Reset filter'),
+              ),
           ],
         ),
       );

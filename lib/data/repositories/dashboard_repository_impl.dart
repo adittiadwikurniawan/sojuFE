@@ -2,11 +2,18 @@
 //
 // Implementasi DashboardRepository dengan pemetaan DTO ke entity domain.
 
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart' show DateTimeRange;
+
 import '../../core/common/result.dart';
 import '../../core/errors/app_failure.dart';
 import '../../domain/entities/dashboard_entity.dart';
 import '../../domain/repositories/dashboard_repository.dart';
+import '../../presentation/screens/analytics/models/analytics_summary.dart'
+    show niceAxisMax;
 import '../../presentation/screens/dashboard/models/dashboard_view_data.dart';
+import '../../presentation/utils/format.dart';
 import '../datasources/interfaces/dashboard_datasource.dart';
 import '../models/api_envelope_model.dart';
 
@@ -40,54 +47,106 @@ class DashboardRepositoryImpl implements DashboardRepository {
         );
       }
 
-      final Map<String, Object?> data =
-          summaryEnvelope.data is Map ? summaryEnvelope.data as Map<String, Object?> : <String, Object?>{};
+      final Map<String, Object?> data = summaryEnvelope.data is Map
+          ? summaryEnvelope.data as Map<String, Object?>
+          : <String, Object?>{};
 
       final int cashBalance = _asInt(data['saldo_kas']);
       final Object? orderBaru = data['order_baru'];
-      final int newOrdersCount = orderBaru is Map ? _asInt(orderBaru['total']) : 0;
+      final int newOrdersCount =
+          orderBaru is Map ? _asInt(orderBaru['total']) : 0;
 
-      // Ambil grafik kas opsional
       RevenueSummary? revenueSummary;
+      int todayIncome = 0;
+      int todayExpense = 0;
+      int periodIncome = 0;
+      int periodExpense = 0;
+      int totalTransactions = 0;
+
       try {
         final Map<String, Object?> chartRaw =
             await _dataSource.fetchCashChart(period: period);
         final ApiEnvelopeModel chartEnvelope =
             ApiEnvelopeModel.fromRaw(chartRaw);
         if (chartEnvelope.success && chartEnvelope.data is List) {
-          final List list = chartEnvelope.data as List;
+          final List<Object?> list = chartEnvelope.data as List<Object?>;
           final List<RevenueDayData> days = <RevenueDayData>[];
-          int maxVal = 0;
-          for (final item in list) {
+          int maxThousands = 0;
+          DateTime? firstDate;
+          DateTime? lastDate;
+
+          for (int i = 0; i < list.length; i++) {
+            final Object? item = list[i];
             if (item is Map) {
               final String tanggal = item['tanggal']?.toString() ?? '';
+              final DateTime? parsedDate = DateTime.tryParse(tanggal);
+              if (parsedDate != null) {
+                firstDate ??= parsedDate;
+                lastDate = parsedDate;
+              }
+
               final int income = _asInt(item['pemasukan']);
               final int expense = _asInt(item['pengeluaran']);
-              if (income > maxVal) maxVal = income;
-              if (expense > maxVal) maxVal = expense;
+              final Object? trxList = item['transaksi'];
+              if (trxList is List) {
+                totalTransactions += trxList.length;
+              }
+
+              periodIncome += income;
+              periodExpense += expense;
+              if (i == list.length - 1) {
+                todayIncome = income;
+                todayExpense = expense;
+              }
+
+              final int incomeThousands = (income / 1000).ceil();
+              final int expenseThousands = (expense / 1000).ceil();
+              maxThousands = math.max(
+                maxThousands,
+                math.max(incomeThousands, expenseThousands),
+              );
+
+              final String dayLabel = parsedDate != null
+                  ? (list.length <= 4
+                      ? weekdayName(parsedDate)
+                      : weekdayShort(parsedDate))
+                  : (tanggal.length >= 5 ? tanggal.substring(5) : tanggal);
+
               days.add(
                 RevenueDayData(
-                  label: tanggal.length >= 5 ? tanggal.substring(5) : tanggal,
-                  thisWeek: income ~/ 1000,
-                  lastWeek: expense ~/ 1000,
+                  label: dayLabel,
+                  thisWeek: incomeThousands,
+                  lastWeek: expenseThousands,
                 ),
               );
             }
           }
+
+          final String dateLabel = firstDate != null && lastDate != null
+              ? formatDateRange(DateTimeRange(start: firstDate, end: lastDate))
+              : '7 Hari Terakhir';
+
+          final int headlineTotal =
+              periodIncome > 0 ? periodIncome : math.max(0, cashBalance);
+          final double netGrowth = periodIncome == 0 && periodExpense == 0
+              ? 0
+              : periodExpense == 0
+                  ? 100
+                  : ((periodIncome - periodExpense) / periodExpense) * 100;
+
           revenueSummary = RevenueSummary(
             title: 'Total Penghasilan',
-            dateLabel: 'Periode $period',
-            total: 'Rp $cashBalance',
-            growth: '+14%',
-            axisMax: maxVal > 0 ? (maxVal ~/ 1000) + 50 : 500,
+            dateLabel: dateLabel,
+            total: formatRupiah(headlineTotal),
+            growth: formatPercentChange(netGrowth),
+            axisMax: niceAxisMax(maxThousands),
             days: days,
             lastWeekLegend: 'Pengeluaran',
             thisWeekLegend: 'Pemasukan',
           );
         }
       } catch (_) {
-        // Fallback ke sample revenue jika gagal
-        revenueSummary = DashboardViewData.sample.revenue;
+        // Biarkan controller membangun kerangka grafik default Rp 0 / saldo kas.
       }
 
       // Ambil aktivitas terbaru opsional
@@ -100,7 +159,8 @@ class DashboardRepositoryImpl implements DashboardRepository {
               act['labelRecord']?.toString() ??
               act['sheet']?.toString() ??
               'Aktivitas Sistem';
-          final String action = act['action']?.toString() ?? act['aksi']?.toString() ?? '';
+          final String action =
+              act['action']?.toString() ?? act['aksi']?.toString() ?? '';
           final String detail = act['detail']?.toString() ?? '';
           final String imageAsset = action.toLowerCase().contains('hapus')
               ? 'assets/images/activity_teh.png'
@@ -109,8 +169,8 @@ class DashboardRepositoryImpl implements DashboardRepository {
             DashboardActivityData(
               name: title,
               variant: detail.isNotEmpty ? detail : 'Perubahan data',
-              sku: act['id']?.toString() ?? 'LOG',
-              pack: action.toUpperCase(),
+              sku: 'ID: ${act['id'] ?? 'LOG'}',
+              pack: action.isNotEmpty ? action.toUpperCase() : 'SISTEM',
               badge: action.toLowerCase().contains('hapus')
                   ? 'Pengeluaran'
                   : 'Operasional',
@@ -119,13 +179,18 @@ class DashboardRepositoryImpl implements DashboardRepository {
           );
         }
       } catch (_) {
-        // Abaikan atau fallback
+        // Abaikan bila gagal memuat aktivitas tambahan.
       }
 
       return Result.success(
         DashboardSummaryEntity(
           cashBalance: cashBalance,
           newOrdersCount: newOrdersCount,
+          todayIncome: todayIncome,
+          todayExpense: todayExpense,
+          periodIncome: periodIncome,
+          periodExpense: periodExpense,
+          totalTransactions: totalTransactions,
           revenueSummary: revenueSummary,
           recentActivities: activities,
         ),

@@ -19,11 +19,13 @@ class AdminOrdersScreen extends StatefulWidget {
   const AdminOrdersScreen({
     super.key,
     required this.controllerFactory,
+    this.onBack,
     this.onMenuTap,
     this.onNotificationTap,
   });
 
   final AdminOrdersController Function() controllerFactory;
+  final VoidCallback? onBack;
   final VoidCallback? onMenuTap;
   final VoidCallback? onNotificationTap;
 
@@ -75,6 +77,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                     _AdminOrdersTopBar(
                       scale: scale,
                       topInset: topInset,
+                      onBack: widget.onBack,
                       onMenuTap: widget.onMenuTap,
                       onNotificationTap: widget.onNotificationTap,
                     ),
@@ -521,12 +524,14 @@ class _AdminOrdersTopBar extends StatelessWidget {
   const _AdminOrdersTopBar({
     required this.scale,
     required this.topInset,
+    this.onBack,
     this.onMenuTap,
     this.onNotificationTap,
   });
 
   final double scale;
   final double topInset;
+  final VoidCallback? onBack;
   final VoidCallback? onMenuTap;
   final VoidCallback? onNotificationTap;
 
@@ -554,7 +559,26 @@ class _AdminOrdersTopBar extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          if (onMenuTap != null) ...<Widget>[
+          if (onBack != null) ...<Widget>[
+            GestureDetector(
+              key: const Key('admin_orders_back'),
+              onTap: onBack,
+              child: Container(
+                width: 44 * scale,
+                height: 44 * scale,
+                decoration: const BoxDecoration(
+                  color: SojuColors.field,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 19 * scale,
+                  color: SojuColors.ink,
+                ),
+              ),
+            ),
+            SizedBox(width: 12 * scale),
+          ] else if (onMenuTap != null) ...<Widget>[
             GestureDetector(
               key: const Key('admin_drawer_button'),
               onTap: onMenuTap,

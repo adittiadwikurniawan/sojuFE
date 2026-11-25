@@ -99,109 +99,236 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
       padding: EdgeInsets.only(
         bottom: MediaQuery.viewInsetsOf(context).bottom,
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: SojuColors.border,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                StorefrontProductImage(url: product.imageUrl, size: 88),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: SojuColors.border,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
                     children: <Widget>[
-                      Text(
-                        product.name,
-                        style: const TextStyle(
-                          fontFamily: AppTypography.family,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: SojuColors.ink,
+                      InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: SojuColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.chevron_left_rounded,
+                            color: SojuColors.ink,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const Expanded(
+                        child: Text(
+                          'Detail Menu',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: AppTypography.family,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: SojuColors.ink,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: SojuColors.surfaceMuted,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.more_vert_rounded,
+                          size: 18,
+                          color: SojuColors.inkMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    height: 132,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: SojuColors.infoSoft.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    alignment: Alignment.center,
+                    child: StorefrontProductImage(
+                      url: product.imageUrl,
+                      size: 112,
+                      radius: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Menu / SOJU / ${product.unit.isEmpty ? 'Produk' : product.unit}',
+                    style: const TextStyle(
+                      fontFamily: AppTypography.family,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: SojuColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          product.name,
+                          style: const TextStyle(
+                            fontFamily: AppTypography.family,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: SojuColors.ink,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       Text(
                         product.unit.isEmpty
                             ? formatRupiah(product.price)
                             : '${formatRupiah(product.price)} / ${product.unit}',
                         style: const TextStyle(
                           fontFamily: AppTypography.family,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
                           color: SojuColors.primary,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            if (product.description != null) ...<Widget>[
-              const SizedBox(height: 14),
-              Text(
-                product.description!,
-                style: const TextStyle(
-                  fontFamily: AppTypography.family,
-                  fontSize: 13.5,
-                  height: 1.45,
-                  color: SojuColors.inkMuted,
-                ),
-              ),
-            ],
-            if (product.hasVariants) ...<Widget>[
-              const SizedBox(height: 18),
-              const Text('Pilih Varian', style: label),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  for (final String v in product.variants)
-                    ChoiceChip(
-                      key: Key('product_variant_$v'),
-                      label: Text(v),
-                      selected: _variant == v,
-                      selectedColor: SojuColors.infoSoft,
-                      onSelected: (_) => setState(() {
-                        _variant = v;
-                        _showVariantError = false;
-                      }),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: <Widget>[
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 17,
+                        color: Color(0xFFF59E0B),
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        '4.9',
+                        style: TextStyle(
+                          fontFamily: AppTypography.family,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: SojuColors.ink,
+                        ),
+                      ),
+                      if (product.code.isNotEmpty) ...<Widget>[
+                        const SizedBox(width: 8),
+                        Text(
+                          '•  ${product.code}',
+                          style: const TextStyle(
+                            fontFamily: AppTypography.family,
+                            fontSize: 12.5,
+                            color: SojuColors.inkMuted,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (product.description != null) ...<Widget>[
+                    const SizedBox(height: 12),
+                    const Text('Info Produk', style: label),
+                    const SizedBox(height: 4),
+                    Text(
+                      product.description!,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 13.5,
+                        height: 1.45,
+                        color: SojuColors.inkMuted,
+                      ),
                     ),
-                ],
-              ),
-              if (_showVariantError)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text(
-                    'Pilih varian terlebih dahulu.',
-                    key: Key('product_variant_error'),
-                    style: TextStyle(
-                      fontFamily: AppTypography.family,
-                      fontSize: 12.5,
-                      color: SojuColors.expense,
+                  ],
+                  if (product.hasVariants) ...<Widget>[
+                    const SizedBox(height: 14),
+                    const Text('Pilih Varian', style: label),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        for (final String v in product.variants)
+                          ChoiceChip(
+                            key: Key('product_variant_$v'),
+                            label: Text(v),
+                            selected: _variant == v,
+                            selectedColor: SojuColors.infoSoft,
+                            onSelected: (_) => setState(() {
+                              _variant = v;
+                              _showVariantError = false;
+                            }),
+                          ),
+                      ],
+                    ),
+                    if (_showVariantError)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Pilih varian terlebih dahulu.',
+                          key: Key('product_variant_error'),
+                          style: TextStyle(
+                            fontFamily: AppTypography.family,
+                            fontSize: 12.5,
+                            color: SojuColors.expense,
+                          ),
+                        ),
+                      ),
+                  ],
+                  const SizedBox(height: 14),
+                  const Text('Catatan (opsional)', style: label),
+                  const SizedBox(height: 6),
+                  TextField(
+                    key: const Key('product_note_field'),
+                    controller: _noteController,
+                    maxLength: kCartNoteMaxLength,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: kurangi gula, tanpa es',
+                      filled: true,
+                      fillColor: SojuColors.surfaceMuted,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
-                ),
-            ],
-            const SizedBox(height: 18),
-            Row(
+                ],
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+            decoration: const BoxDecoration(
+              color: SojuColors.surface,
+              border: Border(top: BorderSide(color: SojuColors.hairline)),
+            ),
+            child: Row(
               children: <Widget>[
-                const Expanded(child: Text('Jumlah', style: label)),
                 QuantityStepper(
                   value: _quantity,
                   valueKey: const Key('product_quantity_value'),
@@ -214,51 +341,34 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                       ? () => setState(() => _quantity++)
                       : null,
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    key: const Key('product_add_to_cart'),
+                    onPressed: _submit,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: SojuColors.primary,
+                      foregroundColor: SojuColors.surface,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      'Tambah ke Keranjang • ${formatRupiah(product.price * _quantity)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 18),
-            const Text('Catatan (opsional)', style: label),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('product_note_field'),
-              controller: _noteController,
-              maxLength: kCartNoteMaxLength,
-              maxLines: 2,
-              decoration: InputDecoration(
-                hintText: 'Contoh: kurangi gula, tanpa es',
-                filled: true,
-                fillColor: SojuColors.surfaceMuted,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                key: const Key('product_add_to_cart'),
-                onPressed: _submit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: SojuColors.primary,
-                  foregroundColor: SojuColors.surface,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: Text(
-                  'Tambah ke Keranjang • ${formatRupiah(product.price * _quantity)}',
-                  style: const TextStyle(
-                    fontFamily: AppTypography.family,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../utils/format.dart';
 import '../../../widgets/bar_chart_card.dart';
 import '../models/dashboard_view_data.dart';
 
@@ -36,9 +37,11 @@ class RevenueChartCard extends StatelessWidget {
         total: data.total,
         dateLabel: data.dateLabel,
         growth: data.growth,
+        growthPositive: !data.growth.startsWith('-'),
         axisMax: data.axisMax,
         primaryLegend: data.thisWeekLegend,
         secondaryLegend: data.lastWeekLegend,
+        valueFormatter: formatChartValue,
         days: <BarChartDay>[
           for (final RevenueDayData day in data.days)
             BarChartDay(
