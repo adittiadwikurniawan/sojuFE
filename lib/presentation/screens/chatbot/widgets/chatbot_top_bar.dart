@@ -9,6 +9,9 @@ import '../../../../core/themes/soju_colors.dart';
 /// Tombol kiri berfungsi sebagai navigasi kembali: dari tampilan chat kembali
 /// ke daftar riwayat, dan dari daftar riwayat kembali ke layar sebelumnya
 /// (Beranda) atau rute cadangan yang diberikan pemanggil.
+///
+/// Untuk `SUPER_ADMIN`, tombol Reindex basis pengetahuan AI ditampilkan di sisi
+/// kanan berdampingan dengan tombol notifikasi.
 class ChatbotTopBar extends StatelessWidget {
   const ChatbotTopBar({
     super.key,
@@ -16,6 +19,9 @@ class ChatbotTopBar extends StatelessWidget {
     required this.topInset,
     this.onBack,
     this.onNotificationTap,
+    this.showReindexButton = false,
+    this.isReindexing = false,
+    this.onReindexTap,
   });
 
   final double scale;
@@ -25,6 +31,11 @@ class ChatbotTopBar extends StatelessWidget {
 
   final VoidCallback? onBack;
   final VoidCallback? onNotificationTap;
+
+  /// Hanya `true` untuk pengguna `SUPER_ADMIN`.
+  final bool showReindexButton;
+  final bool isReindexing;
+  final VoidCallback? onReindexTap;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +73,15 @@ class ChatbotTopBar extends StatelessWidget {
                   onTap: onBack,
                 ),
                 const Spacer(),
+                if (showReindexButton) ...<Widget>[
+                  _ReindexButton(
+                    key: const Key('ai_reindex_button'),
+                    scale: scale,
+                    isReindexing: isReindexing,
+                    onTap: isReindexing ? null : onReindexTap,
+                  ),
+                  SizedBox(width: 8 * scale),
+                ],
                 _CircleButton(
                   scale: scale,
                   icon: Icons.notifications_none,
@@ -79,6 +99,57 @@ class ChatbotTopBar extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReindexButton extends StatelessWidget {
+  const _ReindexButton({
+    super.key,
+    required this.scale,
+    required this.isReindexing,
+    this.onTap,
+  });
+
+  final double scale;
+  final bool isReindexing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Reindex Basis Pengetahuan AI',
+      child: Semantics(
+        button: true,
+        label: 'Reindex Basis Pengetahuan AI',
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 44 * scale,
+            height: 44 * scale,
+            decoration: const BoxDecoration(
+              color: SojuColors.infoSoft,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: isReindexing
+                ? SizedBox(
+                    width: 18 * scale,
+                    height: 18 * scale,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(SojuColors.primary),
+                    ),
+                  )
+                : Icon(
+                    Icons.sync_rounded,
+                    size: 20 * scale,
+                    color: SojuColors.badgeBlue,
+                  ),
+          ),
         ),
       ),
     );

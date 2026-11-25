@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/entities/ai_chat_entity.dart';
 import '../../../utils/format.dart';
 
 /// Metode pembayaran pada draft pencatatan penjualan.
@@ -112,4 +113,33 @@ class ChatDraft {
 
   /// `14 Okt 2026 • Shift Siang`.
   String get metaLabel => '$dateLabel • $shiftLabel';
+
+  /// Mengonversi [AiActionDraft] dari backend Hybrid RAG menjadi [ChatDraft].
+  factory ChatDraft.fromActionDraft(AiActionDraft action) {
+    final List<ChatDraftItem> mappedItems = action.items
+        .map(
+          (AiDraftLineItem item) => ChatDraftItem(
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            unitPrice: item.unitPrice,
+            method: item.method.toUpperCase() == 'QRIS'
+                ? ChatPaymentMethod.qris
+                : ChatPaymentMethod.cash,
+          ),
+        )
+        .toList(growable: false);
+
+    return ChatDraft(
+      badge: action.badge,
+      dateLabel: action.dateLabel,
+      shiftLabel: action.shiftLabel,
+      totalLabel: action.totalLabel,
+      breakdownTitle: action.breakdownTitle,
+      items: mappedItems,
+      confirmLabel: action.confirmLabel,
+      correctLabel: action.correctLabel,
+      note: action.note,
+    );
+  }
 }

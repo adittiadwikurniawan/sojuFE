@@ -2,44 +2,60 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
+import '../../../../domain/entities/ai_chat_entity.dart';
 import '../models/chat_draft.dart';
-import '../models/chatbot_view_data.dart';
 import 'chat_draft_card.dart';
 
-/// Tampilan percakapan Chatbot Soju (frame `546:4198`).
+/// Tampilan percakapan Hybrid RAG AI SOJU (frame `546:4198`).
 ///
-/// Menampilkan riwayat pesan, draft pencatatan, saran cepat, dan composer.
-/// Pesan asisten tetap mock: layar hanya menampilkan data dari
-/// [ChatbotViewData] dan meneruskan aksi lewat callback.
+/// Menampilkan riwayat pesan live, badge jalur RAG, chip sitasi interaktif,
+/// kartu draft aksi dengan konfirmasi manual, saran pertanyaan, dan composer.
 class ChatConversationView extends StatefulWidget {
   const ChatConversationView({
     super.key,
     required this.scale,
     required this.messages,
-    required this.data,
+    required this.suggestions,
+    this.isLoading = false,
+    this.isSending = false,
+    this.errorMessage,
+    this.onDismissError,
     this.onSend,
-    this.onSuggestion,
+    this.onCitationTap,
     this.onConfirmDraft,
     this.onCorrectDraft,
-    this.onAttach,
+    this.isConfirmingDraft,
+    this.confirmedTransactionFor,
+    this.composerController,
   });
 
   final double scale;
-  final List<ChatMessageData> messages;
-  final ChatbotViewData data;
+  final List<AiMessage> messages;
+  final List<String> suggestions;
+  final bool isLoading;
+  final bool isSending;
+  final String? errorMessage;
+  final VoidCallback? onDismissError;
   final ValueChanged<String>? onSend;
-  final ValueChanged<ChatSuggestionData>? onSuggestion;
-  final ValueChanged<ChatDraft>? onConfirmDraft;
-  final ValueChanged<ChatDraft>? onCorrectDraft;
-  final VoidCallback? onAttach;
+  final void Function(List<AiCitation> citations, String selectedId)?
+      onCitationTap;
+  final ValueChanged<AiActionDraft>? onConfirmDraft;
+  final ValueChanged<AiActionDraft>? onCorrectDraft;
+  final bool Function(String draftId)? isConfirmingDraft;
+  final AiConfirmedTransaction? Function(String draftId)?
+      confirmedTransactionFor;
+  final TextEditingController? composerController;
 
   @override
   State<ChatConversationView> createState() => _ChatConversationViewState();
 }
 
 class _ChatConversationViewState extends State<ChatConversationView> {
-  final TextEditingController _controller = TextEditingController();
+  TextEditingController? _internalController;
   final ScrollController _scroll = ScrollController();
+
+  TextEditingController get _controller =>
+      widget.composerController ?? (_internalController ??= TextEditingController());
 
   @override
   void initState() {
@@ -50,14 +66,15 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   @override
   void didUpdateWidget(ChatConversationView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.messages.length != oldWidget.messages.length) {
+    if (widget.messages.length != oldWidget.messages.length ||
+        widget.isSending != oldWidget.isSending) {
       _scrollToBottom();
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _internalController?.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -72,6 +89,9 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   }
 
   void _submit() {
+    if (widget.isSending) {
+      return;
+    }
     final String text = _controller.text.trim();
     if (text.isEmpty) {
       return;
@@ -81,50 +101,183 @@ class _ChatConversationViewState extends State<ChatConversationView> {
     _scrollToBottom();
   }
 
+  String? _formatTime(DateTime? dt) {
+    if (dt == null) return null;
+    final DateTime local = dt.toLocal();
+    final String h = local.hour.toString().padLeft(2, '0');
+    final String m = local.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool hasUserMessage = widget.messages.any(
-      (ChatMessageData message) => message.author == ChatAuthor.user,
+      (AiMessage message) => message.author == AiMessageAuthor.user,
     );
 
     return Column(
       children: <Widget>[
         Expanded(
-          child: ListView(
-            controller: _scroll,
-            padding: EdgeInsets.fromLTRB(
-              16 * widget.scale,
-              12 * widget.scale,
-              16 * widget.scale,
-              16 * widget.scale,
-            ),
-            children: <Widget>[
-              _DemoNotice(scale: widget.scale, text: widget.data.demoNotice),
-              SizedBox(height: 14 * widget.scale),
-              for (int index = 0;
-                  index < widget.messages.length;
-                  index++) ...<Widget>[
-                if (index > 0) SizedBox(height: 14 * widget.scale),
-                _buildMessage(index),
-              ],
-              if (!hasUserMessage) ...<Widget>[
-                SizedBox(height: 18 * widget.scale),
-                _buildSuggestions(),
-              ],
-            ],
-          ),
+          child: widget.isLoading && widget.messages.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const CircularProgressIndicator(
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(SojuColors.primary),
+                      ),
+                      SizedBox(height: 12 * widget.scale),
+                      Text(
+                        'Memuat percakapan...',
+                        style: TextStyle(
+                          fontFamily: AppTypography.family,
+                          fontSize: 12.5 * widget.scale,
+                          color: SojuColors.analyticsMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView(
+                  controller: _scroll,
+                  padding: EdgeInsets.fromLTRB(
+                    16 * widget.scale,
+                    12 * widget.scale,
+                    16 * widget.scale,
+                    16 * widget.scale,
+                  ),
+                  children: <Widget>[
+                    if (widget.errorMessage != null) ...<Widget>[
+                      _ErrorBanner(
+                        scale: widget.scale,
+                        message: widget.errorMessage!,
+                        onDismiss: widget.onDismissError,
+                      ),
+                      SizedBox(height: 12 * widget.scale),
+                    ],
+                    if (widget.messages.isEmpty)
+                      _buildWelcomeBubble()
+                    else
+                      for (int index = 0;
+                          index < widget.messages.length;
+                          index++) ...<Widget>[
+                        if (index > 0) SizedBox(height: 14 * widget.scale),
+                        _buildMessage(index),
+                      ],
+                    if (widget.isSending) ...<Widget>[
+                      SizedBox(height: 14 * widget.scale),
+                      _buildThinkingBubble(),
+                    ],
+                    if (!hasUserMessage && !widget.isSending) ...<Widget>[
+                      SizedBox(height: 18 * widget.scale),
+                      _buildSuggestions(),
+                    ],
+                  ],
+                ),
         ),
         _buildComposer(),
       ],
     );
   }
 
-  Widget _buildMessage(int index) {
-    final ChatMessageData message = widget.messages[index];
-    final bool showIdentity = message.author == ChatAuthor.assistant &&
-        (index == 0 || widget.messages[index - 1].author == ChatAuthor.user);
+  Widget _buildWelcomeBubble() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _AiIdentity(
+          scale: widget.scale,
+          name: 'Soju AI',
+          tagline: 'Asisten Hybrid RAG',
+        ),
+        SizedBox(height: 5 * widget.scale),
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: 13 * widget.scale,
+            vertical: 10 * widget.scale,
+          ),
+          decoration: BoxDecoration(
+            color: SojuColors.surface,
+            border: Border.all(color: SojuColors.hairline),
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(4),
+              topRight: Radius.circular(16 * widget.scale),
+              bottomLeft: Radius.circular(16 * widget.scale),
+              bottomRight: Radius.circular(16 * widget.scale),
+            ),
+          ),
+          child: Text(
+            'Halo! Saya Soju AI. Tanyakan ringkasan penjualan, SOP & katalog '
+            'produk, atau minta saya siapkan draft transaksi hari ini.',
+            style: TextStyle(
+              fontFamily: AppTypography.family,
+              fontSize: 12.5 * widget.scale,
+              fontWeight: FontWeight.w400,
+              height: 1.5,
+              color: const Color(0xFF191C1E),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-    if (message.author == ChatAuthor.user) {
+  Widget _buildThinkingBubble() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _AiIdentity(
+          scale: widget.scale,
+          name: 'Soju AI',
+          tagline: 'Asisten Hybrid RAG',
+        ),
+        SizedBox(height: 5 * widget.scale),
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: 13 * widget.scale,
+            vertical: 10 * widget.scale,
+          ),
+          decoration: BoxDecoration(
+            color: SojuColors.surface,
+            border: Border.all(color: SojuColors.hairline),
+            borderRadius: BorderRadius.circular(16 * widget.scale),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              SizedBox(
+                width: 14 * widget.scale,
+                height: 14 * widget.scale,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(SojuColors.primary),
+                ),
+              ),
+              SizedBox(width: 8 * widget.scale),
+              Text(
+                'Soju AI sedang memproses...',
+                style: TextStyle(
+                  fontFamily: AppTypography.family,
+                  fontSize: 12 * widget.scale,
+                  color: SojuColors.analyticsMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMessage(int index) {
+    final AiMessage message = widget.messages[index];
+    final String? timeLabel = _formatTime(message.createdAt);
+    final bool showIdentity = message.author != AiMessageAuthor.user &&
+        (index == 0 ||
+            widget.messages[index - 1].author == AiMessageAuthor.user);
+
+    if (message.author == AiMessageAuthor.user) {
       return Align(
         alignment: Alignment.centerRight,
         child: FractionallySizedBox(
@@ -147,7 +300,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                   ),
                 ),
                 child: Text(
-                  message.text,
+                  message.content,
                   style: TextStyle(
                     fontFamily: AppTypography.family,
                     fontSize: 12.5 * widget.scale,
@@ -157,10 +310,10 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                   ),
                 ),
               ),
-              if (message.timeLabel != null) ...<Widget>[
+              if (timeLabel != null) ...<Widget>[
                 SizedBox(height: 3 * widget.scale),
                 Text(
-                  message.timeLabel!,
+                  timeLabel,
                   style: TextStyle(
                     fontFamily: AppTypography.family,
                     fontSize: 9 * widget.scale,
@@ -175,15 +328,18 @@ class _ChatConversationViewState extends State<ChatConversationView> {
       );
     }
 
+    final bool isRefusal = message.routePath == AiRoutePath.refusal;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         if (showIdentity) ...<Widget>[
           _AiIdentity(
             scale: widget.scale,
-            name: widget.data.aiName,
-            tagline: widget.data.aiTagline,
-            timeLabel: message.timeLabel,
+            name: 'Soju AI',
+            tagline: 'Asisten Hybrid RAG',
+            routePath: message.routePath,
+            timeLabel: timeLabel,
           ),
           SizedBox(height: 5 * widget.scale),
         ],
@@ -193,8 +349,10 @@ class _ChatConversationViewState extends State<ChatConversationView> {
             vertical: 10 * widget.scale,
           ),
           decoration: BoxDecoration(
-            color: SojuColors.surface,
-            border: Border.all(color: SojuColors.hairline),
+            color: isRefusal ? SojuColors.demoSoft : SojuColors.surface,
+            border: Border.all(
+              color: isRefusal ? SojuColors.demoBorder : SojuColors.hairline,
+            ),
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(showIdentity ? 4 : 16 * widget.scale),
               topRight: Radius.circular(16 * widget.scale),
@@ -203,30 +361,70 @@ class _ChatConversationViewState extends State<ChatConversationView> {
             ),
           ),
           child: Text(
-            message.text,
+            message.content,
             style: TextStyle(
               fontFamily: AppTypography.family,
               fontSize: 12.5 * widget.scale,
               fontWeight: FontWeight.w400,
               height: 1.5,
-              color: const Color(0xFF191C1E),
+              color: isRefusal ? SojuColors.demoInk : const Color(0xFF191C1E),
             ),
           ),
         ),
-        if (message.draft != null) ...<Widget>[
+        if (message.citations.isNotEmpty) ...<Widget>[
           SizedBox(height: 8 * widget.scale),
-          ChatDraftCard(
-            scale: widget.scale,
-            draft: message.draft!,
-            onConfirm: widget.onConfirmDraft == null
-                ? null
-                : () => widget.onConfirmDraft!(message.draft!),
-            onCorrect: widget.onCorrectDraft == null
-                ? null
-                : () => widget.onCorrectDraft!(message.draft!),
+          Wrap(
+            spacing: 6 * widget.scale,
+            runSpacing: 6 * widget.scale,
+            children: <Widget>[
+              for (final AiCitation citation in message.citations)
+                _CitationChip(
+                  key: Key('ai_citation_chip_${citation.id}'),
+                  scale: widget.scale,
+                  citation: citation,
+                  onTap: widget.onCitationTap == null
+                      ? null
+                      : () =>
+                          widget.onCitationTap!(message.citations, citation.id),
+                ),
+            ],
           ),
         ],
+        for (final AiActionDraft action in message.actions) ...<Widget>[
+          SizedBox(height: 8 * widget.scale),
+          _buildDraftCard(action),
+        ],
       ],
+    );
+  }
+
+  Widget _buildDraftCard(AiActionDraft action) {
+    final AiConfirmedTransaction? confirmed =
+        widget.confirmedTransactionFor?.call(action.id);
+    final bool isConfirming =
+        widget.isConfirmingDraft?.call(action.id) ?? false;
+    final String arah = (action.payload['arah'] ?? '').toString().toUpperCase();
+    final bool isExpense =
+        action.intent.toUpperCase() == 'PEMBELIAN' || arah == 'PENGELUARAN';
+
+    return ChatDraftCard(
+      key: Key('ai_draft_card_${action.id}'),
+      scale: widget.scale,
+      draft: ChatDraft.fromActionDraft(action),
+      summaryRows: action.summaryRows,
+      totalAmountOverride: action.totalAmount,
+      isExpense: isExpense,
+      isConfirming: isConfirming,
+      isConfirmed: confirmed != null,
+      confirmedCode: confirmed?.code,
+      canConfirm: action.isReadyToConfirm,
+      missingFields: action.missingFields,
+      onConfirm: widget.onConfirmDraft == null
+          ? null
+          : () => widget.onConfirmDraft!(action),
+      onCorrect: widget.onCorrectDraft == null
+          ? null
+          : () => widget.onCorrectDraft!(action),
     );
   }
 
@@ -248,13 +446,13 @@ class _ChatConversationViewState extends State<ChatConversationView> {
           spacing: 8 * widget.scale,
           runSpacing: 8 * widget.scale,
           children: <Widget>[
-            for (final ChatSuggestionData suggestion in widget.data.suggestions)
+            for (final String suggestion in widget.suggestions)
               _SuggestionChip(
                 scale: widget.scale,
-                label: suggestion.label,
-                onTap: widget.onSuggestion == null
+                label: suggestion,
+                onTap: widget.onSend == null || widget.isSending
                     ? null
-                    : () => widget.onSuggestion!(suggestion),
+                    : () => widget.onSend!(suggestion),
               ),
           ],
         ),
@@ -288,30 +486,10 @@ class _ChatConversationViewState extends State<ChatConversationView> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: <Widget>[
-            Semantics(
-              button: true,
-              label: 'Lampiran',
-              child: GestureDetector(
-                onTap: widget.onAttach,
-                child: Container(
-                  width: 40 * widget.scale,
-                  height: 40 * widget.scale,
-                  decoration: const BoxDecoration(
-                    color: SojuColors.surfaceMuted,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.attach_file,
-                    size: 19 * widget.scale,
-                    color: SojuColors.analyticsLabel,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 8 * widget.scale),
             Expanded(
               child: TextField(
                 controller: _controller,
+                enabled: !widget.isSending,
                 minLines: 1,
                 maxLines: 4,
                 textInputAction: TextInputAction.send,
@@ -328,7 +506,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                   filled: true,
                   fillColor: SojuColors.chatSurface,
                   hintText:
-                      'Ketik perintah atau tempel chat pesanan WhatsApp...',
+                      'Tanya omzet, SOP, atau ketik catatan transaksi...',
                   hintMaxLines: 2,
                   hintStyle: TextStyle(
                     fontFamily: AppTypography.family,
@@ -355,12 +533,13 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                 TextEditingValue value,
                 Widget? child,
               ) {
-                final bool enabled = value.text.trim().isNotEmpty;
+                final bool enabled =
+                    !widget.isSending && value.text.trim().isNotEmpty;
                 return Semantics(
                   button: true,
                   label: 'Kirim pesan',
                   child: GestureDetector(
-                    onTap: _submit,
+                    onTap: widget.isSending ? null : _submit,
                     child: Container(
                       width: 40 * widget.scale,
                       height: 40 * widget.scale,
@@ -392,16 +571,21 @@ class _AiIdentity extends StatelessWidget {
     required this.scale,
     required this.name,
     required this.tagline,
+    this.routePath,
     this.timeLabel,
   });
 
   final double scale;
   final String name;
   final String tagline;
+  final AiRoutePath? routePath;
   final String? timeLabel;
 
   @override
   Widget build(BuildContext context) {
+    final bool showBadge =
+        routePath != null && routePath != AiRoutePath.unknown;
+
     return Row(
       children: <Widget>[
         Image.asset(
@@ -421,15 +605,40 @@ class _AiIdentity extends StatelessWidget {
           ),
         ),
         SizedBox(width: 5 * scale),
-        Text(
-          tagline,
-          style: TextStyle(
-            fontFamily: AppTypography.family,
-            fontSize: 9 * scale,
-            fontWeight: FontWeight.w400,
-            color: SojuColors.analyticsMuted,
+        if (showBadge)
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 6 * scale,
+              vertical: 2 * scale,
+            ),
+            decoration: BoxDecoration(
+              color: routePath == AiRoutePath.refusal
+                  ? SojuColors.demoSoft
+                  : SojuColors.infoSoft,
+              borderRadius: BorderRadius.circular(100 * scale),
+            ),
+            child: Text(
+              routePath!.labelId,
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 8.5 * scale,
+                fontWeight: FontWeight.w600,
+                color: routePath == AiRoutePath.refusal
+                    ? SojuColors.demoInk
+                    : SojuColors.badgeBlue,
+              ),
+            ),
+          )
+        else
+          Text(
+            tagline,
+            style: TextStyle(
+              fontFamily: AppTypography.family,
+              fontSize: 9 * scale,
+              fontWeight: FontWeight.w400,
+              color: SojuColors.analyticsMuted,
+            ),
           ),
-        ),
         const Spacer(),
         if (timeLabel != null)
           Text(
@@ -446,44 +655,119 @@ class _AiIdentity extends StatelessWidget {
   }
 }
 
-class _DemoNotice extends StatelessWidget {
-  const _DemoNotice({required this.scale, required this.text});
+class _CitationChip extends StatelessWidget {
+  const _CitationChip({
+    super.key,
+    required this.scale,
+    required this.citation,
+    this.onTap,
+  });
 
   final double scale;
-  final String text;
+  final AiCitation citation;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Lihat sumber ${citation.chipLabel} ${citation.title}',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(100 * scale),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: 10 * scale,
+            vertical: 5 * scale,
+          ),
+          decoration: BoxDecoration(
+            color: SojuColors.infoSoft,
+            borderRadius: BorderRadius.circular(100 * scale),
+            border: Border.all(color: SojuColors.freeTableBlueBorder60),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(
+                citation.isSqlTool
+                    ? Icons.table_chart_outlined
+                    : Icons.description_outlined,
+                size: 12 * scale,
+                color: SojuColors.badgeBlue,
+              ),
+              SizedBox(width: 4 * scale),
+              Flexible(
+                child: Text(
+                  '${citation.chipLabel} ${citation.title}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTypography.family,
+                    fontSize: 10 * scale,
+                    fontWeight: FontWeight.w600,
+                    color: SojuColors.badgeBlue,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({
+    required this.scale,
+    required this.message,
+    this.onDismiss,
+  });
+
+  final double scale;
+  final String message;
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: 10 * scale,
-        vertical: 8 * scale,
+        horizontal: 12 * scale,
+        vertical: 9 * scale,
       ),
       decoration: BoxDecoration(
-        color: SojuColors.demoSoft,
+        color: SojuColors.expenseSoft,
         borderRadius: BorderRadius.circular(10 * scale),
-        border: Border.all(color: SojuColors.demoBorder),
+        border: Border.all(color: SojuColors.notificationUrgentBg),
       ),
       child: Row(
         children: <Widget>[
           Icon(
-            Icons.info_outline,
-            size: 14 * scale,
-            color: SojuColors.demoInk,
+            Icons.error_outline,
+            size: 16 * scale,
+            color: SojuColors.notificationUrgent,
           ),
-          SizedBox(width: 6 * scale),
+          SizedBox(width: 8 * scale),
           Expanded(
             child: Text(
-              text,
+              message,
               style: TextStyle(
                 fontFamily: AppTypography.family,
-                fontSize: 10 * scale,
+                fontSize: 11 * scale,
                 fontWeight: FontWeight.w500,
-                height: 1.4,
-                color: SojuColors.demoInk,
+                color: SojuColors.notificationUrgentInk,
               ),
             ),
           ),
+          if (onDismiss != null)
+            GestureDetector(
+              onTap: onDismiss,
+              child: Icon(
+                Icons.close,
+                size: 16 * scale,
+                color: SojuColors.notificationUrgentInk,
+              ),
+            ),
         ],
       ),
     );

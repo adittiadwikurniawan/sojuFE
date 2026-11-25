@@ -11,6 +11,7 @@ import '../core/services/token_storage/token_storage.dart';
 import '../domain/entities/sales_chat_entity.dart';
 import '../domain/repositories/admin_order_repository.dart';
 import '../domain/repositories/admin_users_repository.dart';
+import '../domain/repositories/ai_chat_repository.dart';
 import '../domain/repositories/audit_repository.dart';
 import '../domain/repositories/auth_repository.dart';
 import '../domain/repositories/customer_order_repository.dart';
@@ -20,6 +21,7 @@ import '../domain/repositories/storefront_repository.dart';
 import '../domain/repositories/transaction_repository.dart';
 import '../domain/usecases/admin_order_usecases.dart';
 import '../domain/usecases/admin_users_usecases.dart';
+import '../domain/usecases/ai_chat_usecases.dart';
 import '../domain/usecases/audit_usecases.dart';
 import '../domain/usecases/auth_usecases.dart';
 import '../domain/usecases/customer_order_usecases.dart';
@@ -33,12 +35,14 @@ import '../domain/usecases/storefront_usecases.dart';
 import '../domain/usecases/transaction_usecases.dart';
 import '../presentation/providers/admin_orders/admin_orders_controller.dart';
 import '../presentation/providers/admin_users/admin_users_controller.dart';
+import '../presentation/providers/ai/ai_chat_controller.dart';
 import '../presentation/providers/audit/audit_log_controller.dart';
 import '../presentation/providers/dashboard/dashboard_controller.dart';
 import '../presentation/providers/storefront/customer_cart_controller.dart';
 import '../presentation/providers/transactions/transactions_controller.dart';
 import 'datasources/mock/admin_order_mock_datasource.dart';
 import 'datasources/mock/admin_users_mock_datasource.dart';
+import 'datasources/mock/ai_chat_mock_datasource.dart';
 import 'datasources/mock/audit_mock_datasource.dart';
 import 'datasources/mock/customer_order_mock_datasource.dart';
 import 'datasources/mock/customer_profile_mock_datasource.dart';
@@ -49,6 +53,7 @@ import 'datasources/mock/sales_chat_mock_datasource.dart';
 import 'datasources/mock/storefront_mock_datasource.dart';
 import 'datasources/remote/admin_order_remote_datasource.dart';
 import 'datasources/remote/admin_users_remote_datasource.dart';
+import 'datasources/remote/ai_chat_remote_datasource.dart';
 import 'datasources/remote/audit_remote_datasource.dart';
 import 'datasources/remote/auth_remote_datasource.dart';
 import 'datasources/remote/customer_order_remote_datasource.dart';
@@ -58,6 +63,7 @@ import 'datasources/remote/storefront_remote_datasource.dart';
 import 'datasources/remote/transaction_remote_datasource.dart';
 import 'repositories/admin_order_repository_impl.dart';
 import 'repositories/admin_users_repository_impl.dart';
+import 'repositories/ai_chat_repository_impl.dart';
 import 'repositories/audit_repository_impl.dart';
 import 'repositories/auth_repository_impl.dart';
 import 'repositories/customer_order_repository_impl.dart';
@@ -77,12 +83,13 @@ abstract final class DataProviders {
   static CustomerOrderRepository? _customerOrderRepository;
   static CustomerProfileRepository? _customerProfileRepository;
 
-  // Repositories untuk admin operasional live REST (TASK-026 & TASK-027)
+  // Repositories untuk admin operasional live REST (TASK-026, TASK-027, TASK-028)
   static DashboardRepository? _dashboardRepository;
   static TransactionRepository? _transactionRepository;
   static AuditLogRepository? _auditLogRepository;
   static AdminOrderRepository? _adminOrderRepository;
   static AdminUsersRepository? _adminUsersRepository;
+  static AiChatRepository? _aiChatRepository;
 
   /// Mengonfigurasi dependency remote dari composition root (`main.dart`).
   ///
@@ -123,6 +130,9 @@ abstract final class DataProviders {
     );
     _adminUsersRepository = AdminUsersRepositoryImpl(
       AdminUsersRemoteDataSource(apiClient),
+    );
+    _aiChatRepository = AiChatRepositoryImpl(
+      AiChatRemoteDataSource(apiClient),
     );
 
     resetCartController();
@@ -337,6 +347,45 @@ abstract final class DataProviders {
     );
   }
 
+  // --- Hybrid RAG AI Admin Providers (TASK-028) ---
+
+  static const AiChatMockDataSource _aiChatMockDataSource =
+      AiChatMockDataSource();
+
+  static AiChatRepository get _aiChat {
+    return _aiChatRepository ??
+        const AiChatRepositoryImpl(_aiChatMockDataSource);
+  }
+
+  /// Usecase daftar riwayat percakapan AI `GET /api/v1/ai/conversations`.
+  static GetAiConversations getAiConversations() =>
+      GetAiConversations(_aiChat);
+
+  /// Usecase detail percakapan AI `GET /api/v1/ai/conversations/:id`.
+  static GetAiConversationDetail getAiConversationDetail() =>
+      GetAiConversationDetail(_aiChat);
+
+  /// Usecase kirim pesan chat Hybrid RAG `POST /api/v1/ai/chat`.
+  static SendAiChatMessage sendAiChatMessage() => SendAiChatMessage(_aiChat);
+
+  /// Usecase konfirmasi draft transaksi `POST /api/v1/transactions`.
+  static ConfirmAiDraftTransaction confirmAiDraftTransaction() =>
+      ConfirmAiDraftTransaction(_aiChat);
+
+  /// Usecase reindex basis pengetahuan AI `POST /api/v1/ai/reindex` (`SUPER_ADMIN`).
+  static TriggerAiReindex triggerAiReindex() => TriggerAiReindex(_aiChat);
+
+  /// Factory controller Hybrid RAG AI Admin.
+  static AiChatController createAiChatController() {
+    return AiChatController(
+      getConversations: getAiConversations(),
+      getConversationDetail: getAiConversationDetail(),
+      sendChatMessage: sendAiChatMessage(),
+      confirmDraftTransaction: confirmAiDraftTransaction(),
+      triggerReindex: triggerAiReindex(),
+    );
+  }
+
   /// Menghapus konfigurasi auth, etalase, pesanan, dan admin repos (dipakai test).
   static void resetAuth() {
     _authRepository = null;
@@ -348,6 +397,7 @@ abstract final class DataProviders {
     _auditLogRepository = null;
     _adminOrderRepository = null;
     _adminUsersRepository = null;
+    _aiChatRepository = null;
     resetCartController();
   }
 
@@ -358,12 +408,14 @@ abstract final class DataProviders {
     AuditLogRepository? audit,
     AdminOrderRepository? adminOrder,
     AdminUsersRepository? adminUsers,
+    AiChatRepository? aiChat,
   }) {
     if (dashboard != null) _dashboardRepository = dashboard;
     if (transaction != null) _transactionRepository = transaction;
     if (audit != null) _auditLogRepository = audit;
     if (adminOrder != null) _adminOrderRepository = adminOrder;
     if (adminUsers != null) _adminUsersRepository = adminUsers;
+    if (aiChat != null) _aiChatRepository = aiChat;
   }
 
   static bool get hasAuth => _authRepository != null;

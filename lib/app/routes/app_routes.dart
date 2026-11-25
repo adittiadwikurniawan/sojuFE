@@ -559,9 +559,16 @@ abstract final class AppRouter {
             GoRoute(
               path: AppRoutes.chatbot,
               builder: (BuildContext context, GoRouterState state) =>
-                  ChatbotScreen(
-                onBack: () => context.go(AppRoutes.dashboard),
-                onNotificationTap: () => context.push(AppRoutes.notifications),
+                  _AuthUserBuilder(
+                controller: authController,
+                builder: (BuildContext context, AuthUser? user) =>
+                    ChatbotScreen(
+                  currentUser: user,
+                  controllerFactory: DataProviders.createAiChatController,
+                  onBack: () => context.go(AppRoutes.dashboard),
+                  onNotificationTap: () =>
+                      context.push(AppRoutes.notifications),
+                ),
               ),
             ),
             GoRoute(

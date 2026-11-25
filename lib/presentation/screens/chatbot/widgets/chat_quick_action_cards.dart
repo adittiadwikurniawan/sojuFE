@@ -2,7 +2,30 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
-import '../models/chatbot_view_data.dart';
+
+/// Kartu "Alat Cepat" pada halaman utama Hybrid RAG AI.
+@immutable
+class AiQuickActionItem {
+  const AiQuickActionItem({
+    required this.title,
+    required this.description,
+    required this.ctaLabel,
+    required this.icon,
+    required this.prompt,
+    this.primary = false,
+  });
+
+  final String title;
+  final String description;
+  final String ctaLabel;
+  final IconData icon;
+
+  /// Prompt Bahasa Indonesia yang dikirim ke `/api/v1/ai/chat`.
+  final String prompt;
+
+  /// Kartu pertama memakai tombol biru, kartu lain abu-abu (Figma).
+  final bool primary;
+}
 
 /// Deretan kartu "Alat Cepat" (frame `546:3687`, node `546:3725`).
 ///
@@ -17,8 +40,8 @@ class ChatQuickActionCards extends StatelessWidget {
   });
 
   final double scale;
-  final List<ChatQuickActionData> actions;
-  final ValueChanged<ChatQuickActionData>? onTap;
+  final List<AiQuickActionItem> actions;
+  final ValueChanged<AiQuickActionItem>? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +54,7 @@ class ChatQuickActionCards extends StatelessWidget {
         separatorBuilder: (BuildContext context, int index) =>
             SizedBox(width: 17 * scale),
         itemBuilder: (BuildContext context, int index) {
-          final ChatQuickActionData action = actions[index];
+          final AiQuickActionItem action = actions[index];
           return _QuickActionCard(
             scale: scale,
             action: action,
@@ -51,7 +74,7 @@ class _QuickActionCard extends StatelessWidget {
   });
 
   final double scale;
-  final ChatQuickActionData action;
+  final AiQuickActionItem action;
   final VoidCallback? onTap;
 
   @override
