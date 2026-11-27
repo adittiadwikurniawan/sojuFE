@@ -36,12 +36,14 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
   late final TextEditingController _codeCtrl;
   late final TextEditingController _nameCtrl;
   late final TextEditingController _variantCtrl;
+  final TextEditingController _newVariantChipCtrl = TextEditingController();
   late final TextEditingController _unitCtrl;
   late final TextEditingController _priceCtrl;
   late final TextEditingController _descCtrl;
   late final TextEditingController _imgCtrl;
 
   late bool _isActive;
+  bool _isFeatured = false;
   _ProductDetailTab _tab = _ProductDetailTab.general;
   bool _isSaving = false;
   String? _validationError;
@@ -69,6 +71,7 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
     _codeCtrl.dispose();
     _nameCtrl.dispose();
     _variantCtrl.dispose();
+    _newVariantChipCtrl.dispose();
     _unitCtrl.dispose();
     _priceCtrl.dispose();
     _descCtrl.dispose();
@@ -180,6 +183,136 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  List<String> get _parsedVariants => _variantCtrl.text
+      .split(',')
+      .map((String s) => s.trim())
+      .where((String s) => s.isNotEmpty)
+      .toList(growable: false);
+
+  void _addVariantChip() {
+    final String incoming = _newVariantChipCtrl.text.trim();
+    if (incoming.isEmpty) return;
+    final List<String> list = List<String>.from(_parsedVariants);
+    if (!list.any((String v) => v.toLowerCase() == incoming.toLowerCase())) {
+      list.add(incoming);
+      _variantCtrl.text = list.join(', ');
+    }
+    _newVariantChipCtrl.clear();
+    setState(() {});
+  }
+
+  void _removeVariantChip(String variant) {
+    final List<String> list = _parsedVariants
+        .where((String v) => v != variant)
+        .toList(growable: false);
+    _variantCtrl.text = list.join(', ');
+    setState(() {});
+  }
+
+  Widget _buildVariantChipEditor() {
+    final List<String> chips = _parsedVariants;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: SojuColors.canvas,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: SojuColors.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(
+                Icons.style_outlined,
+                size: 15,
+                color: SojuColors.brandNavy,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Tag Multi-Varian (${chips.length})',
+                style: const TextStyle(
+                  fontFamily: AppTypography.family,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: SojuColors.brandNavy,
+                ),
+              ),
+            ],
+          ),
+          if (chips.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: chips.map((String v) {
+                return InputChip(
+                  label: Text(
+                    v,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.family,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: SojuColors.brandNavy,
+                    ),
+                  ),
+                  backgroundColor: SojuColors.blueSoft,
+                  deleteIconColor: SojuColors.brandNavy,
+                  side: const BorderSide(color: SojuColors.freeTableBlueBorder60),
+                  onDeleted: () => _removeVariantChip(v),
+                );
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  controller: _newVariantChipCtrl,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _addVariantChip(),
+                  decoration: InputDecoration(
+                    hintText: 'Tambah varian baru (mis. Less Sugar)...',
+                    hintStyle: const TextStyle(fontSize: 12),
+                    isDense: true,
+                    filled: true,
+                    fillColor: SojuColors.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: SojuColors.cardBorder),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: _addVariantChip,
+                style: FilledButton.styleFrom(
+                  backgroundColor: SojuColors.brandNavy,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('Tambah', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -364,6 +497,7 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
                   url: imgUrl.isEmpty ? null : imgUrl,
                   size: 132,
                   radius: 14,
+                  enableLightbox: true,
                 ),
               ),
               Positioned(
@@ -464,7 +598,7 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
             children: <Widget>[
               Switch(
                 key: const Key('admin_product_visibility_switch'),
-                activeColor: SojuColors.primary,
+                activeColor: SojuColors.brandNavy,
                 value: _isActive,
                 onChanged: (bool val) => setState(() => _isActive = val),
               ),
@@ -476,6 +610,42 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
                   color: SojuColors.ink,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 18, color: SojuColors.cardBorder),
+          Row(
+            children: <Widget>[
+              Switch(
+                key: const Key('admin_product_featured_switch'),
+                activeColor: const Color(0xFFD97706),
+                value: _isFeatured,
+                onChanged: (bool val) => setState(() => _isFeatured = val),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      _isFeatured ? 'Menu Unggulan ★' : 'Menu Reguler',
+                      style: const TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: SojuColors.ink,
+                      ),
+                    ),
+                    const Text(
+                      'Tampilkan di bagian Menu Unggulan ★ Beranda Pelanggan',
+                      style: TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 11,
+                        color: SojuColors.inkMuted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -685,6 +855,7 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
             ),
             const SizedBox(height: 14),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Expanded(
                   child: Column(
@@ -695,6 +866,7 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
                       TextField(
                         key: const Key('admin_product_variant_field'),
                         controller: _variantCtrl,
+                        onChanged: (_) => setState(() {}),
                         decoration: _inputDecoration('Dingin, Normal'),
                       ),
                     ],
@@ -718,6 +890,8 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+            _buildVariantChipEditor(),
             const SizedBox(height: 14),
             const _FieldLabel('Deskripsi'),
             const SizedBox(height: 6),

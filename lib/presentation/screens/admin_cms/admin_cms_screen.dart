@@ -11,6 +11,7 @@ import '../../../core/themes/soju_colors.dart';
 import '../../../domain/entities/admin_cms_entity.dart';
 import '../../providers/admin_cms/admin_cms_controller.dart';
 import '../../utils/format.dart';
+import '../../widgets/smart_auto_fit_image.dart';
 import 'admin_product_editor_screen.dart';
 
 class AdminCmsScreen extends StatefulWidget {
@@ -671,51 +672,65 @@ class _AdminCmsScreenState extends State<AdminCmsScreen> {
                           borderRadius: BorderRadius.circular(16 * scale),
                           border: Border.all(color: SojuColors.hairline),
                         ),
-                        child: Column(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Row(
-                              children: <Widget>[
-                                Text(
-                                  p.code,
-                                  style: const TextStyle(
-                                    fontFamily: AppTypography.family,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: SojuColors.primary,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: p.isActive
-                                        ? const Color(0xFFECFDF5)
-                                        : SojuColors.field,
-                                    borderRadius: BorderRadius.circular(99),
-                                  ),
-                                  child: Text(
-                                    p.isActive ? 'Aktif' : 'Nonaktif',
-                                    style: TextStyle(
-                                      fontFamily: AppTypography.family,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: p.isActive
-                                          ? SojuColors.positive
-                                          : SojuColors.inkMuted,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            SmartAutoFitImage(
+                              imageUrl: p.imageUrl,
+                              width: 68 * scale,
+                              height: 68 * scale,
+                              borderRadius: BorderRadius.circular(12 * scale),
+                              enableLightbox: true,
+                              placeholderIcon: Icons.fastfood_rounded,
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              p.variant != null
-                                  ? '${p.name} — ${p.variant}'
-                                  : p.name,
+                            SizedBox(width: 12 * scale),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Row(
+                                    children: <Widget>[
+                                      Text(
+                                        p.code,
+                                        style: const TextStyle(
+                                          fontFamily: AppTypography.family,
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: SojuColors.primary,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: p.isActive
+                                              ? const Color(0xFFECFDF5)
+                                              : SojuColors.field,
+                                          borderRadius:
+                                              BorderRadius.circular(99),
+                                        ),
+                                        child: Text(
+                                          p.isActive ? 'Aktif' : 'Nonaktif',
+                                          style: TextStyle(
+                                            fontFamily: AppTypography.family,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: p.isActive
+                                                ? SojuColors.positive
+                                                : SojuColors.inkMuted,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    p.variant != null
+                                        ? '${p.name} — ${p.variant}'
+                                        : p.name,
                               style: TextStyle(
                                 fontFamily: AppTypography.family,
                                 fontSize: 15 * scale,
@@ -747,29 +762,54 @@ class _AdminCmsScreenState extends State<AdminCmsScreen> {
                               ),
                             ],
                             const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: <Widget>[
-                                TextButton.icon(
-                                  onPressed: () =>
-                                      _openProductSheet(existing: p),
-                                  icon: const Icon(Icons.edit_outlined, size: 17),
-                                  label: const Text('Ubah'),
-                                ),
-                                if (p.isActive)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Wrap(
+                                alignment: WrapAlignment.end,
+                                spacing: 4,
+                                runSpacing: 4,
+                                children: <Widget>[
                                   TextButton.icon(
-                                    onPressed: () =>
-                                        _controller.deactivateProduct(p.id),
                                     style: TextButton.styleFrom(
-                                      foregroundColor: SojuColors.expense,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                     ),
-                                    icon: const Icon(
-                                      Icons.visibility_off_outlined,
-                                      size: 17,
-                                    ),
-                                    label: const Text('Nonaktifkan'),
+                                    onPressed: () =>
+                                        _openProductSheet(existing: p),
+                                    icon: const Icon(Icons.edit_outlined,
+                                        size: 16),
+                                    label: const Text('Ubah'),
                                   ),
+                                  if (p.isActive)
+                                    TextButton.icon(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: SojuColors.expense,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      onPressed: () =>
+                                          _controller.deactivateProduct(p.id),
+                                      icon: const Icon(
+                                        Icons.visibility_off_outlined,
+                                        size: 16,
+                                      ),
+                                      label: const Text('Nonaktifkan'),
+                                    ),
+                                ],
+                              ),
+                            ),
                               ],
+                            ),
                             ),
                           ],
                         ),

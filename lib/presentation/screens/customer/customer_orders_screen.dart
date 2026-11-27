@@ -9,6 +9,7 @@ import '../../../../core/themes/soju_colors.dart';
 import '../../../../domain/entities/customer_order_entity.dart';
 import '../../providers/customer/customer_orders_controller.dart';
 import '../../widgets/bottom_glass_overlay.dart';
+import '../../widgets/role_badge_pill.dart';
 import 'widgets/order_item_card.dart';
 
 class CustomerOrdersScreen extends StatefulWidget {
@@ -108,30 +109,52 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
                               ),
                               const SizedBox(height: 16),
 
-                              // Filter Status Chips
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: <Widget>[
-                                    _buildFilterChip(
-                                      label: 'Semua',
-                                      isSelected: controller.statusFilter == null,
-                                      onTap: () => controller.setFilter(null),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    ...CustomerOrderStatus.values.map(
-                                      (CustomerOrderStatus s) => Padding(
-                                        padding: const EdgeInsets.only(right: 8),
-                                        child: _buildFilterChip(
-                                          label: s.label,
-                                          isSelected:
-                                              controller.statusFilter == s,
-                                          onTap: () => controller.setFilter(s),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              // Underline Status Tabs (user-friendly dengan jumlah live)
+                              SojuUnderlineTabBar(
+                                tabs: const <String>[
+                                  'Semua',
+                                  'Menunggu',
+                                  'Diproses',
+                                  'Selesai',
+                                  'Batal',
+                                ],
+                                selectedIndex: controller.statusFilter == null
+                                    ? 0
+                                    : CustomerOrderStatus.values
+                                            .indexOf(controller.statusFilter!) +
+                                        1,
+                                badges: <int?>[
+                                  controller.orders.length,
+                                  controller.orders
+                                      .where((CustomerOrder o) =>
+                                          o.status ==
+                                          CustomerOrderStatus.menungguKonfirmasi)
+                                      .length,
+                                  controller.orders
+                                      .where((CustomerOrder o) =>
+                                          o.status ==
+                                          CustomerOrderStatus.diproses)
+                                      .length,
+                                  controller.orders
+                                      .where((CustomerOrder o) =>
+                                          o.status ==
+                                          CustomerOrderStatus.selesai)
+                                      .length,
+                                  controller.orders
+                                      .where((CustomerOrder o) =>
+                                          o.status ==
+                                          CustomerOrderStatus.dibatalkan)
+                                      .length,
+                                ],
+                                onSelected: (int index) {
+                                  if (index == 0) {
+                                    controller.setFilter(null);
+                                  } else {
+                                    controller.setFilter(
+                                      CustomerOrderStatus.values[index - 1],
+                                    );
+                                  }
+                                },
                               ),
                             ],
                           ),
@@ -281,35 +304,6 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
           },
         );
       },
-    );
-  }
-
-  Widget _buildFilterChip({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? SojuColors.primary : SojuColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? SojuColors.primary : SojuColors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: AppTypography.family,
-            fontSize: 12.5,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? SojuColors.surface : SojuColors.inkMuted,
-          ),
-        ),
-      ),
     );
   }
 }

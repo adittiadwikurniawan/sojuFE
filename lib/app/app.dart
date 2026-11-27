@@ -32,6 +32,7 @@ class SojuApp extends StatefulWidget {
 
 class _SojuAppState extends State<SojuApp> {
   late final GoRouter _router = AppRouter.create(
+    initialLocation: AppRoutes.customerHome,
     features: AppFeatures.fromEnvironment,
     authController: widget.authController,
     cartController: widget.cartController,

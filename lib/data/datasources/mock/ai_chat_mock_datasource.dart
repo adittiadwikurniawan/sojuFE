@@ -73,8 +73,21 @@ class AiChatMockDataSource implements AiChatDataSource {
 
   @override
   Future<Map<String, Object?>> confirmDraftTransactionRaw(
-    Map<String, Object?> payload,
-  ) async {
+    Map<String, Object?> payload, {
+    String endpoint = '/api/v1/transactions',
+  }) async {
+    if (endpoint.trim() == '/api/v1/products') {
+      return <String, Object?>{
+        'success': true,
+        'message': 'Produk berhasil ditambahkan ke katalog.',
+        'data': <String, Object?>{
+          'id': 1,
+          'kode': payload['kode'] ?? 'PRD000001',
+          'namaBarang': payload['namaBarang'] ?? payload['nama_barang'] ?? 'Produk Baru',
+          'hargaDefault': payload['hargaDefault'] ?? payload['harga_default'] ?? 0,
+        },
+      };
+    }
     return <String, Object?>{
       'success': true,
       'message': 'Transaksi berhasil dicatat.',

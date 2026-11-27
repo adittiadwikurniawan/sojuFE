@@ -33,7 +33,7 @@ void main() {
   ) async {
     await pumpScreen(tester);
 
-    expect(find.text('Selamat Datang di Buku Kita'), findsOneWidget);
+    expect(find.text('Selamat Datang di SOJU'), findsOneWidget);
     expect(find.text('Masuk'), findsNWidgets(2));
     expect(find.text('Daftar'), findsOneWidget);
     expect(find.text('Masukkan email kamu'), findsOneWidget);

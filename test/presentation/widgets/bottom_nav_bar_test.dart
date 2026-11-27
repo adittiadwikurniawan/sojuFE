@@ -46,7 +46,7 @@ void main() {
     final Text activeLabel = tester.widget<Text>(
       find.descendant(of: nav, matching: find.text('Audit & Stok')),
     );
-    expect(activeLabel.style?.color, SojuColors.primary);
+    expect(activeLabel.style?.color, SojuColors.brandNavy);
 
     await tester
         .tap(find.descendant(of: nav, matching: find.text('Analytics')));

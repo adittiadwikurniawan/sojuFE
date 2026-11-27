@@ -277,22 +277,61 @@ class _DrawerHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Container(
-            key: const Key('admin_drawer_role_badge'),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: SojuColors.surface.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(99),
-            ),
-            child: Text(
-              role.label,
-              style: const TextStyle(
-                fontFamily: AppTypography.family,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                color: SojuColors.surface,
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              Container(
+                key: const Key('admin_drawer_role_badge'),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: role.isSuperAdmin
+                      ? const Color(0xFFF59E0B).withOpacity(0.24)
+                      : SojuColors.surface.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(
+                    color: role.isSuperAdmin
+                        ? const Color(0xFFFDE68A).withOpacity(0.55)
+                        : SojuColors.surface.withOpacity(0.28),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(
+                      role.isSuperAdmin
+                          ? Icons.verified_user_rounded
+                          : Icons.admin_panel_settings_rounded,
+                      size: 13,
+                      color: SojuColors.surface,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      role.label,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: SojuColors.surface,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              Text(
+                role.isSuperAdmin
+                    ? 'Akses Penuh Sistem'
+                    : 'Operasional Harian',
+                style: TextStyle(
+                  fontFamily: AppTypography.family,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: SojuColors.surface.withOpacity(0.78),
+                ),
+              ),
+            ],
           ),
         ],
       ),

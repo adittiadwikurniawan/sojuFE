@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
+import '../../widgets/role_badge_pill.dart';
 import 'models/notifications_view_data.dart';
 import 'widgets/notification_card.dart';
 import 'widgets/notifications_top_bar.dart';
@@ -48,15 +49,36 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  /// Id notifikasi yang sudah ditandai dibaca lewat "Abaikan".
+  /// Id notifikasi yang sudah ditandai dibaca lewat "Abaikan" atau "Tandai Semua Dibaca".
   final Set<String> _readIds = <String>{};
+  int _selectedFilterTab = 0; // 0: Semua, 1: Belum Dibaca, 2: Sudah Dibaca
 
-  int get _unreadCount => widget.data.notifications
-      .where(
-        (AppNotificationData notification) =>
-            notification.isUnread && !_readIds.contains(notification.id),
-      )
-      .length;
+  bool _isUnread(AppNotificationData notification) =>
+      notification.isUnread && !_readIds.contains(notification.id);
+
+  int get _unreadCount => widget.data.notifications.where(_isUnread).length;
+
+  List<AppNotificationData> get _filteredNotifications {
+    switch (_selectedFilterTab) {
+      case 1:
+        return widget.data.notifications.where(_isUnread).toList();
+      case 2:
+        return widget.data.notifications
+            .where((AppNotificationData n) => !_isUnread(n))
+            .toList();
+      default:
+        return widget.data.notifications;
+    }
+  }
+
+  void _markAllAsRead() {
+    setState(() {
+      for (final AppNotificationData n in widget.data.notifications) {
+        _readIds.add(n.id);
+      }
+    });
+    _showSnack('Semua notifikasi ditandai sudah dibaca.');
+  }
 
   void _handleUrgentTap() {
     final VoidCallback? reconcile = widget.onReconcile;
@@ -146,7 +168,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 onTap: _handleUrgentTap,
                               ),
                             ),
-                            SizedBox(height: 24 * scale),
+                            SizedBox(height: 16 * scale),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16 * scale,
+                              ),
+                              child: SojuUnderlineTabBar(
+                                tabs: const <String>[
+                                  'Semua',
+                                  'Belum Dibaca',
+                                  'Sudah Dibaca',
+                                ],
+                                selectedIndex: _selectedFilterTab,
+                                badges: <int?>[
+                                  widget.data.notifications.length,
+                                  _unreadCount,
+                                  widget.data.notifications.length -
+                                      _unreadCount,
+                                ],
+                                onSelected: (int index) =>
+                                    setState(() => _selectedFilterTab = index),
+                              ),
+                            ),
+                            SizedBox(height: 16 * scale),
                             Padding(
                               padding: EdgeInsets.symmetric(
                                 horizontal: 16 * scale,
@@ -155,29 +199,57 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 scale: scale,
                                 label: widget.data.todayLabel,
                                 unreadCount: _unreadCount,
+                                onMarkAllRead:
+                                    _unreadCount > 0 ? _markAllAsRead : null,
                               ),
                             ),
-                            SizedBox(height: 18 * scale),
-                            for (final AppNotificationData notification
-                                in widget.data.notifications)
+                            SizedBox(height: 14 * scale),
+                            if (_filteredNotifications.isEmpty)
                               Padding(
-                                padding: EdgeInsets.only(
-                                  left: 16 * scale,
-                                  right: 16 * scale,
-                                  bottom: 11 * scale,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 24 * scale,
+                                  vertical: 32 * scale,
                                 ),
-                                child: NotificationCard(
-                                  key: Key(
-                                    'notification_card_${notification.id}',
+                                child: const Column(
+                                  children: <Widget>[
+                                    Icon(
+                                      Icons.notifications_none_rounded,
+                                      size: 44,
+                                      color: SojuColors.inkMuted,
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Semua notifikasi sudah terbaca',
+                                      style: TextStyle(
+                                        fontFamily: AppTypography.family,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: SojuColors.inkMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              for (final AppNotificationData notification
+                                  in _filteredNotifications)
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                    left: 16 * scale,
+                                    right: 16 * scale,
+                                    bottom: 11 * scale,
                                   ),
-                                  scale: scale,
-                                  data: notification,
-                                  unread: notification.isUnread &&
-                                      !_readIds.contains(notification.id),
-                                  onAction: (NotificationActionData action) =>
-                                      _handleAction(notification, action),
+                                  child: NotificationCard(
+                                    key: Key(
+                                      'notification_card_${notification.id}',
+                                    ),
+                                    scale: scale,
+                                    data: notification,
+                                    unread: _isUnread(notification),
+                                    onAction: (NotificationActionData action) =>
+                                        _handleAction(notification, action),
+                                  ),
                                 ),
-                              ),
                           ],
                         ),
                       ),
@@ -198,32 +270,57 @@ class _SectionHeader extends StatelessWidget {
     required this.scale,
     required this.label,
     required this.unreadCount,
+    this.onMarkAllRead,
   });
 
   final double scale;
   final String label;
   final int unreadCount;
+  final VoidCallback? onMarkAllRead;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: AppTypography.family,
-            fontSize: 16 * scale,
-            fontWeight: FontWeight.w600,
-            height: 1.2,
-            color: SojuColors.notificationBody,
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: AppTypography.family,
+              fontSize: 14.5 * scale,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+              color: SojuColors.notificationBody,
+            ),
           ),
         ),
-        const Spacer(),
+        SizedBox(width: 8 * scale),
+        if (onMarkAllRead != null) ...<Widget>[
+          InkWell(
+            onTap: onMarkAllRead,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              child: Text(
+                'Tandai Dibaca',
+                style: TextStyle(
+                  fontFamily: AppTypography.family,
+                  fontSize: 11.5 * scale,
+                  fontWeight: FontWeight.w700,
+                  color: SojuColors.brandNavy,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: 6 * scale),
+        ],
         Text(
           '$unreadCount Belum Dibaca',
           style: TextStyle(
             fontFamily: AppTypography.family,
-            fontSize: 16 * scale,
+            fontSize: 13 * scale,
             fontWeight: FontWeight.w600,
             height: 1.2,
             color: SojuColors.notificationBlue,

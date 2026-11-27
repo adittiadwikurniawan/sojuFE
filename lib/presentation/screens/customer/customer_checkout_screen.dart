@@ -11,6 +11,7 @@ import '../../../../domain/entities/storefront_entity.dart';
 import '../../../../data/data_providers.dart';
 import '../../providers/customer/customer_checkout_controller.dart';
 import '../../providers/storefront/customer_cart_controller.dart';
+import '../../utils/external_launcher.dart';
 import '../../utils/format.dart';
 
 class CustomerCheckoutScreen extends StatefulWidget {
@@ -78,12 +79,22 @@ class _CustomerCheckoutScreenState extends State<CustomerCheckoutScreen> {
     );
 
     if (success && mounted) {
+      final order = _controller.order;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pesanan berhasil dibuat!'),
-          backgroundColor: SojuColors.success,
+        SnackBar(
+          content: Text(
+            order != null && order.hasSnapUrl
+                ? 'Pesanan #${order.code} dibuat! Silakan selesaikan pembayaran via Midtrans.'
+                : 'Pesanan berhasil dibuat!',
+          ),
+          backgroundColor: SojuColors.brandEmerald,
+          behavior: SnackBarBehavior.floating,
         ),
       );
+      if (order != null && order.hasSnapUrl) {
+        // Buka Midtrans Snap secara non-blocking agar tetap aman di lingkungan test.
+        launchMidtransSnapUrl(context, order.snapRedirectUrl);
+      }
       widget.onViewOrders?.call();
     }
   }
@@ -441,7 +452,69 @@ class _CustomerCheckoutScreenState extends State<CustomerCheckoutScreen> {
 
                             const SizedBox(height: 20),
 
-                            // Bagian 3: Ringkasan Pembayaran
+                            // Bagian 3: Metode Pembayaran Midtrans Snap (Tanpa COD)
+                            _buildSectionHeader('Metode Pembayaran'),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: SojuColors.blueSoft,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: SojuColors.freeTableBlueBorder60,
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: SojuColors.brandNavy,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.verified_user_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Text(
+                                          'Midtrans Snap (QRIS / VA / E-Wallet)',
+                                          style: TextStyle(
+                                            fontFamily: AppTypography.family,
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: SojuColors.brandNavy,
+                                          ),
+                                        ),
+                                        SizedBox(height: 3),
+                                        Text(
+                                          'Pembayaran diverifikasi otomatis. Setelah bayar, Anda juga bisa konfirmasi langsung via WhatsApp.',
+                                          style: TextStyle(
+                                            fontFamily: AppTypography.family,
+                                            fontSize: 12,
+                                            height: 1.35,
+                                            color: SojuColors.inkMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // Bagian 4: Ringkasan Pembayaran
                             _buildSectionHeader('Ringkasan Pembayaran'),
                             const SizedBox(height: 8),
                             Container(
@@ -525,13 +598,22 @@ class _CustomerCheckoutScreenState extends State<CustomerCheckoutScreen> {
                                           color: SojuColors.surface,
                                         ),
                                       )
-                                    : const Text(
-                                        'Konfirmasi & Buat Pesanan',
-                                        style: TextStyle(
-                                          fontFamily: AppTypography.family,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                        ),
+                                    : const Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: <Widget>[
+                                          Icon(Icons.lock_outline_rounded,
+                                              size: 18),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Bayar via Midtrans',
+                                            style: TextStyle(
+                                              fontFamily: AppTypography.family,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                               ),
                             ),

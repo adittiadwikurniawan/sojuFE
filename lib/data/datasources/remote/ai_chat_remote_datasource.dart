@@ -46,12 +46,21 @@ class AiChatRemoteDataSource implements AiChatDataSource {
 
   @override
   Future<Map<String, Object?>> confirmDraftTransactionRaw(
-    Map<String, Object?> payload,
-  ) {
-    final Map<String, Object?> body = Map<String, Object?>.of(payload)
-      ..['sumber_input'] = 'AI'
-      ..['sumberInput'] = 'AI';
-    return _map(_apiClient.post('/api/v1/transactions', body: body));
+    Map<String, Object?> payload, {
+    String endpoint = '/api/v1/transactions',
+  }) {
+    final bool isProduct = endpoint.trim() == '/api/v1/products';
+    final Map<String, Object?> body = Map<String, Object?>.of(payload);
+    if (!isProduct) {
+      body['sumber_input'] = 'AI';
+      body['sumberInput'] = 'AI';
+    }
+    return _map(
+      _apiClient.post(
+        isProduct ? '/api/v1/products' : '/api/v1/transactions',
+        body: body,
+      ),
+    );
   }
 
   @override

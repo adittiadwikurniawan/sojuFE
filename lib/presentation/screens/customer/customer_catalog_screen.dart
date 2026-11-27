@@ -39,6 +39,7 @@ class CustomerCatalogScreen extends StatefulWidget {
 class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
   static const List<String> _categories = <String>[
     'Semua',
+    'Unggulan ★',
     'Minuman',
     'Makanan',
     'Camilan',
@@ -108,6 +109,9 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
 
   List<CatalogProduct> _filteredProducts(List<CatalogProduct> all) {
     if (_selectedCategory == 'Semua') return all;
+    if (_selectedCategory == 'Unggulan ★') {
+      return all.take(6).toList(growable: false);
+    }
     final String key = _selectedCategory.toLowerCase();
     final List<CatalogProduct> matched = all.where((CatalogProduct p) {
       final String haystack =
@@ -261,7 +265,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                               ChoiceChip(
                                 label: Text(category),
                                 selected: _selectedCategory == category,
-                                selectedColor: SojuColors.primary,
+                                selectedColor: SojuColors.brandNavy,
                                 backgroundColor: SojuColors.surface,
                                 labelStyle: TextStyle(
                                   fontFamily: AppTypography.family,
@@ -273,7 +277,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                                 ),
                                 side: BorderSide(
                                   color: _selectedCategory == category
-                                      ? SojuColors.primary
+                                      ? SojuColors.brandNavy
                                       : SojuColors.hairline,
                                 ),
                                 onSelected: (_) => setState(

@@ -152,6 +152,63 @@ class AiChatRepositoryImpl implements AiChatRepository {
     }
 
     final Map<String, Object?> payload = Map<String, Object?>.of(draft.payload);
+    final bool isProductDraft = draft.type.toUpperCase() == 'CREATE_PRODUCT' ||
+        draft.endpoint.trim() == '/api/v1/products';
+
+    if (isProductDraft) {
+      final String namaBarang =
+          (payload['namaBarang'] ?? payload['nama_barang'] ?? '')
+              .toString()
+              .trim();
+      final Object rawHarga =
+          payload['hargaDefault'] ?? payload['harga_default'] ?? draft.totalAmount;
+      if (namaBarang.isEmpty || (rawHarga is num && rawHarga <= 0)) {
+        return Result<AiConfirmedTransaction>.failure(
+          const ServerFailure(
+            statusCode: 400,
+            message:
+                'Nama barang dan harga default wajib lengkap sebelum menyimpan produk.',
+          ),
+        );
+      }
+
+      try {
+        final Map<String, Object?> raw =
+            await _dataSource.confirmDraftTransactionRaw(
+          payload,
+          endpoint: '/api/v1/products',
+        );
+        final ApiEnvelopeModel envelope = ApiEnvelopeModel.fromRaw(raw);
+        if (!envelope.success || envelope.data is! Map) {
+          return Result<AiConfirmedTransaction>.failure(
+            EnvelopeFailure(
+              message:
+                  envelope.message ?? 'Gagal menyimpan produk dari draft AI.',
+            ),
+          );
+        }
+
+        final Map<String, Object?> data = _normalizeMap(
+          envelope.data as Map<Object?, Object?>,
+        );
+        final Map<String, Object?> normalizedForModel = <String, Object?>{
+          ...data,
+          'namaTransaksi': data['namaBarang'] ?? data['nama_barang'] ?? namaBarang,
+          'nominal': data['hargaDefault'] ?? data['harga_default'] ?? rawHarga,
+        };
+        return Result<AiConfirmedTransaction>.success(
+          AiConfirmedTransactionModel.fromJson(
+            normalizedForModel,
+            message: envelope.message ?? 'Produk berhasil ditambahkan ke katalog.',
+          ).toEntity(),
+        );
+      } on AppFailure catch (failure) {
+        return Result<AiConfirmedTransaction>.failure(failure);
+      } catch (_) {
+        return Result<AiConfirmedTransaction>.failure(const NetworkFailure());
+      }
+    }
+
     final Object? rawJenisId =
         payload['jenis_transaksi_id'] ?? payload['jenisTransaksiId'];
     final Object rawNominal = payload['nominal'] ?? draft.totalAmount;

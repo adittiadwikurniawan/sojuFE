@@ -155,6 +155,6 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'Batalkan'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Selamat Datang di Buku Kita'), findsOneWidget);
+    expect(find.text('Selamat Datang di SOJU'), findsOneWidget);
   });
 }

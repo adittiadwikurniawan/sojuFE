@@ -132,8 +132,9 @@ class _FakeAiChatDataSource implements AiChatDataSource {
 
   @override
   Future<Map<String, Object?>> confirmDraftTransactionRaw(
-    Map<String, Object?> payload,
-  ) async {
+    Map<String, Object?> payload, {
+    String endpoint = '/api/v1/transactions',
+  }) async {
     if (nextFailure != null) throw nextFailure!;
     lastConfirmPayload = payload;
     return confirmResponse;

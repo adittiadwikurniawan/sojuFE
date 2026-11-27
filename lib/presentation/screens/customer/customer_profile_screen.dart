@@ -356,7 +356,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                 child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(
                     20 * scale,
-                    20 * scale,
+                    12 * scale,
                     20 * scale,
                     kBottomContentInset * scale + 24,
                   ),
@@ -417,7 +417,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                         ],
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
 
                       // Pesan Galat / Sukses bila ada
                       if (controller.errorMessage != null) ...<Widget>[
@@ -425,19 +425,19 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                           message: controller.errorMessage!,
                           isError: true,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                       ],
                       if (controller.passwordError != null) ...<Widget>[
                         _buildMessageBanner(
                           message: controller.passwordError!,
                           isError: true,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                       ],
 
                       // Profil Card Hero
                       Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: SojuColors.surface,
                           borderRadius: BorderRadius.circular(20),
@@ -545,34 +545,117 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                               ],
                             ),
 
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 8),
+                            // Ringkasan 3-Kolom Akun (Compact & User-Friendly)
+                            Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: _buildMiniStatTile(
+                                    label: 'Email',
+                                    value: profile.isEmailVerified
+                                        ? 'Aktif'
+                                        : 'Pending',
+                                    color: profile.isEmailVerified
+                                        ? SojuColors.brandEmerald
+                                        : SojuColors.amberInk,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: _buildMiniStatTile(
+                                    label: 'Promo SMTP',
+                                    value: profile.promotionAllowed
+                                        ? 'Aktif'
+                                        : 'Nonaktif',
+                                    color: profile.promotionAllowed
+                                        ? SojuColors.brandNavy
+                                        : SojuColors.inkMuted,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: _buildMiniStatTile(
+                                    label: 'Alamat',
+                                    value: profile.address.trim().isNotEmpty &&
+                                            profile.address.trim() != '-'
+                                        ? 'Tersimpan'
+                                        : 'Kosong',
+                                    color: SojuColors.brandBlue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
                             const Divider(
                               height: 1,
                               color: SojuColors.hairline,
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 10),
 
                             _buildInfoRow(
                               Icons.phone_outlined,
                               'Nomor Telepon',
                               profile.phone,
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 8),
                             _buildInfoRow(
                               Icons.location_on_outlined,
                               'Alamat Pengiriman',
                               profile.address,
                             ),
-                            const SizedBox(height: 10),
-                            _buildInfoRow(
-                              Icons.campaign_outlined,
-                              'Promosi & Penawaran',
-                              profile.promotionAllowed
-                                  ? 'Diizinkan (Aktif)'
-                                  : 'Nonaktif',
+                            const SizedBox(height: 6),
+                            Row(
+                              children: <Widget>[
+                                const Icon(
+                                  Icons.campaign_outlined,
+                                  size: 16,
+                                  color: SojuColors.inkMuted,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      const Text(
+                                        'Promosi & Email SMTP',
+                                        style: TextStyle(
+                                          fontFamily: AppTypography.family,
+                                          fontSize: 11.5,
+                                          color: SojuColors.inkMuted,
+                                        ),
+                                      ),
+                                      Text(
+                                        profile.promotionAllowed
+                                            ? 'Diizinkan (Aktif)'
+                                            : 'Nonaktif',
+                                        style: const TextStyle(
+                                          fontFamily: AppTypography.family,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: SojuColors.ink,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Switch.adaptive(
+                                  value: profile.promotionAllowed,
+                                  activeColor: SojuColors.brandNavy,
+                                  onChanged: (bool value) {
+                                    _controller.saveProfile(
+                                      name: profile.name,
+                                      email: profile.email,
+                                      phone: profile.phone,
+                                      address: profile.address,
+                                      promotionAllowed: value,
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
 
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 10),
                             SizedBox(
                               width: double.infinity,
                               child: OutlinedButton.icon(
@@ -599,11 +682,11 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
 
                       // Keamanan & Ubah Password Card
                       Container(
-                        padding: const EdgeInsets.all(18),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: SojuColors.surface,
                           borderRadius: BorderRadius.circular(18),
@@ -748,6 +831,48 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMiniStatTile({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: SojuColors.canvas,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: SojuColors.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: AppTypography.family,
+              fontSize: 10.5,
+              color: SojuColors.inkMuted,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: AppTypography.family,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

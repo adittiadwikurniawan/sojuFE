@@ -9,6 +9,7 @@ import '../../widgets/activity_tile.dart';
 import '../../widgets/bar_chart_card.dart';
 import '../../widgets/bottom_glass_overlay.dart';
 import '../../widgets/date_filter_card.dart';
+import '../../widgets/role_badge_pill.dart';
 import '../../widgets/soju_date_calendar_sheet.dart';
 import '../dashboard/models/dashboard_view_data.dart';
 import 'models/analytics_export_request.dart';
@@ -23,6 +24,8 @@ import 'widgets/analytics_top_bar.dart';
 import 'widgets/cash_flow_donut_card.dart';
 import 'widgets/category_breakdown_card.dart';
 import 'widgets/category_icon.dart';
+import 'widgets/pendataan_tab_view.dart';
+import 'widgets/schedule_five_day_strip.dart';
 import 'widgets/summary_hero_card.dart';
 import 'widgets/transaction_tile.dart';
 
@@ -90,6 +93,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   AnalyticsFilter _filter = const AnalyticsFilter();
   late DateTime _visibleMonth;
   bool _userChangedMonth = false;
+  DateTime? _selectedSingleDay;
+  int _activeTabIndex = 0; // 0: Master, 1: Per Jenis, 2: Pendataan
+  int _pageSize = 25;
+  int _currentPage = 1;
+  String? _paymentMethodFilter; // null = Semua, QRIS / Transfer / Tunai / E-Wallet
 
   bool _isExporting = false;
 
@@ -153,6 +161,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     final List<AnalyticsTransaction> visible = data.transactions
         .where(effectiveFilter.matches)
+        .where((AnalyticsTransaction tx) {
+          if (_paymentMethodFilter == null) return true;
+          final String haystack =
+              '${tx.title} ${tx.category}'.toLowerCase();
+          return haystack.contains(_paymentMethodFilter!.toLowerCase());
+        })
         .toList()
       ..sort((AnalyticsTransaction a, AnalyticsTransaction b) =>
           b.date.compareTo(a.date));
@@ -255,87 +269,244 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AnalyticsSearchBar(
-            scale: scale,
-            controller: _searchController,
-            hint: data.searchHint,
-            showClear: _filter.query.isNotEmpty,
-            onChanged: _onQueryChanged,
-            onClear: _clearQuery,
-            isExporting: _isExporting,
-            onExport: () => _export(range, visible, summary),
-          ),
-          SizedBox(height: 16 * scale),
-          AnalyticsFilterChips(
-            scale: scale,
-            totalCount: visible.length,
-            type: _filter.type,
-            category: _filter.category,
-            dateLabel: _filter.range == null
-                ? null
-                : formatDateRange(_filter.range!),
-            onTypeChanged: (TransactionType? type) {
+          SojuUnderlineTabBar(
+            tabs: const <String>['Master', 'Per Jenis', 'Pendataan'],
+            selectedIndex: _activeTabIndex,
+            onSelected: (int index) {
               setState(() {
-                _filter = _filter.withType(type);
+                _activeTabIndex = index;
+                _currentPage = 1;
               });
             },
-            onCategoryTap: () => _pickCategory(range),
-            onReset: _resetAll,
           ),
           SizedBox(height: 14 * scale),
-          DateFilterCard(
-            scale: scale,
-            label: dateLabel,
-            onTap: _pickDateRange,
-            onPreviousMonth: () => _changeMonth(-1),
-            onNextMonth: () => _changeMonth(1),
-          ),
-          SizedBox(height: 14 * scale),
-          SummaryHeroCard(scale: scale, summary: summary),
-          SizedBox(height: 18 * scale),
-          CashFlowDonutCard(scale: scale, summary: summary),
-          SizedBox(height: 18 * scale),
-          BarChartCard(
-            scale: scale,
-            data: _buildChartData(
-              range: range,
-              summary: summary,
-              visible: visible,
-              growth: growth,
+          if (_activeTabIndex == 2) ...<Widget>[
+            PendataanTabView(scale: scale),
+          ] else ...<Widget>[
+            AnalyticsSearchBar(
+              scale: scale,
+              controller: _searchController,
+              hint: data.searchHint,
+              showClear: _filter.query.isNotEmpty,
+              onChanged: _onQueryChanged,
+              onClear: _clearQuery,
+              isExporting: _isExporting,
+              onExport: () => _export(range, visible, summary),
             ),
-          ),
-          SizedBox(height: 22 * scale),
-          _SectionHeading(
-            scale: scale,
-            title: 'Rincian Transaksi',
-            trailing: '$categoryCount Kategori Aktif',
-          ),
-          SizedBox(height: 12 * scale),
-          CategoryBreakdownCard(
-            scale: scale,
-            type: TransactionType.expense,
-            items: expenseCategories,
-            total: summary.expense,
-          ),
-          SizedBox(height: 10 * scale),
-          CategoryBreakdownCard(
-            scale: scale,
-            type: TransactionType.income,
-            items: incomeCategories,
-            total: summary.income,
-          ),
-          SizedBox(height: 22 * scale),
-          _SectionHeading(
-            scale: scale,
-            title: 'Daftar Transaksi',
-            trailing: '${visible.length} Transaksi',
-          ),
-          SizedBox(height: 12 * scale),
-          _buildTransactionList(scale, visible, state: state),
-          SizedBox(height: 22 * scale),
-          _buildActivityHeader(scale),
-          SizedBox(height: 12 * scale),
-          _buildActivityList(scale),
+            SizedBox(height: 14 * scale),
+            AnalyticsFilterChips(
+              scale: scale,
+              totalCount: visible.length,
+              type: _filter.type,
+              category: _filter.category,
+              dateLabel: _filter.range == null
+                  ? null
+                  : formatDateRange(_filter.range!),
+              onTypeChanged: (TransactionType? type) {
+                setState(() {
+                  _filter = _filter.withType(type);
+                  _currentPage = 1;
+                });
+              },
+              onCategoryTap: () => _pickCategory(range),
+              onReset: _resetAll,
+            ),
+            SizedBox(height: 10 * scale),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: <String?>[null, 'QRIS', 'Transfer', 'Tunai', 'E-Wallet']
+                    .map((String? method) {
+                  final bool selected = _paymentMethodFilter == method;
+                  return Padding(
+                    padding: EdgeInsets.only(right: 6 * scale),
+                    child: ChoiceChip(
+                      label: Text(
+                        method ?? 'Semua Metode',
+                        style: TextStyle(
+                          fontFamily: AppTypography.family,
+                          fontSize: 11.5 * scale,
+                          fontWeight:
+                              selected ? FontWeight.w700 : FontWeight.w500,
+                          color: selected ? Colors.white : SojuColors.inkMuted,
+                        ),
+                      ),
+                      selected: selected,
+                      selectedColor: SojuColors.brandNavy,
+                      backgroundColor: SojuColors.surface,
+                      side: BorderSide(
+                        color: selected
+                            ? SojuColors.brandNavy
+                            : SojuColors.cardBorder,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onSelected: (_) {
+                        setState(() {
+                          _paymentMethodFilter = method;
+                          _currentPage = 1;
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            SizedBox(height: 12 * scale),
+            ScheduleFiveDayStrip(
+              scale: scale,
+              anchorDate: _visibleMonth,
+              selectedDay: _selectedSingleDay,
+              onSelectDay: (DateTime day) {
+                final DateTime start = DateTime(day.year, day.month, day.day);
+                final DateTime end =
+                    DateTime(day.year, day.month, day.day, 23, 59, 59);
+                setState(() {
+                  _selectedSingleDay = start;
+                  _visibleMonth = DateTime(day.year, day.month);
+                  _filter = _filter.withRange(
+                    DateTimeRange(start: start, end: end),
+                  );
+                  _currentPage = 1;
+                });
+              },
+              onClearDay: () {
+                setState(() {
+                  _selectedSingleDay = null;
+                  _filter = _filter.withRange(null);
+                  _currentPage = 1;
+                });
+              },
+              onPreviousMonth: () => _changeMonth(-1),
+              onNextMonth: () => _changeMonth(1),
+              onOpenFullCalendar: _pickDateRange,
+            ),
+            SizedBox(height: 12 * scale),
+            DateFilterCard(
+              scale: scale,
+              label: dateLabel,
+              onTap: _pickDateRange,
+              onPreviousMonth: () => _changeMonth(-1),
+              onNextMonth: () => _changeMonth(1),
+            ),
+            SizedBox(height: 14 * scale),
+            SummaryHeroCard(scale: scale, summary: summary),
+            if (_activeTabIndex == 0) ...<Widget>[
+              SizedBox(height: 18 * scale),
+              CashFlowDonutCard(scale: scale, summary: summary),
+              SizedBox(height: 18 * scale),
+              BarChartCard(
+                scale: scale,
+                data: _buildChartData(
+                  range: range,
+                  summary: summary,
+                  visible: visible,
+                  growth: growth,
+                ),
+              ),
+            ],
+            if (_activeTabIndex == 1) ...<Widget>[
+              SizedBox(height: 16 * scale),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 14 * scale,
+                  vertical: 12 * scale,
+                ),
+                decoration: BoxDecoration(
+                  color: SojuColors.blueSoft,
+                  borderRadius: BorderRadius.circular(14 * scale),
+                  border: Border.all(color: SojuColors.freeTableBlueBorder60),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            'Kelola Jenis & Kategori',
+                            style: TextStyle(
+                              fontFamily: AppTypography.family,
+                              fontSize: 13.5 * scale,
+                              fontWeight: FontWeight.w700,
+                              color: SojuColors.brandNavy,
+                            ),
+                          ),
+                          SizedBox(height: 2 * scale),
+                          Text(
+                            'Tambah kategori kas atau tabel baru sesuai kebutuhan.',
+                            style: TextStyle(
+                              fontFamily: AppTypography.family,
+                              fontSize: 11.5 * scale,
+                              color: SojuColors.inkMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 8 * scale),
+                    FilledButton.icon(
+                      key: const Key('analytics_create_type_button'),
+                      onPressed: widget.onAddTap,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: SojuColors.brandNavy,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12 * scale,
+                          vertical: 8 * scale,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10 * scale),
+                        ),
+                      ),
+                      icon: Icon(Icons.add_rounded, size: 16 * scale),
+                      label: Text(
+                        'Buat Jenis',
+                        style: TextStyle(
+                          fontFamily: AppTypography.family,
+                          fontSize: 12 * scale,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            SizedBox(height: 22 * scale),
+            _SectionHeading(
+              scale: scale,
+              title: 'Rincian Transaksi',
+              trailing: '$categoryCount Kategori Aktif',
+            ),
+            SizedBox(height: 12 * scale),
+            CategoryBreakdownCard(
+              scale: scale,
+              type: TransactionType.expense,
+              items: expenseCategories,
+              total: summary.expense,
+            ),
+            SizedBox(height: 10 * scale),
+            CategoryBreakdownCard(
+              scale: scale,
+              type: TransactionType.income,
+              items: incomeCategories,
+              total: summary.income,
+            ),
+            SizedBox(height: 22 * scale),
+            _SectionHeading(
+              scale: scale,
+              title: 'Daftar Transaksi',
+              trailing: '${visible.length} Transaksi',
+            ),
+            SizedBox(height: 12 * scale),
+            _buildTransactionList(scale, visible, state: state),
+            SizedBox(height: 22 * scale),
+            _buildActivityHeader(scale),
+            SizedBox(height: 12 * scale),
+            _buildActivityList(scale),
+          ],
         ],
       ),
     );
@@ -513,28 +684,139 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: SojuColors.surface,
-        borderRadius: BorderRadius.circular(18 * scale),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: <Widget>[
-          for (int index = 0; index < visible.length; index++) ...<Widget>[
-            if (index > 0)
-              const Divider(
-                  height: 1, thickness: 1, color: SojuColors.hairline),
-            TransactionTile(
-              scale: scale,
-              transaction: visible[index],
-              onTap: widget.onTransactionTap == null
-                  ? null
-                  : () => widget.onTransactionTap!(visible[index]),
+    final int totalPages = math.max(1, (visible.length / _pageSize).ceil());
+    final int safePage = _currentPage.clamp(1, totalPages);
+    final int startIdx = (safePage - 1) * _pageSize;
+    final int endIdx = math.min(startIdx + _pageSize, visible.length);
+    final List<AnalyticsTransaction> paged = visible.sublist(startIdx, endIdx);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Container(
+          decoration: BoxDecoration(
+            color: SojuColors.surface,
+            borderRadius: BorderRadius.circular(18 * scale),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: <Widget>[
+              for (int index = 0; index < paged.length; index++) ...<Widget>[
+                if (index > 0)
+                  const Divider(
+                      height: 1, thickness: 1, color: SojuColors.hairline),
+                TransactionTile(
+                  scale: scale,
+                  transaction: paged[index],
+                  onTap: widget.onTransactionTap == null
+                      ? null
+                      : () => widget.onTransactionTap!(paged[index]),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (visible.length > 5) ...<Widget>[
+          SizedBox(height: 10 * scale),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 12 * scale,
+              vertical: 8 * scale,
             ),
-          ],
+            decoration: BoxDecoration(
+              color: SojuColors.surface,
+              borderRadius: BorderRadius.circular(12 * scale),
+              border: Border.all(color: SojuColors.cardBorder),
+            ),
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
+              children: <Widget>[
+                Text(
+                  '${startIdx + 1}-$endIdx dari ${visible.length}',
+                  style: TextStyle(
+                    fontFamily: AppTypography.family,
+                    fontSize: 11.5 * scale,
+                    fontWeight: FontWeight.w600,
+                    color: SojuColors.inkMuted,
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _pageSize,
+                        isDense: true,
+                        style: TextStyle(
+                          fontFamily: AppTypography.family,
+                          fontSize: 11.5 * scale,
+                          fontWeight: FontWeight.w700,
+                          color: SojuColors.brandNavy,
+                        ),
+                        items: const <int>[5, 10, 25, 50]
+                            .map(
+                              (int n) => DropdownMenuItem<int>(
+                                value: n,
+                                child: Text('$n / hal'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (int? val) {
+                          if (val != null) {
+                            setState(() {
+                              _pageSize = val;
+                              _currentPage = 1;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      tooltip: 'Halaman sebelumnya',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: safePage > 1
+                          ? () => setState(() => _currentPage = safePage - 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_left_rounded, size: 19),
+                    ),
+                    Text(
+                      '$safePage/$totalPages',
+                      style: TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 11.5 * scale,
+                        fontWeight: FontWeight.w700,
+                        color: SojuColors.ink,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Halaman berikutnya',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: safePage < totalPages
+                          ? () => setState(() => _currentPage = safePage + 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_right_rounded, size: 19),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
-      ),
+      ],
     );
   }
 
@@ -614,6 +896,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   void _resetAll() {
     _searchController.clear();
     setState(() {
+      _selectedSingleDay = null;
+      _paymentMethodFilter = null;
+      _currentPage = 1;
       _filter = const AnalyticsFilter();
     });
   }
@@ -621,6 +906,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   void _changeMonth(int delta) {
     setState(() {
       _userChangedMonth = true;
+      _selectedSingleDay = null;
+      _currentPage = 1;
       _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
       _filter = _filter.withRange(null);
     });

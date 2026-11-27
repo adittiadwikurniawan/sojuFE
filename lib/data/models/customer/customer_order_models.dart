@@ -105,6 +105,13 @@ class CustomerOrderModel {
     required this.createdAt,
     this.updatedAt,
     this.items = const <CustomerOrderItemModel>[],
+    this.paymentStatus = CustomerPaymentStatus.pending,
+    this.paymentMethod,
+    this.midtransOrderId,
+    this.snapToken,
+    this.snapRedirectUrl,
+    this.paymentExpiredAt,
+    this.paidAt,
   });
 
   factory CustomerOrderModel.fromJson(Map<String, Object?> json) {
@@ -128,6 +135,26 @@ class CustomerOrderModel {
     final DateTime? updatedAt =
         rawUpdate.isNotEmpty ? DateTime.tryParse(rawUpdate) : null;
 
+    final String rawExpired = _asString(
+      json['paymentExpiredAt'] ?? json['payment_expired_at'],
+    );
+    final DateTime? paymentExpiredAt =
+        rawExpired.isNotEmpty ? DateTime.tryParse(rawExpired) : null;
+
+    final String rawPaidAt = _asString(json['paidAt'] ?? json['paid_at']);
+    final DateTime? paidAt =
+        rawPaidAt.isNotEmpty ? DateTime.tryParse(rawPaidAt) : null;
+
+    final String? paymentMethodRaw =
+        (json['paymentMethod'] ?? json['payment_method']) as String?;
+    final String? midtransOrderIdRaw =
+        (json['midtransOrderId'] ?? json['midtrans_order_id']) as String?;
+    final String? snapTokenRaw =
+        (json['snapToken'] ?? json['snap_token']) as String?;
+    final String? snapRedirectUrlRaw = (json['snapRedirectUrl'] ??
+        json['snap_redirect_url'] ??
+        json['redirectUrl']) as String?;
+
     return CustomerOrderModel(
       id: _asInt(json['id']),
       code: _asString(json['kode'] ?? json['code']),
@@ -147,6 +174,15 @@ class CustomerOrderModel {
       createdAt: createdAt,
       updatedAt: updatedAt,
       items: parsedItems,
+      paymentStatus: CustomerPaymentStatus.fromRaw(
+        _asString(json['paymentStatus'] ?? json['payment_status']),
+      ),
+      paymentMethod: paymentMethodRaw,
+      midtransOrderId: midtransOrderIdRaw,
+      snapToken: snapTokenRaw,
+      snapRedirectUrl: snapRedirectUrlRaw,
+      paymentExpiredAt: paymentExpiredAt,
+      paidAt: paidAt,
     );
   }
 
@@ -162,6 +198,13 @@ class CustomerOrderModel {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final List<CustomerOrderItemModel> items;
+  final CustomerPaymentStatus paymentStatus;
+  final String? paymentMethod;
+  final String? midtransOrderId;
+  final String? snapToken;
+  final String? snapRedirectUrl;
+  final DateTime? paymentExpiredAt;
+  final DateTime? paidAt;
 
   CustomerOrder toEntity() {
     return CustomerOrder(
@@ -177,6 +220,13 @@ class CustomerOrderModel {
       createdAt: createdAt,
       updatedAt: updatedAt,
       items: items.map((CustomerOrderItemModel i) => i.toEntity()).toList(),
+      paymentStatus: paymentStatus,
+      paymentMethod: paymentMethod,
+      midtransOrderId: midtransOrderId,
+      snapToken: snapToken,
+      snapRedirectUrl: snapRedirectUrl,
+      paymentExpiredAt: paymentExpiredAt,
+      paidAt: paidAt,
     );
   }
 
@@ -193,6 +243,13 @@ class CustomerOrderModel {
       'status': status.raw,
       'dibuatPada': createdAt.toIso8601String(),
       'diperbaruiPada': updatedAt?.toIso8601String(),
+      'paymentStatus': paymentStatus.raw,
+      'paymentMethod': paymentMethod,
+      'midtransOrderId': midtransOrderId,
+      'snapToken': snapToken,
+      'snapRedirectUrl': snapRedirectUrl,
+      'paymentExpiredAt': paymentExpiredAt?.toIso8601String(),
+      'paidAt': paidAt?.toIso8601String(),
       'item': items.map((CustomerOrderItemModel i) => i.toJson()).toList(),
     };
   }

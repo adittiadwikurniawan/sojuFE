@@ -28,6 +28,7 @@ class AuthScreen extends StatefulWidget {
     this.onOpenPrivacy,
     this.onTabChanged,
     this.onFieldChanged,
+    this.onBrowseAsGuest,
     this.isLoginLoading = false,
     this.loginError,
     this.isRegisterLoading = false,
@@ -54,6 +55,9 @@ class AuthScreen extends StatefulWidget {
 
   /// Dipanggil saat isian form berubah, untuk menghapus galat lama.
   final VoidCallback? onFieldChanged;
+
+  /// Aksi opsional untuk langsung menjelajahi Beranda & Menu sebagai Tamu (Guest).
+  final VoidCallback? onBrowseAsGuest;
 
   final bool isLoginLoading;
   final String? loginError;
@@ -94,7 +98,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SojuColors.surface,
+      backgroundColor: SojuColors.canvas,
       body: PageView(
         controller: _controller,
         onPageChanged: (int index) {
@@ -126,6 +130,41 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: widget.onBrowseAsGuest == null
+          ? null
+          : SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+                decoration: const BoxDecoration(
+                  color: SojuColors.surface,
+                  border: Border(
+                    top: BorderSide(color: SojuColors.cardBorder),
+                  ),
+                ),
+                child: OutlinedButton.icon(
+                  key: const Key('auth_browse_as_guest_button'),
+                  onPressed: widget.onBrowseAsGuest,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: SojuColors.brandNavy,
+                    side: const BorderSide(color: SojuColors.cardBorder),
+                    backgroundColor: SojuColors.canvas,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.storefront_outlined, size: 18),
+                  label: const Text(
+                    'Lanjut Jelajah Sebagai Tamu',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }

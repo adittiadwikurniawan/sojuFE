@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
+import '../../../widgets/role_badge_pill.dart';
 
 /// Tab pada header layar auth.
 enum AuthTab {
@@ -17,11 +18,10 @@ enum AuthTab {
   final String label;
 }
 
-/// Header layar auth (frame `546:1547`, node `546:1603`): logo, judul,
-/// subjudul, dan tab "Masuk"/"Daftar".
-///
-/// Dipakai bersama oleh layar masuk dan daftar; layar cukup menentukan
-/// [activeTab] dan [onTabSelected].
+/// Header layar auth 1:1 mengikuti `renderAuthFullPage()` pada HTML prototype:
+/// - Latar gradien halus `brandNavy/5 -> surface`
+/// - Emblem bulat SOJU di tengah + judul `Buku Dapur SOJU`
+/// - Segmented pill switcher (`Masuk` | `Daftar`) dengan pil aktif `brandNavy`
 class AuthHeader extends StatelessWidget {
   const AuthHeader({
     super.key,
@@ -38,48 +38,65 @@ class AuthHeader extends StatelessWidget {
   final AuthTab activeTab;
   final ValueChanged<AuthTab>? onTabSelected;
 
-  static const String _logoAsset = 'assets/images/logo_bukukita.png';
-
   @override
   Widget build(BuildContext context) {
     final double topInset = MediaQuery.paddingOf(context).top;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: SojuColors.surface,
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Color(0x40000000),
-            offset: Offset(0, 1),
-            blurRadius: 14,
-          ),
-        ],
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            SojuColors.brandNavy.withOpacity(0.08),
+            SojuColors.canvas,
+          ],
+        ),
       ),
-      padding: EdgeInsets.only(
-        top: topInset + 8 * scale,
-        bottom: 12 * scale,
+      padding: EdgeInsets.fromLTRB(
+        20 * scale,
+        topInset + 20 * scale,
+        20 * scale,
+        8 * scale,
       ),
       child: Column(
         children: <Widget>[
-          SizedBox(
-            height: 56 * scale,
-            child: Image.asset(_logoAsset, fit: BoxFit.contain),
+          Container(
+            width: 72 * scale,
+            height: 72 * scale,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: SojuColors.surface,
+              border: Border.all(
+                color: SojuColors.brandNavy.withOpacity(0.14),
+                width: 2,
+              ),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: SojuColors.brandNavy.withOpacity(0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: SojuLogoEmblem(size: 52 * scale),
           ),
-          SizedBox(height: 8 * scale),
+          SizedBox(height: 12 * scale),
           Text(
             title,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppTypography.family,
-              fontSize: 28 * scale,
-              fontWeight: FontWeight.w700,
-              height: 34 / 28,
-              color: Colors.black,
+              fontSize: 21 * scale,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+              color: SojuColors.brandNavy,
             ),
           ),
           SizedBox(height: 4 * scale),
           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 300 * scale),
+            constraints: BoxConstraints(maxWidth: 320 * scale),
             child: Text(
               subtitle,
               textAlign: TextAlign.center,
@@ -87,23 +104,33 @@ class AuthHeader extends StatelessWidget {
                 fontFamily: AppTypography.family,
                 fontSize: 12 * scale,
                 fontWeight: FontWeight.w500,
-                height: 22.75 / 12,
+                height: 1.4,
                 color: SojuColors.inkMuted,
               ),
             ),
           ),
-          SizedBox(height: 20 * scale),
-          Row(
-            children: <Widget>[
-              for (final AuthTab tab in AuthTab.values)
-                Expanded(
+          SizedBox(height: 18 * scale),
+          // Segmented Pill Switcher 1:1 HTML
+          Container(
+            padding: EdgeInsets.all(4 * scale),
+            decoration: BoxDecoration(
+              color: SojuColors.surface,
+              borderRadius: BorderRadius.circular(16 * scale),
+              border: Border.all(color: SojuColors.cardBorder),
+            ),
+            child: Row(
+              children: <Widget>[
+                for (final AuthTab tab in AuthTab.values)
+                  Expanded(
                     child: _AuthTabButton(
-                  scale: scale,
-                  tab: tab,
-                  active: tab == activeTab,
-                  onTap: onTabSelected,
-                )),
-            ],
+                      scale: scale,
+                      tab: tab,
+                      active: tab == activeTab,
+                      onTap: onTabSelected,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -126,34 +153,27 @@ class _AuthTabButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color color = active ? SojuColors.tabActive : Colors.black;
-
     return Semantics(
       selected: active,
       button: true,
-      child: InkWell(
-        onTap: onTap == null ? null : () => onTap!(tab),
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 6 * scale),
-          child: Column(
-            children: <Widget>[
-              Text(
-                tab.label,
-                style: TextStyle(
-                  fontFamily: AppTypography.family,
-                  fontSize: 18 * scale,
-                  fontWeight: FontWeight.w600,
-                  height: 22.75 / 18,
-                  color: color,
-                ),
+      child: Material(
+        color: active ? SojuColors.brandNavy : Colors.transparent,
+        borderRadius: BorderRadius.circular(12 * scale),
+        child: InkWell(
+          onTap: onTap == null ? null : () => onTap!(tab),
+          borderRadius: BorderRadius.circular(12 * scale),
+          child: Container(
+            padding: EdgeInsets.symmetric(vertical: 10 * scale),
+            alignment: Alignment.center,
+            child: Text(
+              tab.label,
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 14 * scale,
+                fontWeight: FontWeight.w700,
+                color: active ? Colors.white : SojuColors.inkMuted,
               ),
-              SizedBox(height: 6 * scale),
-              Container(
-                height: 2 * scale,
-                width: 44 * scale,
-                color: active ? SojuColors.tabActive : Colors.transparent,
-              ),
-            ],
+            ),
           ),
         ),
       ),

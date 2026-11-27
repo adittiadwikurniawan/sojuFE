@@ -9,6 +9,7 @@ import '../../utils/format.dart';
 import '../../widgets/activity_tile.dart';
 import '../../widgets/bottom_glass_overlay.dart';
 import '../../widgets/profile_menu.dart';
+import '../../widgets/role_badge_pill.dart';
 import '../../widgets/soju_date_calendar_sheet.dart';
 import '../profile/models/profile_view_data.dart';
 import 'models/dashboard_view_data.dart';
@@ -197,7 +198,101 @@ class _DashboardScreenState extends State<DashboardScreen> {
               else if (state != null && state.status == DashboardStatus.error)
                 _buildErrorState(scale, state.errorMessage)
               else ...<Widget>[
-                SizedBox(height: 16 * scale),
+                SizedBox(height: 12 * scale),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16 * scale),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14 * scale,
+                      vertical: 10 * scale,
+                    ),
+                    decoration: BoxDecoration(
+                      color: SojuColors.surface,
+                      borderRadius: BorderRadius.circular(16 * scale),
+                      border: Border.all(color: SojuColors.cardBorder),
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                'Halo, ${widget.profile.name}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: AppTypography.family,
+                                  fontSize: 14 * scale,
+                                  fontWeight: FontWeight.w700,
+                                  color: SojuColors.ink,
+                                ),
+                              ),
+                              SizedBox(height: 2 * scale),
+                              Text(
+                                'Pantau ringkasan kas & pesanan hari ini',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: AppTypography.family,
+                                  fontSize: 11.5 * scale,
+                                  color: SojuColors.inkMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 8 * scale),
+                        RoleBadgePill.fromCode(
+                          widget.profile.role,
+                          compact: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10 * scale),
+                // Aksi Cepat Admin & Super Admin (sesuai desain HTML)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16 * scale),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: _QuickShortcutTile(
+                          scale: scale,
+                          icon: Icons.bar_chart_rounded,
+                          label: 'Data Kas',
+                          color: SojuColors.brandNavy,
+                          bg: SojuColors.blueSoft,
+                          onTap: widget.onAnalyticsTap,
+                        ),
+                      ),
+                      SizedBox(width: 8 * scale),
+                      Expanded(
+                        child: _QuickShortcutTile(
+                          scale: scale,
+                          icon: Icons.notifications_active_outlined,
+                          label: 'Notifikasi',
+                          color: SojuColors.amberInk,
+                          bg: SojuColors.amberSoft,
+                          onTap: widget.onNotificationTap,
+                        ),
+                      ),
+                      SizedBox(width: 8 * scale),
+                      Expanded(
+                        child: _QuickShortcutTile(
+                          scale: scale,
+                          icon: Icons.history_rounded,
+                          label: 'Riwayat',
+                          color: SojuColors.brandEmerald,
+                          bg: SojuColors.incomeSoft,
+                          onTap: widget.onSeeAllActivities,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 14 * scale),
                 _buildMetrics(scale, effectiveData),
                 SizedBox(height: 32 * scale),
                 Padding(
@@ -460,6 +555,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16 * scale),
       child: Column(children: children),
+    );
+  }
+}
+
+class _QuickShortcutTile extends StatelessWidget {
+  const _QuickShortcutTile({
+    required this.scale,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.bg,
+    this.onTap,
+  });
+
+  final double scale;
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color bg;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: SojuColors.surface,
+      borderRadius: BorderRadius.circular(14 * scale),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14 * scale),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: 8 * scale,
+            vertical: 9 * scale,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14 * scale),
+            border: Border.all(color: SojuColors.cardBorder),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                width: 26 * scale,
+                height: 26 * scale,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(8 * scale),
+                ),
+                child: Icon(icon, size: 15 * scale, color: color),
+              ),
+              SizedBox(width: 6 * scale),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTypography.family,
+                    fontSize: 11.5 * scale,
+                    fontWeight: FontWeight.w700,
+                    color: SojuColors.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

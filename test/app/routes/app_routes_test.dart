@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:soju_fe/app/config/app_features.dart';
 import 'package:soju_fe/app/routes/app_routes.dart';
 import 'package:soju_fe/core/common/result.dart';
 import 'package:soju_fe/core/errors/app_failure.dart';
@@ -28,7 +27,6 @@ import 'package:soju_fe/presentation/screens/chatbot/chatbot_screen.dart';
 import 'package:soju_fe/presentation/screens/dashboard/dashboard_screen.dart';
 import 'package:soju_fe/presentation/screens/free_tables/free_table_category_screen.dart';
 import 'package:soju_fe/presentation/screens/notifications/notifications_screen.dart';
-import 'package:soju_fe/presentation/screens/onboarding/splash_screen.dart';
 import 'package:soju_fe/presentation/screens/profile/change_password_screen.dart';
 import 'package:soju_fe/presentation/screens/profile/help_detail_screen.dart';
 import 'package:soju_fe/presentation/screens/profile/help_topics_screen.dart';
@@ -37,8 +35,6 @@ import 'package:soju_fe/presentation/screens/profile/profile_account_screen.dart
 import 'package:soju_fe/presentation/screens/profile/profile_screen.dart';
 import 'package:soju_fe/presentation/screens/profile/profile_settings_screen.dart';
 import 'package:soju_fe/presentation/screens/profile/terms_screen.dart';
-import 'package:soju_fe/presentation/screens/prototype/sales_chat/sales_chat_prototype_disabled_screen.dart';
-import 'package:soju_fe/presentation/screens/prototype/sales_chat/sales_chat_prototype_screen.dart';
 import 'package:soju_fe/presentation/widgets/admin_drawer.dart';
 import 'package:soju_fe/presentation/widgets/bottom_nav_bar.dart';
 import 'package:soju_fe/presentation/widgets/customer_bottom_nav_bar.dart';
@@ -174,7 +170,7 @@ const AuthUser _superAdminUser = AuthUser(
 );
 
 void main() {
-  testWidgets('lokasi root diarahkan ke splash, bukan layar kosong', (
+  testWidgets('lokasi root diarahkan ke Beranda Tamu SOJU, bukan layar kosong', (
     WidgetTester tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
@@ -188,8 +184,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(SplashScreen), findsOneWidget);
-    expect(find.text('Mulai Sekarang'), findsOneWidget);
+    expect(find.byKey(const Key('customer_home_screen')), findsOneWidget);
+    expect(find.text('Menu Unggulan ★'), findsOneWidget);
   });
 
   testWidgets('tombol kembali chatbot membuka Beranda saat tanpa riwayat', (
@@ -481,7 +477,7 @@ void main() {
         final Text activeLabel = tester.widget<Text>(
           find.descendant(of: nav, matching: find.text(entry.value)),
         );
-        expect(activeLabel.style?.color, SojuColors.primary);
+        expect(activeLabel.style?.color, SojuColors.brandNavy);
       },
     );
   }
@@ -531,7 +527,7 @@ void main() {
         final Text activeLabel = tester.widget<Text>(
           find.descendant(of: nav, matching: find.text(entry.value)),
         );
-        expect(activeLabel.style?.color, SojuColors.primary);
+        expect(activeLabel.style?.color, SojuColors.brandNavy);
       },
     );
   }
@@ -607,52 +603,6 @@ void main() {
     expect(find.byType(BukuDapurBottomNavBar), findsOneWidget);
     expect(find.text('Penjualan Harian/Shift'), findsNothing);
     expect(find.text('Pratinjau'), findsNothing);
-  });
-
-  testWidgets('rute prototype tetap tertutup saat flag default nonaktif', (
-    WidgetTester tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(430, 932));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-
-    final GoRouter router = AppRouter.create(
-      initialLocation: AppRoutes.salesChatPrototype,
-    );
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byType(SalesChatPrototypeDisabledScreen), findsOneWidget);
-    expect(find.byType(SalesChatPrototypeScreen), findsNothing);
-    expect(find.text('Prototype belum aktif'), findsOneWidget);
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
-  });
-
-  testWidgets('flag prototype menampilkan layar chat penjualan tanpa navbar', (
-    WidgetTester tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(430, 932));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-
-    final GoRouter router = AppRouter.create(
-      initialLocation: AppRoutes.salesChatPrototype,
-      features: const AppFeatures(salesChatPrototype: true),
-    );
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byType(SalesChatPrototypeScreen), findsOneWidget);
-    expect(find.byType(BukuDapurBottomNavBar), findsNothing);
-    expect(find.text('Penjualan Harian/Shift'), findsOneWidget);
-    expect(find.text('Pratinjau'), findsOneWidget);
-    expect(find.text('Mode demo — data tidak disimpan'), findsOneWidget);
   });
 
   testWidgets('avatar Beranda membuka menu profil, lalu detail Profil', (
@@ -903,9 +853,10 @@ void main() {
           AppRoutes.adminUsers,
           AppRoutes.adminCms,
           AppRoutes.adminCrm,
-          AppRoutes.customerHome,
           AppRoutes.customerCart,
           AppRoutes.customerCheckout,
+          AppRoutes.customerOrders,
+          AppRoutes.customerAccount,
         ]) {
           router.go(protectedRoute);
           await tester.pumpAndSettle();
@@ -913,6 +864,20 @@ void main() {
             router.state.uri.path,
             AppRoutes.login,
             reason: 'Rute $protectedRoute wajib diblokir saat belum login.',
+          );
+        }
+
+        // Guest dapat mengakses Beranda & Katalog Menu tanpa login terlebih dahulu.
+        for (final String guestRoute in <String>[
+          AppRoutes.customerHome,
+          AppRoutes.customerMenu,
+        ]) {
+          router.go(guestRoute);
+          await tester.pumpAndSettle();
+          expect(
+            router.state.uri.path,
+            guestRoute,
+            reason: 'Rute publik $guestRoute seharusnya dapat dibuka tamu.',
           );
         }
       },
@@ -1213,6 +1178,11 @@ void main() {
         expect(find.byType(CustomerBottomNavBar), findsOneWidget);
 
         await auth.logout();
+        await tester.pumpAndSettle();
+        // Setelah logout di Beranda Pelanggan, pengguna tetap dapat melihat etalase sebagai Tamu.
+        expect(router.state.uri.path, AppRoutes.customerHome);
+
+        router.go(AppRoutes.login);
         await tester.pumpAndSettle();
         expect(router.state.uri.path, AppRoutes.login);
 

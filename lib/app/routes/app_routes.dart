@@ -11,7 +11,6 @@ import '../../presentation/providers/profile/help_detail_controller.dart';
 import '../../presentation/providers/profile/help_topics_controller.dart';
 import '../../presentation/providers/profile/notification_preferences_controller.dart';
 import '../../presentation/providers/profile/profile_controller.dart';
-import '../../presentation/providers/sales_chat/sales_chat_controller.dart';
 import '../../presentation/providers/storefront/customer_cart_controller.dart';
 import '../../presentation/providers/storefront/customer_catalog_controller.dart';
 import '../../presentation/providers/customer/customer_checkout_controller.dart';
@@ -40,8 +39,6 @@ import '../../presentation/screens/customer/customer_profile_screen.dart';
 import '../../presentation/screens/dashboard/dashboard_screen.dart';
 import '../../presentation/screens/free_tables/free_table_category_screen.dart';
 import '../../presentation/screens/notifications/notifications_screen.dart';
-import '../../presentation/screens/onboarding/onboarding_screen.dart';
-import '../../presentation/screens/onboarding/splash_screen.dart';
 import '../../presentation/screens/profile/change_password_screen.dart';
 import '../../presentation/screens/profile/help_detail_screen.dart';
 import '../../presentation/screens/profile/help_topics_screen.dart';
@@ -51,8 +48,6 @@ import '../../presentation/screens/profile/profile_account_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/profile/profile_settings_screen.dart';
 import '../../presentation/screens/profile/terms_screen.dart';
-import '../../presentation/screens/prototype/sales_chat/sales_chat_prototype_disabled_screen.dart';
-import '../../presentation/screens/prototype/sales_chat/sales_chat_prototype_screen.dart';
 import '../../presentation/widgets/admin_drawer.dart';
 import '../../presentation/widgets/bottom_glass_overlay.dart';
 import '../../presentation/widgets/bottom_nav_bar.dart';
@@ -224,7 +219,7 @@ abstract final class AppRouter {
   /// rute dapat dirender langsung tanpa redirect sesi agar test komponen lama
   /// tetap terfokus pada layar masing-masing.
   static GoRouter create({
-    String initialLocation = AppRoutes.splash,
+    String initialLocation = AppRoutes.customerHome,
     AppFeatures features = const AppFeatures(),
     AuthController? authController,
     CustomerCartController? cartController,
@@ -284,18 +279,18 @@ abstract final class AppRouter {
                 authController.state.user != null) {
               return homeRouteForRole(authController.state.role);
             }
-            return AppRoutes.splash;
+            return AppRoutes.customerHome;
           },
         ),
         GoRoute(
           path: AppRoutes.splash,
-          builder: (BuildContext context, GoRouterState state) =>
-              const SplashScreen(),
+          redirect: (BuildContext context, GoRouterState state) =>
+              AppRoutes.customerHome,
         ),
         GoRoute(
           path: AppRoutes.onboarding,
-          builder: (BuildContext context, GoRouterState state) =>
-              const OnboardingScreen(),
+          redirect: (BuildContext context, GoRouterState state) =>
+              AppRoutes.customerHome,
         ),
         GoRoute(
           path: AppRoutes.login,
@@ -406,6 +401,20 @@ abstract final class AppRouter {
                     onBrowseMenu: () => context.go(AppRoutes.customerMenu),
                     onViewOrders: () => context.go(AppRoutes.customerOrders),
                     onOpenCart: () => context.go(AppRoutes.customerCart),
+                    onLoginTap: () => context.go(AppRoutes.login),
+                    onNotificationTap: user != null
+                        ? () => context.push(AppRoutes.notifications)
+                        : null,
+                    catalogControllerFactory: () => CustomerCatalogController(
+                      getProducts: DataProviders.getCatalogProducts(),
+                    ),
+                    ordersControllerFactory: user != null
+                        ? () => CustomerOrdersController(
+                              getOrders: DataProviders.getCustomerOrders(),
+                              getOrderDetail:
+                                  DataProviders.getCustomerOrderDetail(),
+                            )
+                        : null,
                   ),
                 ),
               ),
@@ -827,24 +836,6 @@ abstract final class AppRouter {
           },
         ),
         GoRoute(
-          path: AppRoutes.salesChatPrototype,
-          builder: (BuildContext context, GoRouterState state) {
-            if (!features.salesChatPrototype) {
-              return SalesChatPrototypeDisabledScreen(
-                onBack: () => _popOrDashboard(context),
-              );
-            }
-            return SalesChatPrototypeScreen(
-              onBack: () => _popOrDashboard(context),
-              controllerFactory: () => SalesChatController(
-                parseRecap: DataProviders.parseSalesChatRecap(),
-                initialDraft: DataProviders.salesChatSampleDraft(),
-                initialUserText: SalesChatController.sampleRecapInput,
-              ),
-            );
-          },
-        ),
-        GoRoute(
           path: AppRoutes.freeTableCreate,
           builder: (BuildContext context, GoRouterState state) =>
               FreeTableCategoryScreen(
@@ -1009,6 +1000,13 @@ abstract final class AppRouter {
     AppRoutes.resetPassword,
   };
 
+  /// Rute etalase publik yang dapat dijelajahi tamu (Guest) tanpa wajib login.
+  /// Keranjang, Checkout, Pesanan, Akun, dan portal Admin tetap mewajibkan login.
+  static const Set<String> _publicGuestStorefrontLocations = <String>{
+    AppRoutes.customerHome,
+    AppRoutes.customerMenu,
+  };
+
   /// Apakah [location] termasuk ruang rute Pelanggan (`/customer` & `/customer/*`).
   static bool _isCustomerRoute(String location) {
     return location == AppRoutes.customerHome ||
@@ -1034,11 +1032,13 @@ abstract final class AppRouter {
         state.matchedLocation.isEmpty ? state.uri.path : state.matchedLocation;
     final String location = _normalizePath(rawLocation);
     final bool isPublicAuth = _publicAuthLocations.contains(location);
+    final bool isGuestStorefront =
+        _publicGuestStorefrontLocations.contains(location);
 
     // Tahan perpindahan saat bootstrap sedang memvalidasi token tersimpan,
     // namun jangan biarkan rute terlindung dirender sebelum sesi selesai dicek.
     if (status == AuthStatus.checking) {
-      return isPublicAuth ? null : AppRoutes.splash;
+      return (isPublicAuth || isGuestStorefront) ? null : AppRoutes.customerHome;
     }
 
     final AuthUser? user = controller.state.user;
@@ -1050,9 +1050,12 @@ abstract final class AppRouter {
         return roleHome;
       }
 
-      // Isolasi Pelanggan: hanya boleh mengakses rute `/customer` & `/customer/*`.
+      // Isolasi Pelanggan: hanya boleh mengakses rute `/customer`, `/customer/*`, & `/notifications`.
       if (role.isCustomer) {
-        return _isCustomerRoute(location) ? null : AppRoutes.customerHome;
+        return (_isCustomerRoute(location) ||
+                location == AppRoutes.notifications)
+            ? null
+            : AppRoutes.customerHome;
       }
 
       // Isolasi Admin & Super Admin: tidak boleh mengakses rute Pelanggan.
@@ -1068,7 +1071,7 @@ abstract final class AppRouter {
       return null;
     }
 
-    if (!isPublicAuth) {
+    if (!isPublicAuth && !isGuestStorefront) {
       return AppRoutes.login;
     }
 
@@ -1127,6 +1130,7 @@ class _AuthRoute extends StatelessWidget {
         onForgotPasswordWithPortal: (AuthPortal portal) => context.go(
           '${AppRoutes.forgotPassword}?peran=${portal.name}',
         ),
+        onBrowseAsGuest: () => context.go(AppRoutes.customerHome),
       );
     }
 
@@ -1172,6 +1176,7 @@ class _AuthRoute extends StatelessWidget {
           ),
           onTabChanged: auth.clearError,
           onFieldChanged: auth.clearError,
+          onBrowseAsGuest: () => context.go(AppRoutes.customerHome),
         );
       },
     );

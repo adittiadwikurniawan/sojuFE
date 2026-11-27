@@ -138,7 +138,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 children: <Widget>[
                   AuthHeader(
                     scale: scale,
-                    title: 'Selamat Datang di Buku Kita',
+                    title: 'Selamat Datang di SOJU',
                     subtitle:
                         'Buat akun pelanggan untuk memesan menu dan memantau pesananmu.',
                     activeTab: AuthTab.register,
@@ -147,11 +147,25 @@ class _RegisterScreenState extends State<RegisterScreen>
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       20 * scale,
-                      24 * scale,
+                      12 * scale,
                       20 * scale,
                       0,
                     ),
-                    child: AutofillGroup(
+                    child: Container(
+                      padding: EdgeInsets.all(18 * scale),
+                      decoration: BoxDecoration(
+                        color: SojuColors.surface,
+                        borderRadius: BorderRadius.circular(24 * scale),
+                        border: Border.all(color: SojuColors.cardBorder),
+                        boxShadow: const <BoxShadow>[
+                          BoxShadow(
+                            color: Color(0x0A0F172A),
+                            blurRadius: 14,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: AutofillGroup(
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -362,6 +376,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                           ],
                         ),
                       ),
+                    ),
                     ),
                   ),
                 ],

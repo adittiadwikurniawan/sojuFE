@@ -7,45 +7,32 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
+import '../../../widgets/smart_auto_fit_image.dart';
 
-/// Gambar produk jaringan dengan placeholder bila kosong/gagal dimuat.
+/// Gambar produk dengan mode **Smart Auto-Fit Utuh** (tanpa terpotong + blur backdrop).
 class StorefrontProductImage extends StatelessWidget {
   const StorefrontProductImage({
     super.key,
     required this.url,
     this.size = 64,
     this.radius = 14,
+    this.enableLightbox = false,
   });
 
   final String? url;
   final double size;
   final double radius;
+  final bool enableLightbox;
 
   @override
   Widget build(BuildContext context) {
-    final Widget placeholder = Container(
+    return SmartAutoFitImage(
+      imageUrl: url,
       width: size,
       height: size,
-      color: SojuColors.infoSoft,
-      alignment: Alignment.center,
-      child: Icon(
-        Icons.restaurant_rounded,
-        size: size * 0.42,
-        color: SojuColors.primary,
-      ),
-    );
-    final String? src = url;
-    return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: src == null || src.isEmpty
-          ? placeholder
-          : Image.network(
-              src,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => placeholder,
-            ),
+      enableLightbox: enableLightbox,
+      placeholderIcon: Icons.restaurant_rounded,
     );
   }
 }

@@ -14,8 +14,9 @@ abstract interface class AiChatDataSource {
   });
 
   Future<Map<String, Object?>> confirmDraftTransactionRaw(
-    Map<String, Object?> payload,
-  );
+    Map<String, Object?> payload, {
+    String endpoint = '/api/v1/transactions',
+  });
 
   Future<Map<String, Object?>> triggerReindexRaw();
 }

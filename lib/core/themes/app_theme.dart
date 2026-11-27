@@ -10,23 +10,25 @@ import 'soju_colors.dart';
 class AppTheme {
   const AppTheme._();
 
-  /// Tema terang aplikasi.
+  /// Tema terang aplikasi (selaras dengan prototype HTML SOJU `#1E3A8A` / `#F8FAFC`).
   static ThemeData get light {
     final ColorScheme scheme = ColorScheme.fromSeed(
-      seedColor: SojuColors.primary,
+      seedColor: SojuColors.brandNavy,
     ).copyWith(
-      primary: SojuColors.primary,
+      primary: SojuColors.brandNavy,
+      secondary: SojuColors.brandEmerald,
       surface: SojuColors.surface,
     );
 
     final ThemeData base = ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: SojuColors.surface,
+      scaffoldBackgroundColor: SojuColors.canvas,
       fontFamily: AppTypography.family,
     );
 
     return base.copyWith(
+      dividerColor: SojuColors.cardBorder,
       textTheme: base.textTheme.apply(
         fontFamily: AppTypography.family,
         bodyColor: SojuColors.ink,

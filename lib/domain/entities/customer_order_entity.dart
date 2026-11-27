@@ -59,7 +59,30 @@ class CustomerOrderItem {
   bool get hasNote => note != null && note!.trim().isNotEmpty;
 }
 
-/// Entity pesanan pelanggan lengkap dengan item dan data pengiriman.
+/// Status pembayaran Midtrans Snap sesuai skema backend SOJU.
+enum CustomerPaymentStatus {
+  pending('PENDING', 'Menunggu Pembayaran'),
+  paid('PAID', 'Lunas'),
+  expired('EXPIRED', 'Kedaluwarsa'),
+  failed('FAILED', 'Gagal');
+
+  const CustomerPaymentStatus(this.raw, this.label);
+
+  final String raw;
+  final String label;
+
+  static CustomerPaymentStatus fromRaw(String? raw) {
+    final String normalized = (raw ?? '').trim().toUpperCase();
+    for (final CustomerPaymentStatus s in CustomerPaymentStatus.values) {
+      if (s.raw == normalized) {
+        return s;
+      }
+    }
+    return CustomerPaymentStatus.pending;
+  }
+}
+
+/// Entity pesanan pelanggan lengkap dengan item, data pengiriman, dan info pembayaran Midtrans.
 @immutable
 class CustomerOrder {
   const CustomerOrder({
@@ -75,6 +98,13 @@ class CustomerOrder {
     required this.createdAt,
     this.updatedAt,
     this.items = const <CustomerOrderItem>[],
+    this.paymentStatus = CustomerPaymentStatus.pending,
+    this.paymentMethod,
+    this.midtransOrderId,
+    this.snapToken,
+    this.snapRedirectUrl,
+    this.paymentExpiredAt,
+    this.paidAt,
   });
 
   final int id;
@@ -89,9 +119,25 @@ class CustomerOrder {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final List<CustomerOrderItem> items;
+  final CustomerPaymentStatus paymentStatus;
+  final String? paymentMethod;
+  final String? midtransOrderId;
+  final String? snapToken;
+  final String? snapRedirectUrl;
+  final DateTime? paymentExpiredAt;
+  final DateTime? paidAt;
 
   int get totalItems =>
       items.fold(0, (int sum, CustomerOrderItem item) => sum + item.quantity);
+
+  bool get isPaid => paymentStatus == CustomerPaymentStatus.paid;
+
+  bool get hasSnapUrl =>
+      snapRedirectUrl != null && snapRedirectUrl!.trim().isNotEmpty;
+
+  bool get isActiveOrder =>
+      status == CustomerOrderStatus.menungguKonfirmasi ||
+      status == CustomerOrderStatus.diproses;
 }
 
 /// Draf pengajuan checkout pesanan.

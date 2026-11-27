@@ -135,7 +135,7 @@ class _CustomerBottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color color = active ? SojuColors.primary : SojuColors.navInactive;
+    final Color color = active ? SojuColors.brandNavy : SojuColors.navInactive;
 
     return Semantics(
       button: true,
@@ -151,10 +151,10 @@ class _CustomerBottomNavItem extends StatelessWidget {
               Positioned(
                 top: 0,
                 child: Container(
-                  width: 28 * scale,
+                  width: 30 * scale,
                   height: 3 * scale,
                   decoration: BoxDecoration(
-                    color: SojuColors.primary,
+                    color: SojuColors.brandNavy,
                     borderRadius: BorderRadius.circular(17.45 * scale),
                   ),
                 ),
@@ -182,7 +182,7 @@ class _CustomerBottomNavItem extends StatelessWidget {
                             vertical: 1.5 * scale,
                           ),
                           decoration: BoxDecoration(
-                            color: SojuColors.primary,
+                            color: SojuColors.brandNavy,
                             borderRadius: BorderRadius.circular(99),
                           ),
                           child: Text(

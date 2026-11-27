@@ -12,6 +12,7 @@ import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
 import '../../../domain/entities/customer_order_entity.dart';
 import '../../providers/admin_orders/admin_orders_controller.dart';
+import '../../utils/external_launcher.dart';
 import '../../utils/format.dart';
 import '../customer/widgets/order_status_badge.dart';
 
@@ -369,7 +370,12 @@ class _AdminOrderCard extends StatelessWidget {
               OrderStatusBadge(status: order.status),
             ],
           ),
-          Divider(height: 20 * scale, color: SojuColors.border),
+          SizedBox(height: 6 * scale),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _AdminPaymentPill(order: order, scale: scale),
+          ),
+          Divider(height: 18 * scale, color: SojuColors.border),
           Text(
             'Pemesan: ${order.recipientName} (${order.recipientPhone})',
             style: TextStyle(
@@ -456,6 +462,94 @@ class _AdminOrderCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 12 * scale),
+          if (!isUpdating &&
+              (order.status == CustomerOrderStatus.menungguKonfirmasi ||
+                  order.status == CustomerOrderStatus.diproses)) ...<Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: FilledButton.icon(
+                    key: Key('admin_order_quick_action_${order.id}'),
+                    onPressed: () => onStatusChange(
+                      order.status == CustomerOrderStatus.menungguKonfirmasi
+                          ? CustomerOrderStatus.diproses
+                          : CustomerOrderStatus.selesai,
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor:
+                          order.status == CustomerOrderStatus.menungguKonfirmasi
+                              ? SojuColors.brandNavy
+                              : SojuColors.brandEmerald,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 10 * scale),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10 * scale),
+                      ),
+                    ),
+                    icon: Icon(
+                      order.status == CustomerOrderStatus.menungguKonfirmasi
+                          ? Icons.local_fire_department_rounded
+                          : Icons.check_circle_rounded,
+                      size: 16 * scale,
+                    ),
+                    label: Text(
+                      order.status == CustomerOrderStatus.menungguKonfirmasi
+                          ? 'Proses Pesanan'
+                          : 'Tandai Selesai',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 12.5 * scale,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                if (order.recipientPhone.trim().isNotEmpty) ...<Widget>[
+                  SizedBox(width: 8 * scale),
+                  FilledButton.icon(
+                    onPressed: () {
+                      final String digits = order.recipientPhone
+                          .replaceAll(RegExp(r'[^0-9]'), '');
+                      final String normalized = digits.startsWith('0')
+                          ? '62${digits.substring(1)}'
+                          : digits;
+                      if (normalized.isNotEmpty) {
+                        launchWhatsAppOrderConfirmation(
+                          context,
+                          order,
+                          adminPhone: normalized,
+                        );
+                      }
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: SojuColors.whatsappSoft,
+                      foregroundColor: SojuColors.whatsappGreen,
+                      elevation: 0,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12 * scale,
+                        vertical: 10 * scale,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10 * scale),
+                      ),
+                    ),
+                    icon: Icon(Icons.chat_rounded, size: 15 * scale),
+                    label: Text(
+                      'WA',
+                      style: TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 12 * scale,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            SizedBox(height: 8 * scale),
+          ],
           Row(
             children: <Widget>[
               Text(
@@ -513,6 +607,66 @@ class _AdminOrderCard extends StatelessWidget {
                       ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminPaymentPill extends StatelessWidget {
+  const _AdminPaymentPill({required this.order, required this.scale});
+
+  final CustomerOrder order;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isPaid = order.isPaid;
+    final bool isFailed = order.paymentStatus == CustomerPaymentStatus.expired ||
+        order.paymentStatus == CustomerPaymentStatus.failed;
+    final Color bg = isPaid
+        ? SojuColors.incomeSoft
+        : isFailed
+            ? SojuColors.expenseSoft
+            : SojuColors.amberSoft;
+    final Color fg = isPaid
+        ? SojuColors.brandEmerald
+        : isFailed
+            ? SojuColors.brandDanger
+            : SojuColors.amberInk;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 3 * scale),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8 * scale),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            isPaid
+                ? Icons.verified_rounded
+                : isFailed
+                    ? Icons.cancel_rounded
+                    : Icons.schedule_rounded,
+            size: 12 * scale,
+            color: fg,
+          ),
+          SizedBox(width: 4 * scale),
+          Flexible(
+            child: Text(
+              'Midtrans: ${order.paymentStatus.label}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 10.5 * scale,
+                fontWeight: FontWeight.w700,
+                color: fg,
+              ),
+            ),
           ),
         ],
       ),

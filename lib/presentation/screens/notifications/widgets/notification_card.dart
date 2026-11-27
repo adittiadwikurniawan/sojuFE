@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/themes/app_typography.dart';
 import '../../../../core/themes/soju_colors.dart';
+import '../../../widgets/role_badge_pill.dart';
 import '../models/notifications_view_data.dart';
 
 /// Satu kartu notifikasi dengan ikon, isi, metadata, dan aksi.
@@ -170,50 +171,69 @@ class _Metadata extends StatelessWidget {
   final double scale;
   final AppNotificationData data;
 
+  String _senderRoleFor(String category) {
+    final String lower = category.toLowerCase();
+    if (lower.contains('kas') ||
+        lower.contains('audit') ||
+        lower.contains('sistem') ||
+        lower.contains('super')) {
+      return 'SUPER_ADMIN';
+    }
+    return 'ADMIN';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 6 * scale,
+      runSpacing: 4 * scale,
       children: <Widget>[
-        Icon(
-          Icons.schedule_rounded,
-          size: 13 * scale,
-          color: SojuColors.notificationBody,
+        RoleBadgePill.fromCode(
+          _senderRoleFor(data.categoryLabel),
+          compact: true,
         ),
-        SizedBox(width: 4.4 * scale),
-        Text(
-          data.timeLabel,
-          style: TextStyle(
-            fontFamily: AppTypography.family,
-            fontSize: 11.06 * scale,
-            fontWeight: FontWeight.w600,
-            height: 15.49 / 11.06,
-            color: SojuColors.notificationBody,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.schedule_rounded,
+              size: 13 * scale,
+              color: SojuColors.notificationBody,
+            ),
+            SizedBox(width: 4 * scale),
+            Text(
+              data.timeLabel,
+              style: TextStyle(
+                fontFamily: AppTypography.family,
+                fontSize: 11.06 * scale,
+                fontWeight: FontWeight.w600,
+                height: 15.49 / 11.06,
+                color: SojuColors.notificationBody,
+              ),
+            ),
+          ],
         ),
-        SizedBox(width: 8.85 * scale),
         Text(
           '•',
           style: TextStyle(
             fontFamily: AppTypography.family,
-            fontSize: 17.7 * scale,
+            fontSize: 15 * scale,
             fontWeight: FontWeight.w400,
             height: 1,
             color: SojuColors.notificationBullet,
           ),
         ),
-        SizedBox(width: 8.85 * scale),
-        Expanded(
-          child: Text(
-            data.categoryLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: AppTypography.family,
-              fontSize: 11.06 * scale,
-              fontWeight: FontWeight.w400,
-              height: 15.49 / 11.06,
-              color: SojuColors.notificationBlue,
-            ),
+        Text(
+          data.categoryLabel,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontFamily: AppTypography.family,
+            fontSize: 11.06 * scale,
+            fontWeight: FontWeight.w500,
+            height: 15.49 / 11.06,
+            color: SojuColors.notificationBlue,
           ),
         ),
       ],

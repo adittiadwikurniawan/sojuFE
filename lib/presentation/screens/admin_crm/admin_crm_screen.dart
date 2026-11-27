@@ -81,8 +81,8 @@ class _AdminCrmScreenState extends State<AdminCrmScreen> {
                   children: <Widget>[
                     Text(
                       existing == null
-                          ? 'Buat Draf Kampanye CRM'
-                          : 'Ubah Draf Kampanye CRM',
+                          ? 'Buat Draf Kampanye Email (SMTP)'
+                          : 'Ubah Draf Kampanye Email (SMTP)',
                       style: const TextStyle(
                         fontFamily: AppTypography.family,
                         fontSize: 18,
@@ -90,7 +90,41 @@ class _AdminCrmScreenState extends State<AdminCrmScreen> {
                         color: SojuColors.ink,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: SojuColors.blueSoft,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: SojuColors.freeTableBlueBorder60,
+                        ),
+                      ),
+                      child: const Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.mark_email_read_outlined,
+                            size: 16,
+                            color: SojuColors.brandNavy,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Email dikirim via SMTP hanya ke pelanggan yang mengaktifkan opt-in promosi.',
+                              style: TextStyle(
+                                fontFamily: AppTypography.family,
+                                fontSize: 11.5,
+                                color: SojuColors.brandNavy,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
                     TextField(
                       controller: titleCtrl,
                       decoration: _inputDecoration('Judul Kampanye Internal'),

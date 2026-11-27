@@ -20,6 +20,9 @@ class CustomerOrderMockDataSource implements CustomerOrderDataSource {
                   'alamat': 'Jl. Senopati No. 45, Jakarta Selatan',
                   'total': 90000,
                   'status': 'DIPROSES',
+                  'paymentStatus': 'PAID',
+                  'paymentMethod': 'qris',
+                  'midtransOrderId': 'SOJU-PSN-101',
                   'dibuatPada': '2026-11-24T10:30:00.000Z',
                   'diperbaruiPada': '2026-11-24T10:35:00.000Z',
                   'item': <Map<String, Object?>>[
@@ -83,6 +86,13 @@ class CustomerOrderMockDataSource implements CustomerOrderDataSource {
       'alamat': address,
       'total': 90000,
       'status': 'MENUNGGU_KONFIRMASI',
+      'paymentStatus': 'PENDING',
+      'midtransOrderId': 'SOJU-MOCK-$nextId',
+      'snapToken': 'mock-snap-token-$nextId',
+      'snapRedirectUrl':
+          'https://app.sandbox.midtrans.com/snap/v4/redirection/mock-$nextId',
+      'paymentExpiredAt':
+          DateTime.now().add(const Duration(hours: 24)).toIso8601String(),
       'dibuatPada': DateTime.now().toIso8601String(),
       'item': <Map<String, Object?>>[
         <String, Object?>{

@@ -52,7 +52,7 @@ class ProductDetailSheet extends StatefulWidget {
 
 class _ProductDetailSheetState extends State<ProductDetailSheet> {
   final TextEditingController _noteController = TextEditingController();
-  String? _variant;
+  final Set<String> _selectedVariants = <String>{};
   int _quantity = 1;
   bool _showVariantError = false;
 
@@ -60,7 +60,9 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
   void initState() {
     super.initState();
     final List<String> variants = widget.product.variants;
-    if (variants.length == 1) _variant = variants.first;
+    if (variants.length == 1) {
+      _selectedVariants.add(variants.first);
+    }
   }
 
   @override
@@ -69,15 +71,32 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     super.dispose();
   }
 
+  void _toggleVariant(String variant) {
+    setState(() {
+      if (_selectedVariants.contains(variant)) {
+        _selectedVariants.remove(variant);
+      } else {
+        _selectedVariants.add(variant);
+      }
+      if (_selectedVariants.isNotEmpty) {
+        _showVariantError = false;
+      }
+    });
+  }
+
   void _submit() {
     final CatalogProduct product = widget.product;
-    if (product.hasVariants && _variant == null) {
+    if (product.hasVariants && _selectedVariants.isEmpty) {
       setState(() => _showVariantError = true);
       return;
     }
+    // Pertahankan urutan sesuai daftar varian produk agar rapi.
+    final List<String> orderedSelected = product.variants
+        .where(_selectedVariants.contains)
+        .toList(growable: false);
     Navigator.of(context).pop(
       ProductSelection(
-        variant: _variant ?? '',
+        variant: orderedSelected.join(', '),
         quantity: _quantity,
         note: _noteController.text.trim(),
       ),
@@ -167,7 +186,7 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    height: 132,
+                    height: 156,
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: SojuColors.infoSoft.withOpacity(0.55),
@@ -176,8 +195,9 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                     alignment: Alignment.center,
                     child: StorefrontProductImage(
                       url: product.imageUrl,
-                      size: 112,
-                      radius: 18,
+                      size: 156,
+                      radius: 20,
+                      enableLightbox: true,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -266,22 +286,51 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                   ],
                   if (product.hasVariants) ...<Widget>[
                     const SizedBox(height: 14),
-                    const Text('Pilih Varian', style: label),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        const Text('Pilih Varian', style: label),
+                        Text(
+                          _selectedVariants.isEmpty
+                              ? 'Bisa pilih lebih dari satu'
+                              : '${_selectedVariants.length} dipilih',
+                          style: const TextStyle(
+                            fontFamily: AppTypography.family,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: SojuColors.brandNavy,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: <Widget>[
                         for (final String v in product.variants)
-                          ChoiceChip(
+                          FilterChip(
                             key: Key('product_variant_$v'),
                             label: Text(v),
-                            selected: _variant == v,
+                            selected: _selectedVariants.contains(v),
+                            checkmarkColor: SojuColors.brandNavy,
                             selectedColor: SojuColors.infoSoft,
-                            onSelected: (_) => setState(() {
-                              _variant = v;
-                              _showVariantError = false;
-                            }),
+                            side: BorderSide(
+                              color: _selectedVariants.contains(v)
+                                  ? SojuColors.brandNavy
+                                  : SojuColors.cardBorder,
+                            ),
+                            labelStyle: TextStyle(
+                              fontFamily: AppTypography.family,
+                              fontSize: 13,
+                              fontWeight: _selectedVariants.contains(v)
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: _selectedVariants.contains(v)
+                                  ? SojuColors.brandNavy
+                                  : SojuColors.ink,
+                            ),
+                            onSelected: (_) => _toggleVariant(v),
                           ),
                       ],
                     ),

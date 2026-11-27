@@ -13,6 +13,19 @@ abstract final class SojuColors {
   /// Biru tua untuk pil indikator langkah yang aktif.
   static const Color primaryDeep = Color(0xFF1E3A8A);
 
+  /// Alias token v1.1 (selaras dengan prototype mobile final).
+  static const Color brandNavy = Color(0xFF1E3A8A);
+  static const Color brandEmerald = Color(0xFF059669);
+  static const Color brandBlue = Color(0xFF0196FF);
+  static const Color brandDanger = Color(0xFFDC2626);
+  static const Color canvas = Color(0xFFF8FAFC);
+  static const Color cardBorder = Color(0xFFE2E8F0);
+  static const Color whatsappGreen = Color(0xFF16A34A);
+  static const Color whatsappSoft = Color(0xFFDCFCE7);
+  static const Color amberSoft = Color(0xFFFEF3C7);
+  static const Color amberInk = Color(0xFFB45309);
+  static const Color blueSoft = Color(0xFFEFF6FF);
+
   /// Biru langit muda (titik awal gradien latar).
   static const Color sky = Color(0xFF8ED1E4);
 
@@ -56,8 +69,8 @@ abstract final class SojuColors {
 
   // --- Beranda (frame `546:1616`) ---
 
-  /// Latar halaman beranda.
-  static const Color homeBackground = Color(0xFFF2F2F7);
+  /// Latar halaman beranda (selaras HTML `bg-slate-50`).
+  static const Color homeBackground = Color(0xFFF8FAFC);
 
   /// Isian medan pencarian & tombol bulat notifikasi.
   static const Color field = Color(0xFFEEEEEE);
@@ -97,8 +110,8 @@ abstract final class SojuColors {
   /// Ikon di dalam medan isian formulir auth.
   static const Color fieldIcon = Color(0xFF5F5E5E);
 
-  /// Tab aktif pada header auth ("Daftar").
-  static const Color tabActive = Color(0xFF0051D2);
+  /// Tab aktif pada header auth ("Masuk"/"Daftar").
+  static const Color tabActive = Color(0xFF1E3A8A);
 
   /// Tautan pada teks persetujuan (syarat & privasi).
   static const Color link = Color(0xFF2563EB);
@@ -135,8 +148,8 @@ abstract final class SojuColors {
   /// Latar lembut status informasi/perubahan (badge audit "Diubah").
   static const Color infoSoft = Color(0xFFEAF2FF);
 
-  /// Garis pemisah halus pada kartu.
-  static const Color hairline = Color(0xFFE6E8EA);
+  /// Garis pemisah halus pada kartu (selaras HTML `border-slate-200`).
+  static const Color hairline = Color(0xFFE2E8F0);
 
   /// Track progress bar kategori.
   static const Color track = Color(0xFFECEEF0);
