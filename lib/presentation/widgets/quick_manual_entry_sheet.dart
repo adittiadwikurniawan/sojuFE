@@ -53,14 +53,22 @@ enum ManualEntryType {
   final IconData icon;
 }
 
-/// Menampilkan sheet Quick Manual Entry dari tombol (+) navbar tengah.
+/// Menampilkan pop-up dialog Quick Manual Entry di atas seluruh layar
+/// (termasuk navbar bawah) agar tidak tertutup blur navbar.
 Future<void> showQuickManualEntrySheet(BuildContext context) {
-  return showModalBottomSheet<void>(
+  return showDialog<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: const Color(0x660F172A),
-    builder: (BuildContext ctx) => const QuickManualEntrySheet(),
+    useRootNavigator: true,
+    barrierDismissible: true,
+    barrierColor: const Color(0x730F172A),
+    builder: (BuildContext ctx) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: const QuickManualEntrySheet(),
+      ),
+    ),
   );
 }
 
@@ -252,35 +260,27 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: SojuColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x330F172A),
+            blurRadius: 24,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + bottomInset),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // Handle Bar
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: SojuColors.cardBorder,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-
             // Header Title
             Row(
               children: <Widget>[
