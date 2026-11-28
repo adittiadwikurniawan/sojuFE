@@ -168,6 +168,42 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                     if (widget.isSending) ...<Widget>[
                       SizedBox(height: 14 * widget.scale),
                       _buildThinkingBubble(),
+                    ] else if (widget.messages.isNotEmpty &&
+                        widget.messages.last.author == AiMessageAuthor.user &&
+                        widget.onSend != null) ...<Widget>[
+                      SizedBox(height: 10 * widget.scale),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              widget.onSend!(widget.messages.last.content),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: SojuColors.brandNavy,
+                            side: const BorderSide(
+                              color: SojuColors.freeTableBlueBorder60,
+                            ),
+                            backgroundColor: SojuColors.surface,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(12 * widget.scale),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12 * widget.scale,
+                              vertical: 8 * widget.scale,
+                            ),
+                          ),
+                          icon: Icon(Icons.refresh_rounded,
+                              size: 16 * widget.scale),
+                          label: Text(
+                            'Minta Jawaban Soju AI',
+                            style: TextStyle(
+                              fontFamily: AppTypography.family,
+                              fontSize: 12 * widget.scale,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                     if (!hasUserMessage && !widget.isSending) ...<Widget>[
                       SizedBox(height: 18 * widget.scale),
@@ -360,15 +396,10 @@ class _ChatConversationViewState extends State<ChatConversationView> {
               bottomRight: Radius.circular(16 * widget.scale),
             ),
           ),
-          child: Text(
-            message.content,
-            style: TextStyle(
-              fontFamily: AppTypography.family,
-              fontSize: 12.5 * widget.scale,
-              fontWeight: FontWeight.w400,
-              height: 1.5,
-              color: isRefusal ? SojuColors.demoInk : const Color(0xFF191C1E),
-            ),
+          child: _FormattedAiContent(
+            content: message.content,
+            scale: widget.scale,
+            textColor: isRefusal ? SojuColors.demoInk : const Color(0xFF191C1E),
           ),
         ),
         if (message.citations.isNotEmpty) ...<Widget>[
@@ -667,11 +698,22 @@ class _CitationChip extends StatelessWidget {
   final AiCitation citation;
   final VoidCallback? onTap;
 
+  String _cleanTag(String raw) {
+    final String stripped = raw.replaceAll(RegExp(r'[\[\]]'), '').trim();
+    return stripped.isEmpty ? 'DATA' : stripped;
+  }
+
+  String _cleanTitle(String raw) {
+    return raw.replaceAll(RegExp(r'\s*\(Prisma\)', caseSensitive: false), '').trim();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final String tag = _cleanTag(citation.chipLabel);
+    final String title = _cleanTitle(citation.title);
     return Semantics(
       button: true,
-      label: 'Lihat sumber ${citation.chipLabel} ${citation.title}',
+      label: 'Lihat sumber $tag $title',
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(100 * scale),
@@ -695,15 +737,15 @@ class _CitationChip extends StatelessWidget {
                 size: 12 * scale,
                 color: SojuColors.badgeBlue,
               ),
-              SizedBox(width: 4 * scale),
+              SizedBox(width: 5 * scale),
               Flexible(
                 child: Text(
-                  '${citation.chipLabel} ${citation.title}',
+                  '$tag • $title',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: AppTypography.family,
-                    fontSize: 10 * scale,
+                    fontSize: 10.5 * scale,
                     fontWeight: FontWeight.w600,
                     color: SojuColors.badgeBlue,
                   ),
@@ -713,6 +755,128 @@ class _CitationChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Merender teks jawaban Soju AI secara rapi:
+/// - Menghapus tag sitasi mentah seperti `([SQL-1])` / `([D1])` di badan teks
+/// - Merender `**bold**` sebagai huruf tebal asli
+/// - Merender baris `* ` / `- ` sebagai bullet list rapi
+class _FormattedAiContent extends StatelessWidget {
+  const _FormattedAiContent({
+    required this.content,
+    required this.scale,
+    required this.textColor,
+  });
+
+  final String content;
+  final double scale;
+  final Color textColor;
+
+  String _cleanInlineCitations(String raw) {
+    return raw
+        .replaceAll(
+          RegExp(r'\s*\(\s*\[*(?:SQL-\d+|D\d+)\]*\s*\)', caseSensitive: false),
+          '',
+        )
+        .replaceAll(
+          RegExp(r'\s*\[+(?:SQL-\d+|D\d+)\]+', caseSensitive: false),
+          '',
+        )
+        .trim();
+  }
+
+  List<InlineSpan> _parseBoldSpans(String line, TextStyle baseStyle) {
+    final List<InlineSpan> spans = <InlineSpan>[];
+    final RegExp boldRegex = RegExp(r'\*\*(.+?)\*\*');
+    int lastEnd = 0;
+    for (final RegExpMatch match in boldRegex.allMatches(line)) {
+      if (match.start > lastEnd) {
+        spans.add(
+          TextSpan(
+            text: line.substring(lastEnd, match.start),
+            style: baseStyle,
+          ),
+        );
+      }
+      spans.add(
+        TextSpan(
+          text: match.group(1),
+          style: baseStyle.copyWith(fontWeight: FontWeight.w700),
+        ),
+      );
+      lastEnd = match.end;
+    }
+    if (lastEnd < line.length) {
+      spans.add(TextSpan(text: line.substring(lastEnd), style: baseStyle));
+    }
+    return spans;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle baseStyle = TextStyle(
+      fontFamily: AppTypography.family,
+      fontSize: 12.5 * scale,
+      fontWeight: FontWeight.w400,
+      height: 1.5,
+      color: textColor,
+    );
+
+    final List<String> lines = _cleanInlineCitations(content).split('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        for (int i = 0; i < lines.length; i++) ...<Widget>[
+          if (lines[i].trim().isEmpty)
+            SizedBox(height: 6 * scale)
+          else if (RegExp(r'^\s*[\*\-•]\s+').hasMatch(lines[i]))
+            Padding(
+              padding: EdgeInsets.only(top: i == 0 ? 0 : 4 * scale),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: 6 * scale,
+                      right: 8 * scale,
+                      left: 2 * scale,
+                    ),
+                    child: Container(
+                      width: 5 * scale,
+                      height: 5 * scale,
+                      decoration: const BoxDecoration(
+                        color: SojuColors.brandNavy,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        children: _parseBoldSpans(
+                          lines[i].replaceFirst(RegExp(r'^\s*[\*\-•]\s+'), ''),
+                          baseStyle,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Padding(
+              padding: EdgeInsets.only(top: i == 0 ? 0 : 4 * scale),
+              child: Text.rich(
+                TextSpan(
+                  children: _parseBoldSpans(lines[i].trim(), baseStyle),
+                ),
+              ),
+            ),
+        ],
+      ],
     );
   }
 }

@@ -24,7 +24,7 @@ class HttpApiClient implements ApiClient {
     required String baseUrl,
     required TokenStorage tokenStorage,
     http.Client? client,
-    Duration timeout = const Duration(seconds: 15),
+    Duration timeout = const Duration(seconds: 45),
   })  : _origin = AppConfig.normalizeApiOrigin(baseUrl),
         _defaultV1BaseUrl = '${AppConfig.normalizeApiOrigin(baseUrl)}/api/v1',
         _tokenStorage = tokenStorage,
