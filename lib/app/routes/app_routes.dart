@@ -52,6 +52,7 @@ import '../../presentation/widgets/admin_drawer.dart';
 import '../../presentation/widgets/bottom_glass_overlay.dart';
 import '../../presentation/widgets/bottom_nav_bar.dart';
 import '../../presentation/widgets/customer_bottom_nav_bar.dart';
+import '../../presentation/widgets/quick_manual_entry_sheet.dart';
 import '../../presentation/widgets/role_shell_screens.dart';
 import '../config/app_features.dart';
 
@@ -180,34 +181,10 @@ abstract final class AppRoutes {
   static const String salesChatPrototype = '/prototype/sales-chat';
 }
 
-/// Menampilkan form Buat Kategori Baru sebagai popup tanpa mengubah rute.
+/// Menampilkan sheet pencatatan data manual (Pemasukan, Pengeluaran, Pendataan)
+/// dari tombol (+) navbar tengah.
 Future<void> _showCategoryCreatePopup(BuildContext context) {
-  final double maxHeight = MediaQuery.sizeOf(context).height * 0.78;
-
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: const Color(0x4D0F172A),
-    elevation: 0,
-    enableDrag: true,
-    isDismissible: true,
-    constraints: BoxConstraints(maxHeight: maxHeight),
-    builder: (BuildContext sheetContext) {
-      void close() => Navigator.of(sheetContext).pop();
-
-      return FreeTableCategoryScreen(
-        backgroundColor: Colors.transparent,
-        applyTopInset: false,
-        onClose: close,
-        onSaved: close,
-        controllerFactory: () => FreeTableCategoryController(
-          createCategory: DataProviders.createFreeTableCategory(),
-          initialState: const FreeTableCategoryState.incomeExample(),
-        ),
-      );
-    },
-  );
+  return showQuickManualEntrySheet(context);
 }
 
 /// Konfigurasi GoRouter sadar-peran (`AD-08`, `AD-11`, `TASK-023`).
