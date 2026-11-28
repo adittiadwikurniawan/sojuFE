@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/routes/app_routes.dart';
 import '../../core/themes/app_typography.dart';
 import '../../core/themes/soju_colors.dart';
+import '../../core/utils/rupiah_input_formatter.dart';
 
 enum ManualEntryType {
   pemasukan(
@@ -457,8 +458,8 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                 key: const Key('manual_entry_amount_field'),
                 controller: _amountCtrl,
                 keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly,
+                inputFormatters: const <TextInputFormatter>[
+                  RupiahInputFormatter(),
                 ],
                 style: const TextStyle(
                   fontFamily: AppTypography.family,

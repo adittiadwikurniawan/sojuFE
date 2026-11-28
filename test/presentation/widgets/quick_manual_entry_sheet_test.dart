@@ -80,11 +80,12 @@ void main() {
     // Custom category now appears as a chip
     expect(find.text('Beli Saus Pedas'), findsOneWidget);
 
-    // Enter valid amount
+    // Enter valid amount -> auto-formatted with thousand separator dots
     final Finder amountField = find.byKey(const Key('manual_entry_amount_field'));
     await tester.ensureVisible(amountField);
-    await tester.enterText(amountField, '50000');
+    await tester.enterText(amountField, '33333');
     await tester.pumpAndSettle();
+    expect(find.text('33.333'), findsOneWidget);
 
     // Submit
     await tester.ensureVisible(submitBtn);
