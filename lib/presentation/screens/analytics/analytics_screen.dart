@@ -223,6 +223,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     onBack: widget.onBack,
                     onNotificationTap: widget.onNotificationTap,
                     onAddTap: widget.onAddTap,
+                    onExportTap: () => _export(range, visible, summary),
+                    isExporting: _isExporting,
                   ),
                   Expanded(
                     child: ifContent(
@@ -300,6 +302,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               onChanged: _onQueryChanged,
               onClear: _clearQuery,
               isExporting: _isExporting,
+              showExportButton: false,
               onExport: () => _export(range, visible, summary),
             ),
             SizedBox(height: 14 * scale),

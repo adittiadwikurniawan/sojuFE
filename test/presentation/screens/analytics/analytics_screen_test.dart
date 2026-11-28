@@ -64,7 +64,10 @@ void main() {
     // Bagian aktivitas memakai tampilan yang sama dengan Beranda.
     expect(find.text('Aktivitas'), findsOneWidget);
     expect(find.text('Lihat Semua'), findsOneWidget);
-    expect(find.text('Sosis'), findsWidgets);
+    expect(
+      find.text('Order Online #SOJU-108 (Sosis & Nugget Frozen)'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('chip Pemasukan memfilter seluruh angka turunan', (
@@ -199,7 +202,7 @@ void main() {
       },
     );
 
-    await tester.tap(find.byTooltip('Ekspor Excel'));
+    await tester.tap(find.byTooltip('Ekspor Spreadsheet'));
     await tester.pumpAndSettle();
 
     expect(captured, isNotNull);
@@ -215,7 +218,7 @@ void main() {
   ) async {
     await pumpScreen(tester);
 
-    await tester.tap(find.byTooltip('Ekspor Excel'));
+    await tester.tap(find.byTooltip('Ekspor Spreadsheet'));
     await tester.pumpAndSettle();
 
     expect(find.text('Ekspor Excel belum tersambung ke API.'), findsOneWidget);
@@ -231,7 +234,7 @@ void main() {
       },
     );
 
-    await tester.tap(find.byTooltip('Ekspor Excel'));
+    await tester.tap(find.byTooltip('Ekspor Spreadsheet'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Gagal mengekspor Excel'), findsOneWidget);

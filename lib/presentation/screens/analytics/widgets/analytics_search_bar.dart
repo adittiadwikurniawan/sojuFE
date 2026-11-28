@@ -18,6 +18,7 @@ class AnalyticsSearchBar extends StatelessWidget {
     this.onClear,
     this.showClear = false,
     this.isExporting = false,
+    this.showExportButton = true,
   });
 
   final double scale;
@@ -28,6 +29,7 @@ class AnalyticsSearchBar extends StatelessWidget {
   final VoidCallback? onClear;
   final bool showClear;
   final bool isExporting;
+  final bool showExportButton;
 
   @override
   Widget build(BuildContext context) {
@@ -89,37 +91,39 @@ class AnalyticsSearchBar extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(width: 8 * scale),
-        Tooltip(
-          message: 'Ekspor Excel',
-          child: GestureDetector(
-            onTap: isExporting ? null : onExport,
-            child: Container(
-              width: 47 * scale,
-              height: 47 * scale,
-              decoration: BoxDecoration(
-                color: SojuColors.surface,
-                borderRadius: BorderRadius.circular(15 * scale),
-                border: Border.all(color: SojuColors.hint, width: 1 * scale),
-              ),
-              alignment: Alignment.center,
-              child: isExporting
-                  ? SizedBox(
-                      width: 18 * scale,
-                      height: 18 * scale,
-                      child: const CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: SojuColors.primary,
+        if (showExportButton) ...<Widget>[
+          SizedBox(width: 8 * scale),
+          Tooltip(
+            message: 'Ekspor Spreadsheet',
+            child: GestureDetector(
+              onTap: isExporting ? null : onExport,
+              child: Container(
+                width: 47 * scale,
+                height: 47 * scale,
+                decoration: BoxDecoration(
+                  color: SojuColors.surface,
+                  borderRadius: BorderRadius.circular(15 * scale),
+                  border: Border.all(color: SojuColors.hint, width: 1 * scale),
+                ),
+                alignment: Alignment.center,
+                child: isExporting
+                    ? SizedBox(
+                        width: 18 * scale,
+                        height: 18 * scale,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: SojuColors.primary,
+                        ),
+                      )
+                    : Icon(
+                        Icons.file_download_outlined,
+                        size: 22 * scale,
+                        color: SojuColors.ink,
                       ),
-                    )
-                  : Icon(
-                      Icons.file_download_outlined,
-                      size: 22 * scale,
-                      color: SojuColors.ink,
-                    ),
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }

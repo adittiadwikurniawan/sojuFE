@@ -15,6 +15,8 @@ class AnalyticsTopBar extends StatelessWidget {
     this.onBack,
     this.onNotificationTap,
     this.onAddTap,
+    this.onExportTap,
+    this.isExporting = false,
   });
 
   final double scale;
@@ -26,6 +28,8 @@ class AnalyticsTopBar extends StatelessWidget {
   final VoidCallback? onBack;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onAddTap;
+  final VoidCallback? onExportTap;
+  final bool isExporting;
 
   @override
   Widget build(BuildContext context) {
@@ -70,11 +74,23 @@ class AnalyticsTopBar extends StatelessWidget {
                   onTap: onNotificationTap,
                 ),
                 SizedBox(width: 8 * scale),
-                _CircleButton(
-                  scale: scale,
-                  icon: Icons.add,
-                  onTap: onAddTap,
-                ),
+                if (onExportTap != null)
+                  Tooltip(
+                    message: 'Ekspor Spreadsheet',
+                    child: _CircleButton(
+                      key: const Key('analytics_top_export'),
+                      scale: scale,
+                      icon: Icons.file_download_outlined,
+                      isLoading: isExporting,
+                      onTap: isExporting ? null : onExportTap,
+                    ),
+                  )
+                else
+                  _CircleButton(
+                    scale: scale,
+                    icon: Icons.add,
+                    onTap: onAddTap,
+                  ),
               ],
             ),
             Text(
@@ -99,12 +115,14 @@ class _CircleButton extends StatelessWidget {
     required this.scale,
     required this.icon,
     this.showDot = false,
+    this.isLoading = false,
     this.onTap,
   });
 
   final double scale;
   final IconData icon;
   final bool showDot;
+  final bool isLoading;
   final VoidCallback? onTap;
 
   @override
@@ -121,7 +139,17 @@ class _CircleButton extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: <Widget>[
-            Icon(icon, size: 24 * scale, color: Colors.black),
+            if (isLoading)
+              SizedBox(
+                width: 20 * scale,
+                height: 20 * scale,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: SojuColors.primary,
+                ),
+              )
+            else
+              Icon(icon, size: 24 * scale, color: Colors.black),
             if (showDot)
               Positioned(
                 top: 12 * scale,
