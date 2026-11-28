@@ -202,7 +202,7 @@ void main() {
       },
     );
 
-    await tester.tap(find.byTooltip('Ekspor Spreadsheet'));
+    await tester.tap(find.byTooltip('Unduh Spreadsheet'));
     await tester.pumpAndSettle();
 
     expect(captured, isNotNull);
@@ -218,7 +218,7 @@ void main() {
   ) async {
     await pumpScreen(tester);
 
-    await tester.tap(find.byTooltip('Ekspor Spreadsheet'));
+    await tester.tap(find.byTooltip('Unduh Spreadsheet'));
     await tester.pumpAndSettle();
 
     expect(find.text('Ekspor Excel belum tersambung ke API.'), findsOneWidget);
@@ -234,7 +234,7 @@ void main() {
       },
     );
 
-    await tester.tap(find.byTooltip('Ekspor Spreadsheet'));
+    await tester.tap(find.byTooltip('Unduh Spreadsheet'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Gagal mengekspor Excel'), findsOneWidget);

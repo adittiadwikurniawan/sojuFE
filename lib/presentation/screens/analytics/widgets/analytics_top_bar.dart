@@ -74,23 +74,16 @@ class AnalyticsTopBar extends StatelessWidget {
                   onTap: onNotificationTap,
                 ),
                 SizedBox(width: 8 * scale),
-                if (onExportTap != null)
-                  Tooltip(
-                    message: 'Ekspor Spreadsheet',
-                    child: _CircleButton(
-                      key: const Key('analytics_top_export'),
-                      scale: scale,
-                      icon: Icons.file_download_outlined,
-                      isLoading: isExporting,
-                      onTap: isExporting ? null : onExportTap,
-                    ),
-                  )
-                else
-                  _CircleButton(
+                Tooltip(
+                  message: 'Unduh Spreadsheet',
+                  child: _CircleButton(
+                    key: const Key('analytics_top_export'),
                     scale: scale,
-                    icon: Icons.add,
-                    onTap: onAddTap,
+                    icon: Icons.file_download_outlined,
+                    isLoading: isExporting,
+                    onTap: isExporting ? null : onExportTap,
                   ),
+                ),
               ],
             ),
             Text(

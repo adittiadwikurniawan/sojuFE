@@ -37,21 +37,31 @@ class AnalyticsSearchBar extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: Container(
-            height: 47 * scale,
-            padding: EdgeInsets.symmetric(horizontal: 14 * scale),
+            height: 54 * scale,
+            padding: EdgeInsets.symmetric(horizontal: 16 * scale),
             decoration: BoxDecoration(
               color: SojuColors.surface,
-              borderRadius: BorderRadius.circular(15 * scale),
-              border: Border.all(color: SojuColors.hint, width: 1 * scale),
+              borderRadius: BorderRadius.circular(16 * scale),
+              border: Border.all(
+                color: SojuColors.cardBorder,
+                width: 1.2 * scale,
+              ),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x0A0F172A),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: <Widget>[
                 Icon(
-                  Icons.search,
-                  size: 20 * scale,
-                  color: SojuColors.hint,
+                  Icons.search_rounded,
+                  size: 23 * scale,
+                  color: SojuColors.brandNavy,
                 ),
-                SizedBox(width: 10 * scale),
+                SizedBox(width: 12 * scale),
                 Expanded(
                   child: TextField(
                     controller: controller,
@@ -60,7 +70,7 @@ class AnalyticsSearchBar extends StatelessWidget {
                     cursorColor: SojuColors.primary,
                     style: TextStyle(
                       fontFamily: AppTypography.family,
-                      fontSize: 15 * scale,
+                      fontSize: 15.5 * scale,
                       fontWeight: FontWeight.w500,
                       color: SojuColors.ink,
                     ),
@@ -71,7 +81,7 @@ class AnalyticsSearchBar extends StatelessWidget {
                       hintText: hint,
                       hintStyle: TextStyle(
                         fontFamily: AppTypography.family,
-                        fontSize: 15 * scale,
+                        fontSize: 15.5 * scale,
                         fontWeight: FontWeight.w400,
                         color: SojuColors.hint,
                       ),
