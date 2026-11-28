@@ -149,7 +149,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
         // Biarkan controller membangun kerangka grafik default Rp 0 / saldo kas.
       }
 
-      // Ambil aktivitas terbaru opsional
+      // Ambil riwayat transaksi terbaru (penjualan online frozen food & offline/manual)
       final List<DashboardActivityData> activities = <DashboardActivityData>[];
       try {
         final List<Map<String, Object?>> acts =
@@ -158,23 +158,23 @@ class DashboardRepositoryImpl implements DashboardRepository {
           final String title = act['recordLabel']?.toString() ??
               act['labelRecord']?.toString() ??
               act['sheet']?.toString() ??
-              'Aktivitas Sistem';
+              'Catatan Transaksi';
           final String action =
               act['action']?.toString() ?? act['aksi']?.toString() ?? '';
           final String detail = act['detail']?.toString() ?? '';
-          final String imageAsset = action.toLowerCase().contains('hapus')
-              ? 'assets/images/activity_teh.png'
-              : 'assets/images/activity_sosis.png';
+          final bool isExpense = action.toLowerCase().contains('hapus') ||
+              action.toLowerCase().contains('keluar') ||
+              detail.toLowerCase().contains('pengeluaran');
           activities.add(
             DashboardActivityData(
               name: title,
-              variant: detail.isNotEmpty ? detail : 'Perubahan data',
-              sku: 'ID: ${act['id'] ?? 'LOG'}',
-              pack: action.isNotEmpty ? action.toUpperCase() : 'SISTEM',
-              badge: action.toLowerCase().contains('hapus')
-                  ? 'Pengeluaran'
-                  : 'Operasional',
-              imageAsset: imageAsset,
+              variant: detail.isNotEmpty
+                  ? detail
+                  : (isExpense ? 'Catatan Pengeluaran' : 'Penjualan Frozen Food'),
+              sku: 'Ref: ${act['id'] ?? 'KAS'}',
+              pack: action.isNotEmpty ? action.toUpperCase() : 'TERCATAT',
+              badge: isExpense ? 'Pengeluaran' : 'Pemasukan',
+              imageAsset: '',
             ),
           );
         }

@@ -77,6 +77,6 @@ void main() {
     await tester.tap(find.text('Detail').first);
     await tester.pump();
 
-    expect(selected?.name, 'Penjualan Sosis Bakar (5 Porsi)');
+    expect(selected?.name, 'Order Online #SOJU-108 (Sosis & Nugget Frozen)');
   });
 }

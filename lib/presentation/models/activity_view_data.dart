@@ -4,7 +4,8 @@ import 'package:flutter/foundation.dart';
 /// Analytics, dan halaman "Lihat Semua".
 ///
 /// Model ini hanya berisi data tampilan. Saat lapisan data tersedia, DTO
-/// transaksi dipetakan ke model ini tanpa mengubah widget.
+/// transaksi penjualan frozen food (online maupun offline/manual) dipetakan
+/// ke model ini tanpa mengubah widget.
 @immutable
 class ActivityData {
   const ActivityData({
@@ -16,22 +17,22 @@ class ActivityData {
     required this.imageAsset,
   });
 
-  /// Judul transaksi / catatan kas (mis. "Penjualan Sosis Bakar").
+  /// Judul transaksi / catatan kas (mis. "Order Online Frozen Food").
   final String name;
 
-  /// Kategori & metode bayar (mis. "Penjualan • QRIS Midtrans").
+  /// Kategori & kanal transaksi (mis. "Penjualan Online • Midtrans QRIS").
   final String variant;
 
   /// Waktu atau referensi transaksi (mis. "Hari ini, 10:15 WIB").
   final String sku;
 
-  /// Nominal mutasi kas (mis. "+Rp 75.000" atau "-Rp 25.000").
+  /// Nominal mutasi kas (mis. "+Rp 85.000" atau "-Rp 120.000").
   final String pack;
 
   /// Jenis arus kas: "Pemasukan" atau "Pengeluaran".
   final String badge;
 
-  /// Asset opsional (dipertahankan untuk kompatibilitas backward model).
+  /// Asset opsional (kosong karena menggunakan ikon arus kas modern).
   final String imageAsset;
 
   /// Menentukan apakah transaksi ini berupa pengeluaran / kas keluar.
@@ -41,38 +42,38 @@ class ActivityData {
   }
 }
 
-/// Data contoh catatan kas harian usaha mandiri (menggantikan dummy SKU lama).
+/// Data contoh transaksi frozen food (online + offline/manual) saat offline/mock.
 abstract final class ActivityViewData {
   static const List<ActivityData> sample = <ActivityData>[
     ActivityData(
-      name: 'Penjualan Sosis Bakar (5 Porsi)',
-      variant: 'Penjualan • QRIS Midtrans',
+      name: 'Order Online #SOJU-108 (Sosis & Nugget Frozen)',
+      variant: 'Penjualan Online • Midtrans QRIS',
       sku: 'Hari ini, 10:15 WIB',
-      pack: '+Rp 75.000',
+      pack: '+Rp 85.000',
       badge: 'Pemasukan',
       imageAsset: '',
     ),
     ActivityData(
-      name: 'Belanja Saus & Mayonaise',
-      variant: 'Bahan Baku • Tunai',
-      sku: 'Hari ini, 09:30 WIB',
-      pack: '-Rp 25.000',
-      badge: 'Pengeluaran',
-      imageAsset: '',
-    ),
-    ActivityData(
-      name: 'Penjualan Nugget & Minuman',
-      variant: 'Penjualan • Tunai',
-      sku: 'Hari ini, 08:50 WIB',
+      name: 'Penjualan Offline (Dimsum & Sosis 3 Pack)',
+      variant: 'Penjualan Offline • Tunai',
+      sku: 'Hari ini, 09:40 WIB',
       pack: '+Rp 60.000',
       badge: 'Pemasukan',
       imageAsset: '',
     ),
     ActivityData(
-      name: 'Beli Gas 3kg & Es Batu',
-      variant: 'Operasional • Tunai',
-      sku: 'Hari ini, 08:10 WIB',
-      pack: '-Rp 32.000',
+      name: 'Restok Sosis & Nugget Frozen Supplier',
+      variant: 'Bahan Baku • Tunai',
+      sku: 'Hari ini, 08:30 WIB',
+      pack: '-Rp 120.000',
+      badge: 'Pengeluaran',
+      imageAsset: '',
+    ),
+    ActivityData(
+      name: 'Beli Plastik Vacuum & Ice Gel',
+      variant: 'Kemasan • Tunai',
+      sku: 'Hari ini, 08:05 WIB',
+      pack: '-Rp 25.000',
       badge: 'Pengeluaran',
       imageAsset: '',
     ),

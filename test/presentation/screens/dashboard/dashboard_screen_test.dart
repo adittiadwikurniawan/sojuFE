@@ -21,7 +21,10 @@ void main() {
     expect(find.text('Tanya BukuKita AI'), findsOneWidget);
     expect(find.text('Aktivitas'), findsOneWidget);
     expect(find.text('Lihat Semua'), findsOneWidget);
-    expect(find.text('Penjualan Sosis Bakar (5 Porsi)'), findsOneWidget);
+    expect(
+      find.text('Order Online #SOJU-108 (Sosis & Nugget Frozen)'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Total Penghasilan, tanggal, dan menu profil terhubung', (
