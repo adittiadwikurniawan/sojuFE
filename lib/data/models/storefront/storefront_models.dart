@@ -27,8 +27,10 @@ String? resolveProductImageUrl({
       return '$base$value';
     }
   }
-  if (base.isEmpty || id <= 0) return null;
-  return '$base/api/public/products/$id/image';
+  // Jika backend tidak menyertakan gambarUrl maupun gambar, berarti produk
+  // belum memiliki foto. Kembalikan null agar UI menampilkan placeholder tanpa
+  // memicu request HTTP 404 di console browser.
+  return null;
 }
 
 int _int(Object? v) {

@@ -62,6 +62,8 @@ class DashboardRepositoryImpl implements DashboardRepository {
       int periodIncome = 0;
       int periodExpense = 0;
       int totalTransactions = 0;
+      final List<DashboardActivityData> cashflowActivities =
+          <DashboardActivityData>[];
 
       try {
         final Map<String, Object?> chartRaw =
@@ -90,6 +92,35 @@ class DashboardRepositoryImpl implements DashboardRepository {
               final Object? trxList = item['transaksi'];
               if (trxList is List) {
                 totalTransactions += trxList.length;
+                for (final Object? rawTx in trxList) {
+                  if (rawTx is! Map) continue;
+                  final String arah =
+                      (rawTx['arah'] ?? '').toString().toUpperCase();
+                  final bool isExpense = arah == 'PENGELUARAN';
+                  final int nominal = _asInt(rawTx['nominal']);
+                  final String jenis =
+                      (rawTx['jenis'] ?? 'Transaksi').toString().trim();
+                  final String detail =
+                      (rawTx['detail'] ?? '').toString().trim();
+                  final String displayTitle =
+                      detail.isNotEmpty ? detail : jenis;
+                  final String dateText = parsedDate != null
+                      ? formatDayMonth(parsedDate)
+                      : tanggal;
+                  cashflowActivities.add(
+                    DashboardActivityData(
+                      name: displayTitle,
+                      variant: jenis,
+                      sku: dateText,
+                      pack: formatRupiah(
+                        isExpense ? -nominal : nominal,
+                        withSign: true,
+                      ),
+                      badge: isExpense ? 'Pengeluaran' : 'Pemasukan',
+                      imageAsset: '',
+                    ),
+                  );
+                }
               }
 
               periodIncome += income;
@@ -149,38 +180,12 @@ class DashboardRepositoryImpl implements DashboardRepository {
         // Biarkan controller membangun kerangka grafik default Rp 0 / saldo kas.
       }
 
-      // Ambil riwayat transaksi terbaru (penjualan online frozen food & offline/manual)
-      final List<DashboardActivityData> activities = <DashboardActivityData>[];
-      try {
-        final List<Map<String, Object?>> acts =
-            await _dataSource.fetchRecentActivities(limit: 5);
-        for (final Map<String, Object?> act in acts) {
-          final String title = act['recordLabel']?.toString() ??
-              act['labelRecord']?.toString() ??
-              act['sheet']?.toString() ??
-              'Catatan Transaksi';
-          final String action =
-              act['action']?.toString() ?? act['aksi']?.toString() ?? '';
-          final String detail = act['detail']?.toString() ?? '';
-          final bool isExpense = action.toLowerCase().contains('hapus') ||
-              action.toLowerCase().contains('keluar') ||
-              detail.toLowerCase().contains('pengeluaran');
-          activities.add(
-            DashboardActivityData(
-              name: title,
-              variant: detail.isNotEmpty
-                  ? detail
-                  : (isExpense ? 'Catatan Pengeluaran' : 'Penjualan Frozen Food'),
-              sku: 'Ref: ${act['id'] ?? 'KAS'}',
-              pack: action.isNotEmpty ? action.toUpperCase() : 'TERCATAT',
-              badge: isExpense ? 'Pengeluaran' : 'Pemasukan',
-              imageAsset: '',
-            ),
-          );
-        }
-      } catch (_) {
-        // Abaikan bila gagal memuat aktivitas tambahan.
-      }
+      // Gunakan transaksi kas riil terbaru (terbalik agar terbaru di atas)
+      // sehingga bagian Aktivitas menampilkan nominal uang masuk/keluar, bukan
+      // log audit sistem mentah seperti "TAMBAH / Ref: 29".
+      final List<DashboardActivityData> activities = cashflowActivities.reversed
+          .take(5)
+          .toList(growable: false);
 
       return Result.success(
         DashboardSummaryEntity(
