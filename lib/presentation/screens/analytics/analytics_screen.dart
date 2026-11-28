@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
+import '../../../data/data_providers.dart';
 import '../../providers/transactions/transactions_controller.dart';
 import '../../widgets/activity_tile.dart';
 import '../../widgets/bar_chart_card.dart';
@@ -117,6 +118,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         }
       });
     }
+    DataProviders.dataRevision.addListener(_onGlobalDataChanged);
+  }
+
+  void _onGlobalDataChanged() {
+    if (mounted) {
+      _controller?.load();
+    }
   }
 
   void _onControllerStateChanged() {
@@ -131,6 +139,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   @override
   void dispose() {
+    DataProviders.dataRevision.removeListener(_onGlobalDataChanged);
     _controller?.removeListener(_onControllerStateChanged);
     _searchController.dispose();
     _controller?.dispose();

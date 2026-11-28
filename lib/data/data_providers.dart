@@ -6,7 +6,10 @@
 // ganti datasource mock dengan datasource remote tanpa mengubah
 // screen, provider, atau entity.
 
+import 'package:flutter/foundation.dart';
+
 import '../core/services/api_client/api_client.dart';
+import '../core/services/api_client/api_response.dart';
 import '../core/services/token_storage/token_storage.dart';
 import '../domain/entities/sales_chat_entity.dart';
 import '../domain/repositories/admin_cms_repository.dart';
@@ -94,6 +97,16 @@ import 'repositories/transaction_repository_impl.dart';
 
 /// Factory dependency data tingkat aplikasi.
 abstract final class DataProviders {
+  static ApiClient? _apiClient;
+
+  /// Notifier global yang dinaikkan setiap kali ada pencatatan kas baru
+  /// sehingga Dashboard & Analytics otomatis refresh secara real-time.
+  static final ValueNotifier<int> dataRevision = ValueNotifier<int>(0);
+
+  static void notifyDataChanged() {
+    dataRevision.value++;
+  }
+
   static AuthRepository? _authRepository;
   static StorefrontRepository? _storefrontRepository;
   static CustomerOrderRepository? _customerOrderRepository;
@@ -120,6 +133,7 @@ abstract final class DataProviders {
     required TokenStorage tokenStorage,
     String apiOrigin = '',
   }) {
+    _apiClient = apiClient;
     _authRepository = AuthRepositoryImpl(
       AuthRemoteDataSource(apiClient),
       tokenStorage,
@@ -592,5 +606,127 @@ abstract final class DataProviders {
   /// Usecase detail artikel bantuan (Phase A: mock).
   static GetHelpArticle getHelpArticle() {
     return const GetHelpArticle(HelpRepositoryImpl(_helpDataSource));
+  }
+
+  /// Mencatat transaksi kas manual (Pemasukan / Pengeluaran) ke backend REST
+  /// (`POST /api/v1/transactions`) lalu memicu refresh Dashboard & Analytics.
+  ///
+  /// Mengembalikan `null` jika berhasil, atau pesan galat jika gagal.
+  static Future<String?> recordManualTransaction({
+    required bool isExpense,
+    required int nominal,
+    required String category,
+    required String paymentMethod,
+    String note = '',
+  }) async {
+    final ApiClient? client = _apiClient;
+    if (client == null) {
+      // Mode offline / isolated widget test
+      notifyDataChanged();
+      return null;
+    }
+
+    final String arah = isExpense ? 'PENGELUARAN' : 'PEMASUKAN';
+    int? jenisTransaksiId;
+
+    try {
+      // 1. Cari JenisTransaksi yang cocok dengan kategori & arah
+      final ApiResponse typesRes = await client.get('/api/v1/transaction-types');
+      if (typesRes.isSuccess && typesRes.body is Map) {
+        final Object? rawData = (typesRes.body as Map<Object?, Object?>)['data'];
+        final List<Object?> items = rawData is List
+            ? rawData
+            : (rawData is Map && rawData['items'] is List
+                ? rawData['items'] as List<Object?>
+                : const <Object?>[]);
+        int? fallbackSameArahId;
+        for (final Object? item in items) {
+          if (item is! Map) continue;
+          final int? id = int.tryParse(item['id']?.toString() ?? '');
+          if (id == null) continue;
+          final String itemArah =
+              (item['arah'] ?? '').toString().toUpperCase();
+          final String itemName =
+              (item['namaTransaksi'] ?? item['nama_transaksi'] ?? '')
+                  .toString()
+                  .trim()
+                  .toLowerCase();
+          if (itemArah == arah) {
+            fallbackSameArahId ??= id;
+            if (itemName == category.trim().toLowerCase()) {
+              jenisTransaksiId = id;
+              break;
+            }
+          }
+        }
+
+        // 2. Jika kategori belum ada di database, buat kategori baru otomatis
+        if (jenisTransaksiId == null) {
+          final String cleanCode = category
+              .toUpperCase()
+              .replaceAll(RegExp(r'[^A-Z0-9]'), '');
+          final String prefix = cleanCode.length >= 3
+              ? cleanCode.substring(0, 3)
+              : (isExpense ? 'OUT' : 'IN');
+          final String kode =
+              '$prefix-${DateTime.now().millisecondsSinceEpoch % 100000}';
+          final ApiResponse createTypeRes = await client.post(
+            '/api/v1/transaction-types',
+            body: <String, Object?>{
+              'kode': kode,
+              'nama_transaksi': category.trim(),
+              'arah': arah,
+              'jenis_akun': category.trim(),
+            },
+          );
+          if (createTypeRes.isSuccess && createTypeRes.body is Map) {
+            final Object? createdData =
+                (createTypeRes.body as Map<Object?, Object?>)['data'];
+            if (createdData is Map) {
+              jenisTransaksiId =
+                  int.tryParse(createdData['id']?.toString() ?? '');
+            }
+          }
+          jenisTransaksiId ??= fallbackSameArahId;
+        }
+      }
+
+      if (jenisTransaksiId == null) {
+        return 'Kategori transaksi tidak ditemukan di server.';
+      }
+
+      // 3. Simpan transaksi ke POST /api/v1/transactions
+      final DateTime now = DateTime.now();
+      final String tanggal =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final String trimmedNote = note.trim();
+      final String detail = trimmedNote.isNotEmpty
+          ? '$category • $paymentMethod • $trimmedNote'
+          : '$category • $paymentMethod';
+
+      final ApiResponse txRes = await client.post(
+        '/api/v1/transactions',
+        body: <String, Object?>{
+          'tanggal': tanggal,
+          'jenis_transaksi_id': jenisTransaksiId,
+          'detail': detail,
+          'nominal': nominal,
+        },
+      );
+
+      if (!txRes.isSuccess) {
+        final Object? msg = txRes.body is Map
+            ? (txRes.body as Map<Object?, Object?>)['message']
+            : null;
+        return msg is String && msg.isNotEmpty
+            ? msg
+            : 'Gagal menyimpan transaksi (${txRes.statusCode}).';
+      }
+
+      notifyDataChanged();
+      return null;
+    } catch (e) {
+      return 'Gagal terhubung ke server: $e';
+    }
   }
 }

@@ -13,6 +13,7 @@ import '../../app/routes/app_routes.dart';
 import '../../core/themes/app_typography.dart';
 import '../../core/themes/soju_colors.dart';
 import '../../core/utils/rupiah_input_formatter.dart';
+import '../../data/data_providers.dart';
 
 enum ManualEntryType {
   pemasukan(
@@ -77,9 +78,11 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
   final TextEditingController _customCategoryCtrl = TextEditingController();
 
   bool _isAddingCategory = false;
+  bool _isSubmitting = false;
   String _selectedCategory = 'Penjualan';
   String _selectedPaymentMethod = 'Tunai (Cash)';
   String? _amountError;
+  String? _submitError;
 
   final List<String> _pemasukanCategories = <String>[
     'Penjualan',
@@ -142,7 +145,8 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
     });
   }
 
-  void _submitTransaction() {
+  Future<void> _submitTransaction() async {
+    if (_isSubmitting) return;
     final String cleanAmount =
         _amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
     final int amount = int.tryParse(cleanAmount) ?? 0;
@@ -154,11 +158,35 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
       return;
     }
 
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
+
     final String typeLabel = _selectedType.label;
     final String category = _selectedCategory;
     final String note = _noteCtrl.text.trim();
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final bool isExpense = _selectedType == ManualEntryType.pengeluaran;
 
+    final String? error = await DataProviders.recordManualTransaction(
+      isExpense: isExpense,
+      nominal: amount,
+      category: category,
+      paymentMethod: _selectedPaymentMethod,
+      note: note,
+    );
+
+    if (!mounted) return;
+
+    if (error != null) {
+      setState(() {
+        _isSubmitting = false;
+        _submitError = error;
+      });
+      return;
+    }
+
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
@@ -757,12 +785,24 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                   ),
                 ),
               ),
+              if (_submitError != null) ...<Widget>[
+                const SizedBox(height: 12),
+                Text(
+                  _submitError!,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.family,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
+              ],
               const SizedBox(height: 22),
 
               // Tombol Submit Simpan Transaksi
               FilledButton(
                 key: const Key('manual_entry_submit_button'),
-                onPressed: _submitTransaction,
+                onPressed: _isSubmitting ? null : _submitTransaction,
                 style: FilledButton.styleFrom(
                   backgroundColor: _selectedType.color,
                   foregroundColor: Colors.white,
@@ -773,7 +813,9 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                   elevation: 2,
                 ),
                 child: Text(
-                  'Simpan ${_selectedType.label}',
+                  _isSubmitting
+                      ? 'Menyimpan...'
+                      : 'Simpan ${_selectedType.label}',
                   style: const TextStyle(
                     fontFamily: AppTypography.family,
                     fontSize: 14.5,

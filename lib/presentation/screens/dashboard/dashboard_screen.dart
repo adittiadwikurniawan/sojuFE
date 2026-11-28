@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
+import '../../../data/data_providers.dart';
 import '../../providers/dashboard/dashboard_controller.dart';
 import '../../utils/format.dart';
 import '../../widgets/activity_tile.dart';
@@ -80,6 +81,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    DataProviders.dataRevision.addListener(_onGlobalDataChanged);
     if (widget.controllerFactory != null) {
       _controller = widget.controllerFactory!();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -90,8 +92,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _onGlobalDataChanged() {
+    if (mounted) {
+      _controller?.load();
+    }
+  }
+
   @override
   void dispose() {
+    DataProviders.dataRevision.removeListener(_onGlobalDataChanged);
     _controller?.dispose();
     super.dispose();
   }
