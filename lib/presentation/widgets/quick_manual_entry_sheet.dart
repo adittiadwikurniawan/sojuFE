@@ -1,10 +1,9 @@
 // lib/presentation/widgets/quick_manual_entry_sheet.dart
 //
-// Bottom sheet interaktif untuk tombol (+) tengah navbar:
-// Memungkinkan kasir/admin mencatat data manual secara cepat:
-// 1. Pemasukan (Kas Masuk / Penjualan Manual)
-// 2. Pengeluaran (Beli Bahan / Operasional)
-// 3. Pendataan Bebas (Pindah ke Tab Pendataan Operasional)
+// Bottom sheet pencatatan buku kas mandiri dari tombol (+) tengah navbar:
+// 1. Pemasukan (Uang Masuk) dengan kategori starter + bebas tambah kategori sendiri
+// 2. Pengeluaran (Uang Keluar) dengan kategori starter + bebas tambah kategori sendiri
+// 3. Pendataan Bebas (pindah ke Tab Pendataan Operasional)
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,21 +16,21 @@ import '../../core/themes/soju_colors.dart';
 enum ManualEntryType {
   pemasukan(
     label: 'Pemasukan',
-    subtitle: 'Kas masuk / penjualan offline',
+    subtitle: 'Uang masuk / hasil jualan',
     color: SojuColors.brandEmerald,
     bgSoft: Color(0xFFECFDF5),
     icon: Icons.arrow_downward_rounded,
   ),
   pengeluaran(
     label: 'Pengeluaran',
-    subtitle: 'Beli bahan / operasional',
+    subtitle: 'Belanja bahan / biaya usaha',
     color: Color(0xFFEF4444),
     bgSoft: Color(0xFFFEF2F2),
     icon: Icons.arrow_upward_rounded,
   ),
   pendataan(
     label: 'Pendataan',
-    subtitle: 'Tabel bebas & log harian',
+    subtitle: 'Tabel catatan bebas',
     color: SojuColors.brandNavy,
     bgSoft: SojuColors.blueSoft,
     icon: Icons.table_chart_rounded,
@@ -74,26 +73,24 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
   ManualEntryType _selectedType = ManualEntryType.pemasukan;
   final TextEditingController _amountCtrl = TextEditingController();
   final TextEditingController _noteCtrl = TextEditingController();
+  final TextEditingController _customCategoryCtrl = TextEditingController();
 
-  String _selectedCategory = 'Penjualan Offline';
+  bool _isAddingCategory = false;
+  String _selectedCategory = 'Penjualan';
   String _selectedPaymentMethod = 'Tunai (Cash)';
   String? _amountError;
 
   final List<String> _pemasukanCategories = <String>[
-    'Penjualan Offline',
-    'Modal Shift Awal',
-    'Pesanan Khusus',
-    'Titipan Kas',
+    'Penjualan',
+    'Modal',
     'Lainnya',
   ];
 
   final List<String> _pengeluaranCategories = <String>[
     'Bahan Baku',
-    'Gas & Minyak',
-    'Es Batu & Cup',
-    'Kemasan & Plastik',
-    'Operasional Outlet',
-    'Gaji / Upah Shift',
+    'Kemasan',
+    'Operasional',
+    'Lainnya',
   ];
 
   final List<String> _paymentMethods = <String>[
@@ -102,10 +99,16 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
     'Transfer Bank',
   ];
 
+  List<String> get _activeCategories =>
+      _selectedType == ManualEntryType.pemasukan
+          ? _pemasukanCategories
+          : _pengeluaranCategories;
+
   @override
   void dispose() {
     _amountCtrl.dispose();
     _noteCtrl.dispose();
+    _customCategoryCtrl.dispose();
     super.dispose();
   }
 
@@ -113,11 +116,28 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
     setState(() {
       _selectedType = type;
       _amountError = null;
+      _isAddingCategory = false;
+      _customCategoryCtrl.clear();
       if (type == ManualEntryType.pemasukan) {
         _selectedCategory = _pemasukanCategories.first;
       } else if (type == ManualEntryType.pengeluaran) {
         _selectedCategory = _pengeluaranCategories.first;
       }
+    });
+  }
+
+  void _addCustomCategory() {
+    final String name = _customCategoryCtrl.text.trim();
+    if (name.isEmpty) {
+      return;
+    }
+    setState(() {
+      if (!_activeCategories.contains(name)) {
+        _activeCategories.insert(0, name);
+      }
+      _selectedCategory = name;
+      _customCategoryCtrl.clear();
+      _isAddingCategory = false;
     });
   }
 
@@ -155,7 +175,11 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                 color: _selectedType.color,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_rounded, color: Colors.white, size: 16),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -266,7 +290,7 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                         ),
                       ),
                       Text(
-                        'Input cepat mutasi kasir atau pendataan harian',
+                        'Catat uang masuk, uang keluar, atau pendataan bebas',
                         style: TextStyle(
                           fontFamily: AppTypography.family,
                           fontSize: 12,
@@ -278,7 +302,10 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded, color: SojuColors.inkMuted),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: SojuColors.inkMuted,
+                  ),
                 ),
               ],
             ),
@@ -353,7 +380,6 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
 
             // KONTEN SESUAI TYPE
             if (_selectedType == ManualEntryType.pendataan) ...<Widget>[
-              // Tampilan jika memilih "Pendataan"
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
@@ -387,7 +413,7 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Kelola tabel operasional bebas (stok bahan harian, log piket, suhu chiller) langsung di tab Pendataan.',
+                      'Buat catatan tabel bebas sesuai kebutuhan usahamu (stok bahan, daftar belanja, catatan harian) langsung di tab Pendataan.',
                       style: TextStyle(
                         fontFamily: AppTypography.family,
                         fontSize: 12.5,
@@ -410,7 +436,7 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                         ),
                       ),
                       icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                      label: const Text('Buka Layar Pendataan Kasir'),
+                      label: const Text('Buka Layar Pendataan'),
                     ),
                   ],
                 ),
@@ -482,24 +508,108 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
               ),
               const SizedBox(height: 16),
 
-              // Pilihan Kategori Cepat (Chips)
-              const Text(
-                'Kategori Transaksi',
-                style: TextStyle(
-                  fontFamily: AppTypography.family,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: SojuColors.ink,
-                ),
+              // Kategori Transaksi (Starter + Bebas Tambah Sendiri)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      'Kategori ${_selectedType.label}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: SojuColors.ink,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    key: const Key('manual_entry_add_category_toggle'),
+                    onTap: () {
+                      setState(() => _isAddingCategory = !_isAddingCategory);
+                    },
+                    child: Text(
+                      _isAddingCategory ? 'Batal' : '+ Kategori',
+                      style: TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: _selectedType.color,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
+
+              // Input Inline Tambah Kategori Bebas
+              if (_isAddingCategory) ...<Widget>[
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: TextField(
+                        key: const Key('manual_entry_custom_category_field'),
+                        controller: _customCategoryCtrl,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _addCustomCategory(),
+                        style: const TextStyle(
+                          fontFamily: AppTypography.family,
+                          fontSize: 13,
+                          color: SojuColors.ink,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Tulis kategori baru (mis. Beli Saus)...',
+                          hintStyle: const TextStyle(
+                            fontFamily: AppTypography.family,
+                            fontSize: 12,
+                            color: SojuColors.hint,
+                          ),
+                          filled: true,
+                          fillColor: SojuColors.homeBackground,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: SojuColors.cardBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: SojuColors.cardBorder),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      key: const Key('manual_entry_save_category_button'),
+                      onPressed: _addCustomCategory,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _selectedType.color,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(52, 42),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text('Pakai'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
+
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: (_selectedType == ManualEntryType.pemasukan
-                        ? _pemasukanCategories
-                        : _pengeluaranCategories)
-                    .map((String cat) {
+                children: _activeCategories.map((String cat) {
                   final bool isCatSelected = _selectedCategory == cat;
                   return ChoiceChip(
                     label: Text(cat),
@@ -617,7 +727,7 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                   color: SojuColors.ink,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Contoh: Tambah stok es batu siang hari',
+                  hintText: 'Contoh: Beli es batu 1 bal atau jual 5 porsi',
                   hintStyle: const TextStyle(
                     fontFamily: AppTypography.family,
                     fontSize: 12.5,
@@ -662,7 +772,7 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                   elevation: 2,
                 ),
                 child: Text(
-                  'Simpan Transaksi ${_selectedType.label}',
+                  'Simpan ${_selectedType.label}',
                   style: const TextStyle(
                     fontFamily: AppTypography.family,
                     fontSize: 14.5,

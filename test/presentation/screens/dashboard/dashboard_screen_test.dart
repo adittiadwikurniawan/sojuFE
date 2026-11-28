@@ -21,7 +21,7 @@ void main() {
     expect(find.text('Tanya BukuKita AI'), findsOneWidget);
     expect(find.text('Aktivitas'), findsOneWidget);
     expect(find.text('Lihat Semua'), findsOneWidget);
-    expect(find.text('Sosis'), findsWidgets);
+    expect(find.text('Penjualan Sosis Bakar (5 Porsi)'), findsOneWidget);
   });
 
   testWidgets('Total Penghasilan, tanggal, dan menu profil terhubung', (

@@ -4,10 +4,10 @@ import '../../core/themes/app_typography.dart';
 import '../../core/themes/soju_colors.dart';
 import '../models/activity_view_data.dart';
 
-/// Satu baris daftar "Aktivitas" (frame `546:1616`, node `669:1955`).
+/// Satu baris daftar riwayat catatan kas (Pemasukan / Pengeluaran).
 ///
 /// Dipakai bersama oleh Beranda, Analytics, dan halaman "Lihat Semua" agar
-/// tampilan aktivitas tetap konsisten.
+/// tampilan mutasi kas konsisten dan mudah dibaca.
 class ActivityTile extends StatelessWidget {
   const ActivityTile({
     super.key,
@@ -26,80 +26,94 @@ class ActivityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 83 * scale,
+    final bool isExpense = data.isExpense;
+    final Color accentColor =
+        isExpense ? const Color(0xFFEF4444) : SojuColors.brandEmerald;
+    final Color softBgColor =
+        isExpense ? const Color(0xFFFEF2F2) : const Color(0xFFECFDF5);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: 74 * scale),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Container(
-            width: 99 * scale,
-            height: 78.3 * scale,
+            width: 48 * scale,
+            height: 48 * scale,
             decoration: BoxDecoration(
-              color: SojuColors.surfaceMuted,
-              borderRadius: BorderRadius.circular(5 * scale),
+              color: softBgColor,
+              borderRadius: BorderRadius.circular(14 * scale),
             ),
             alignment: Alignment.center,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(5 * scale),
-              child: Image.asset(
-                data.imageAsset,
-                width: 78 * scale,
-                height: 67 * scale,
-                fit: BoxFit.cover,
-              ),
+            child: Icon(
+              isExpense
+                  ? Icons.arrow_upward_rounded
+                  : Icons.arrow_downward_rounded,
+              color: accentColor,
+              size: 22 * scale,
             ),
           ),
-          SizedBox(width: 16 * scale),
+          SizedBox(width: 12 * scale),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Flexible(
+                    Expanded(
                       child: Text(
                         data.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: AppTypography.family,
-                          fontSize: 18 * scale,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
+                          fontSize: 14 * scale,
+                          fontWeight: FontWeight.w700,
+                          color: SojuColors.ink,
                         ),
                       ),
                     ),
+                    SizedBox(width: 8 * scale),
+                    Text(
+                      data.pack,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 13.5 * scale,
+                        fontWeight: FontWeight.w800,
+                        color: accentColor,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4 * scale),
+                Row(
+                  children: <Widget>[
+                    _Badge(
+                      scale: scale,
+                      label: data.badge,
+                      color: accentColor,
+                      bgColor: softBgColor,
+                    ),
                     SizedBox(width: 6 * scale),
-                    _Badge(scale: scale, label: data.badge),
-                    const Spacer(),
-                    Flexible(
+                    Expanded(
                       child: Text(
-                        data.pack,
+                        data.variant,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: AppTypography.family,
-                          fontSize: 12 * scale,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
+                          fontSize: 11.5 * scale,
+                          fontWeight: FontWeight.w500,
+                          color: SojuColors.inkMuted,
                         ),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 2 * scale),
-                Text(
-                  data.variant,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: AppTypography.family,
-                    fontSize: 14 * scale,
-                    fontWeight: FontWeight.w600,
-                    color: SojuColors.textMuted,
-                  ),
-                ),
-                const Spacer(),
+                SizedBox(height: 4 * scale),
                 Row(
                   children: <Widget>[
                     Expanded(
@@ -109,8 +123,8 @@ class ActivityTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: AppTypography.family,
-                          fontSize: 12 * scale,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 11 * scale,
+                          fontWeight: FontWeight.w500,
                           color: SojuColors.textMuted,
                         ),
                       ),
@@ -131,29 +145,36 @@ class ActivityTile extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({required this.scale, required this.label});
+  const _Badge({
+    required this.scale,
+    required this.label,
+    required this.color,
+    required this.bgColor,
+  });
 
   final double scale;
   final String label;
+  final Color color;
+  final Color bgColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: 6 * scale,
-        vertical: 3.5 * scale,
+        horizontal: 7 * scale,
+        vertical: 2.5 * scale,
       ),
       decoration: BoxDecoration(
-        color: SojuColors.badgeBlue,
-        borderRadius: BorderRadius.circular(20.5 * scale),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20 * scale),
       ),
       child: Text(
         label,
         style: TextStyle(
           fontFamily: AppTypography.family,
-          fontSize: 8.2 * scale,
+          fontSize: 9.5 * scale,
           fontWeight: FontWeight.w700,
-          color: SojuColors.surface,
+          color: color,
         ),
       ),
     );
@@ -171,24 +192,28 @@ class _DetailButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 16 * scale,
-        padding: EdgeInsets.symmetric(horizontal: 5 * scale),
+        height: 20 * scale,
+        padding: EdgeInsets.symmetric(horizontal: 8 * scale),
         decoration: BoxDecoration(
-          color: SojuColors.positive,
+          color: SojuColors.blueSoft,
           borderRadius: BorderRadius.circular(30 * scale),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(Icons.edit, size: 7 * scale, color: SojuColors.surface),
-            SizedBox(width: 2.5 * scale),
+            Icon(
+              Icons.receipt_long_rounded,
+              size: 10 * scale,
+              color: SojuColors.brandNavy,
+            ),
+            SizedBox(width: 3 * scale),
             Text(
               'Detail',
               style: TextStyle(
                 fontFamily: AppTypography.family,
-                fontSize: 9 * scale,
+                fontSize: 10 * scale,
                 fontWeight: FontWeight.w700,
-                color: SojuColors.surface,
+                color: SojuColors.brandNavy,
               ),
             ),
           ],
