@@ -3,7 +3,11 @@
 // Editor produk responsif (Desktop 2-kolom & Mobile 1-kolom) bergaya Mockup 2
 // untuk mengelola produk katalog & sinkronisasi visibilitas ke aplikasi Pelanggan.
 
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/themes/app_typography.dart';
 import '../../../core/themes/soju_colors.dart';
@@ -46,7 +50,11 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
   bool _isFeatured = false;
   _ProductDetailTab _tab = _ProductDetailTab.general;
   bool _isSaving = false;
+  bool _isPickingImage = false;
   String? _validationError;
+  Uint8List? _pickedImageBytes;
+  String? _pickedImageDataUri;
+  String? _pickedImageInfo;
 
   @override
   void initState() {
@@ -79,11 +87,55 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
     super.dispose();
   }
 
+  Future<void> _pickProductImage() async {
+    if (_isPickingImage) return;
+    setState(() {
+      _isPickingImage = true;
+      _validationError = null;
+    });
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 78,
+      );
+      if (picked == null || !mounted) return;
+      final Uint8List bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      final String lower = picked.name.toLowerCase();
+      final String mime = lower.endsWith('.png')
+          ? 'image/png'
+          : lower.endsWith('.webp')
+              ? 'image/webp'
+              : 'image/jpeg';
+      final double kb = bytes.length / 1024;
+      setState(() {
+        _pickedImageBytes = bytes;
+        _pickedImageDataUri = 'data:$mime;base64,${base64Encode(bytes)}';
+        _pickedImageInfo = '${picked.name} (${kb.toStringAsFixed(0)} KB)';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _validationError =
+            'Gagal memilih foto. Pastikan izin galeri/file diizinkan.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingImage = false);
+      }
+    }
+  }
+
   AdminProductDraft _buildDraft({required bool active}) {
     final int price = int.tryParse(
           _priceCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''),
         ) ??
         0;
+    final String? effectiveImage = _pickedImageDataUri ??
+        (_imgCtrl.text.trim().isEmpty ? null : _imgCtrl.text.trim());
     return AdminProductDraft(
       code: _codeCtrl.text.trim().isEmpty
           ? 'PRD-${DateTime.now().millisecondsSinceEpoch % 10000}'
@@ -95,7 +147,7 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
       price: price,
       description:
           _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-      imageUrl: _imgCtrl.text.trim().isEmpty ? null : _imgCtrl.text.trim(),
+      imageUrl: effectiveImage,
       isActive: active,
     );
   }
@@ -493,12 +545,22 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
                   border: Border.all(color: SojuColors.hairline),
                 ),
                 alignment: Alignment.center,
-                child: StorefrontProductImage(
-                  url: imgUrl.isEmpty ? null : imgUrl,
-                  size: 132,
-                  radius: 14,
-                  enableLightbox: true,
-                ),
+                child: _pickedImageBytes != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Image.memory(
+                          _pickedImageBytes!,
+                          width: 132,
+                          height: 132,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : StorefrontProductImage(
+                        url: imgUrl.isEmpty ? null : imgUrl,
+                        size: 132,
+                        radius: 14,
+                        enableLightbox: true,
+                      ),
               ),
               Positioned(
                 left: 8,
@@ -529,10 +591,12 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: InkWell(
-              onTap: () => setState(() => _tab = _ProductDetailTab.advanced),
+              key: const Key('admin_product_pick_image_button'),
+              onTap: _isPickingImage ? null : _pickProductImage,
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 height: 144,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   color: SojuColors.homeBackground,
                   borderRadius: BorderRadius.circular(16),
@@ -541,23 +605,50 @@ class _AdminProductEditorScreenState extends State<AdminProductEditorScreen> {
                     width: 1.4,
                   ),
                 ),
-                child: const Column(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    Icon(
-                      Icons.add_photo_alternate_outlined,
-                      size: 28,
-                      color: SojuColors.primary,
-                    ),
-                    SizedBox(height: 6),
+                    if (_isPickingImage)
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2.2),
+                      )
+                    else
+                      Icon(
+                        _pickedImageBytes != null
+                            ? Icons.check_circle_outline_rounded
+                            : Icons.add_photo_alternate_outlined,
+                        size: 28,
+                        color: _pickedImageBytes != null
+                            ? SojuColors.brandEmerald
+                            : SojuColors.primary,
+                      ),
+                    const SizedBox(height: 6),
                     Text(
-                      'Atur URL Gambar',
+                      _pickedImageBytes != null
+                          ? 'Ganti Foto Produk'
+                          : 'Upload Foto Produk',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: AppTypography.family,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: SojuColors.primary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: _pickedImageBytes != null
+                            ? SojuColors.brandEmerald
+                            : SojuColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _pickedImageInfo ?? 'Auto-kompres • Max 800px',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.family,
+                        fontSize: 10.5,
+                        color: SojuColors.inkMuted,
                       ),
                     ),
                   ],

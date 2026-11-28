@@ -58,6 +58,8 @@ class AdminCmsRemoteDataSource implements AdminCmsDataSource {
   Future<Map<String, Object?>> createProductRaw({
     required AdminProductDraft draft,
   }) {
+    final String trimmedImage = draft.imageUrl?.trim() ?? '';
+    final bool isDataUri = trimmedImage.startsWith('data:image/');
     return _map(
       _apiClient.post(
         '/api/v1/products',
@@ -68,8 +70,8 @@ class AdminCmsRemoteDataSource implements AdminCmsDataSource {
           'satuan': draft.unit,
           'hargaDefault': draft.price,
           'deskripsi': draft.description,
-          if (draft.imageUrl != null && draft.imageUrl!.trim().isNotEmpty)
-            'gambarUrl': draft.imageUrl!.trim(),
+          if (trimmedImage.isNotEmpty && isDataUri) 'gambar': trimmedImage,
+          if (trimmedImage.isNotEmpty && !isDataUri) 'gambarUrl': trimmedImage,
           'aktif': draft.isActive,
         },
       ),
@@ -81,6 +83,9 @@ class AdminCmsRemoteDataSource implements AdminCmsDataSource {
     required int id,
     required AdminProductDraft draft,
   }) {
+    final String? trimmedImage = draft.imageUrl?.trim();
+    final bool isDataUri =
+        trimmedImage != null && trimmedImage.startsWith('data:image/');
     return _map(
       _apiClient.put(
         '/api/v1/products/$id',
@@ -91,7 +96,8 @@ class AdminCmsRemoteDataSource implements AdminCmsDataSource {
           'satuan': draft.unit,
           'hargaDefault': draft.price,
           'deskripsi': draft.description,
-          if (draft.imageUrl != null) 'gambarUrl': draft.imageUrl!.trim(),
+          if (trimmedImage != null && isDataUri) 'gambar': trimmedImage,
+          if (trimmedImage != null && !isDataUri) 'gambarUrl': trimmedImage,
           'aktif': draft.isActive,
         },
       ),
