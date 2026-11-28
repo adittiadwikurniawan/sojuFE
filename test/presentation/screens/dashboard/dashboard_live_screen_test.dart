@@ -101,7 +101,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Rp 5.000.000'), findsWidgets);
-        expect(find.text('3 Pesanan'), findsOneWidget);
+        expect(find.text('Saldo Kas'), findsOneWidget);
+        expect(find.text('Pemasukan'), findsWidgets);
       },
     );
 
@@ -133,7 +134,7 @@ void main() {
 
       expect(find.byKey(const Key('dashboard_error')), findsNothing);
       expect(find.text('Rp 2.500.000'), findsWidgets);
-      expect(find.text('7 Pesanan'), findsOneWidget);
+      expect(find.text('Saldo Kas'), findsOneWidget);
     });
 
     testWidgets('renders live data state with metrics and charts', (
@@ -154,7 +155,8 @@ void main() {
 
       expect(find.byType(RevenueChartCard), findsOneWidget);
       expect(find.text('Rp 8.000.000'), findsWidgets);
-      expect(find.text('15 Pesanan'), findsOneWidget);
+      expect(find.text('Saldo Kas'), findsOneWidget);
+      expect(find.text('Pemasukan'), findsWidgets);
       expect(find.text('Pengeluaran'), findsWidgets);
       expect(find.text('Aktivitas'), findsOneWidget);
     });

@@ -128,6 +128,9 @@ class DashboardController extends ChangeNotifier {
                 ? summary.revenueSummary!
                 : _buildFallbackLiveChart(summary);
 
+        final int displayedIncome = summary.periodIncome > 0
+            ? summary.periodIncome
+            : summary.todayIncome;
         final int displayedExpense = summary.periodExpense > 0
             ? summary.periodExpense
             : summary.todayExpense;
@@ -137,17 +140,21 @@ class DashboardController extends ChangeNotifier {
           searchHint: 'Cari Kas Mu',
           metrics: <DashboardMetricData>[
             DashboardMetricData(
-              title: summary.todayIncome > 0
-                  ? 'Penghasilan Hari Ini'
-                  : 'Saldo Kas',
-              value: formatRupiah(
-                summary.todayIncome > 0
-                    ? summary.todayIncome
-                    : summary.cashBalance,
-              ),
-              note: summary.todayIncome > 0
-                  ? 'Saldo Kas ${formatRupiah(summary.cashBalance)}'
-                  : 'Kas Operasional Bersih',
+              title: 'Saldo Kas',
+              value: formatRupiah(summary.cashBalance),
+              note: 'Pemasukan − Pengeluaran',
+              titleSize: 13.4,
+            ),
+            DashboardMetricData(
+              title: 'Pemasukan',
+              value: formatRupiah(displayedIncome),
+              note: 'Total Uang Masuk',
+              titleSize: 13.4,
+            ),
+            DashboardMetricData(
+              title: 'Pengeluaran',
+              value: formatRupiah(displayedExpense),
+              note: 'Belanja Bahan / Operasional',
               titleSize: 13.4,
             ),
             DashboardMetricData(
@@ -158,11 +165,6 @@ class DashboardController extends ChangeNotifier {
               note: summary.totalTransactions > 0
                   ? '${summary.newOrdersCount} Pesanan Pelanggan'
                   : 'Menunggu konfirmasi / proses',
-            ),
-            DashboardMetricData(
-              title: 'Pengeluaran',
-              value: formatRupiah(displayedExpense),
-              note: 'Belanja Bahan / Operasional',
             ),
           ],
           revenue: effectiveRevenue,

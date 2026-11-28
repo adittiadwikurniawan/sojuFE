@@ -68,12 +68,16 @@ String groupDigits(int value) {
   return buffer.toString();
 }
 
-/// `15000000` → `Rp 15.000.000`; dengan [withSign] negatif menjadi
-/// `- Rp 10.000.000`.
+/// `15000000` → `Rp 15.000.000`; nilai negatif menjadi `-Rp 10.000.000`.
+/// Dengan [withSign] aktif, nilai positif menjadi `+ Rp 15.000.000` dan
+/// negatif menjadi `- Rp 10.000.000`.
 String formatRupiah(num value, {bool withSign = false}) {
   final String amount = 'Rp ${groupDigits(value.round())}';
-  if (!withSign || value == 0) {
+  if (value == 0) {
     return amount;
+  }
+  if (!withSign) {
+    return value < 0 ? '-$amount' : amount;
   }
   return value < 0 ? '- $amount' : '+ $amount';
 }

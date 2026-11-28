@@ -29,6 +29,8 @@ class RevenueChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isIncomeExpenseChart =
+        data.thisWeekLegend.toLowerCase().contains('pemasukan');
     final Widget card = BarChartCard(
       scale: scale,
       onDateTap: onDateTap,
@@ -39,15 +41,18 @@ class RevenueChartCard extends StatelessWidget {
         growth: data.growth,
         growthPositive: !data.growth.startsWith('-'),
         axisMax: data.axisMax,
-        primaryLegend: data.thisWeekLegend,
-        secondaryLegend: data.lastWeekLegend,
+        // Pada grafik kas: Hijau (secondary) = Pemasukan, Navy (primary) = Pengeluaran.
+        primaryLegend:
+            isIncomeExpenseChart ? data.lastWeekLegend : data.thisWeekLegend,
+        secondaryLegend:
+            isIncomeExpenseChart ? data.thisWeekLegend : data.lastWeekLegend,
         valueFormatter: formatChartValue,
         days: <BarChartDay>[
           for (final RevenueDayData day in data.days)
             BarChartDay(
               label: day.label,
-              primary: day.thisWeek,
-              secondary: day.lastWeek,
+              primary: isIncomeExpenseChart ? day.lastWeek : day.thisWeek,
+              secondary: isIncomeExpenseChart ? day.thisWeek : day.lastWeek,
             ),
         ],
       ),
