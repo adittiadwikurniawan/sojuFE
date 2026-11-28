@@ -292,97 +292,145 @@ class _CustomerHomeShellScreenState extends State<CustomerHomeShellScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: <Color>[
-                            Color(0xFFEAF2FF),
-                            Color(0xFFD6E6FF),
+                    // Hero Banner (disamakan dengan prototype index.html)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: <Color>[
+                              SojuColors.brandNavy,
+                              Color(0xFF1E40AF),
+                              Color(0xFF0284C7),
+                            ],
+                          ),
+                          boxShadow: <BoxShadow>[
+                            BoxShadow(
+                              color: Color(0x1A0F172A),
+                              blurRadius: 12,
+                              offset: Offset(0, 4),
+                            ),
                           ],
                         ),
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: SojuColors.freeTableBlueBorder60),
-                      ),
-                      child: Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                RichText(
-                                  text: const TextSpan(
-                                    style: TextStyle(
-                                      fontFamily: AppTypography.family,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w800,
-                                      color: SojuColors.ink,
-                                    ),
-                                    children: <TextSpan>[
-                                      TextSpan(text: 'Hemat hingga '),
-                                      TextSpan(
-                                        text: '50%',
-                                        style: TextStyle(
-                                          color: SojuColors.expense,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                        child: Stack(
+                          children: <Widget>[
+                            Positioned(
+                              right: -28,
+                              top: -28,
+                              child: Container(
+                                width: 136,
+                                height: 136,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF8ED1E4)
+                                      .withOpacity(0.20),
                                 ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'Penawaran terbatas untuk menu pilihan SOJU hari ini.',
-                                  style: TextStyle(
-                                    fontFamily: AppTypography.family,
-                                    fontSize: 12.5,
-                                    height: 1.4,
-                                    color: SojuColors.inkMuted,
-                                  ),
+                              ),
+                            ),
+                            Positioned(
+                              right: 24,
+                              bottom: 14,
+                              child: Container(
+                                width: 76,
+                                height: 76,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withOpacity(0.10),
                                 ),
-                                const SizedBox(height: 14),
-                                FilledButton(
-                                  key: const Key('customer_home_open_menu'),
-                                  onPressed: widget.onBrowseMenu,
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: SojuColors.brandNavy,
-                                    foregroundColor: SojuColors.surface,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(18),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                      vertical: 10,
+                                      horizontal: 10,
+                                      vertical: 4,
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.95),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: <Widget>[
+                                        Icon(
+                                          Icons.verified_user_outlined,
+                                          size: 13,
+                                          color: SojuColors.brandNavy,
+                                        ),
+                                        SizedBox(width: 5),
+                                        Text(
+                                          'Buku Dapur SOJU',
+                                          style: TextStyle(
+                                            fontFamily: AppTypography.family,
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: SojuColors.brandNavy,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Pesan Sekarang',
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Frozen Food & Siap Saji SOJU',
                                     style: TextStyle(
                                       fontFamily: AppTypography.family,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      height: 1.25,
                                     ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Pesan aneka frozen food segar langsung dari dapur kami.',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontFamily: AppTypography.family,
+                                      fontSize: 12,
+                                      height: 1.35,
+                                      color: Colors.white.withOpacity(0.90),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  FilledButton(
+                                    key: const Key('customer_home_open_menu'),
+                                    onPressed: widget.onBrowseMenu,
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: SojuColors.brandEmerald,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 10,
+                                      ),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Pesan Sekarang →',
+                                      style: TextStyle(
+                                        fontFamily: AppTypography.family,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Container(
-                            width: 84,
-                            height: 84,
-                            decoration: BoxDecoration(
-                              color: SojuColors.surface.withOpacity(0.85),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Icon(
-                              Icons.fastfood_rounded,
-                              size: 42,
-                              color: SojuColors.primary,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 18),
