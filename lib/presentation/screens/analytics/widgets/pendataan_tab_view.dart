@@ -72,10 +72,15 @@ class _PendataanTabViewState extends State<PendataanTabView> {
     const PendataanColumnDef(name: 'Jumlah', type: PendataanColumnType.angka),
   ];
   String? _tableFormError;
+  String? _tableNameError;
+  String? _colNameError;
+  String? _dropdownOptsError;
 
   // State form inline: Tambah / Edit Baris
   bool _isEditingRow = false;
   int? _editingRowIndex;
+  String? _rowFormError;
+  final Map<String, String> _rowFieldErrors = <String, String>{};
   final Map<String, TextEditingController> _rowCtrls =
       <String, TextEditingController>{};
 
@@ -124,41 +129,110 @@ class _PendataanTabViewState extends State<PendataanTabView> {
         ),
       ];
       _tableFormError = null;
+      _tableNameError = null;
+      _colNameError = null;
+      _dropdownOptsError = null;
     });
   }
 
   void _addDraftColumn() {
     final String cName = _colNameCtrl.text.trim();
-    if (cName.isEmpty) return;
-    final List<String> opts = _selectedColType == PendataanColumnType.dropdown
-        ? _dropdownOptsCtrl.text
-            .split(',')
-            .map((String s) => s.trim())
-            .where((String s) => s.isNotEmpty)
-            .toList()
-        : const <String>[];
+    if (cName.isEmpty) {
+      setState(() {
+        _colNameError = 'Nama kolom wajib diisi sebelum menambah kolom.';
+        _tableFormError = 'Lengkapi nama kolom terlebih dahulu.';
+      });
+      return;
+    }
+
+    final bool isDuplicate = _draftColumns.any(
+      (PendataanColumnDef c) => c.name.toLowerCase() == cName.toLowerCase(),
+    );
+    if (isDuplicate) {
+      setState(() {
+        _colNameError = 'Kolom "$cName" sudah ada di tabel ini.';
+        _tableFormError = 'Nama kolom tidak boleh sama.';
+      });
+      return;
+    }
+
+    List<String> opts = const <String>[];
+    if (_selectedColType == PendataanColumnType.dropdown) {
+      opts = _dropdownOptsCtrl.text
+          .split(',')
+          .map((String s) => s.trim())
+          .where((String s) => s.isNotEmpty)
+          .toSet()
+          .toList();
+      if (opts.length < 2) {
+        setState(() {
+          _colNameError = null;
+          _dropdownOptsError =
+              'Dropdown butuh minimal 2 opsi dipisah koma (contoh: Tersedia, Habis).';
+          _tableFormError = 'Lengkapi opsi dropdown minimal 2 pilihan.';
+        });
+        return;
+      }
+    }
+
     setState(() {
       _draftColumns.add(
         PendataanColumnDef(
           name: cName,
           type: _selectedColType,
-          options: opts.isEmpty &&
-                  _selectedColType == PendataanColumnType.dropdown
-              ? const <String>['Opsi 1', 'Opsi 2']
-              : opts,
+          options: opts,
         ),
       );
       _colNameCtrl.clear();
       _dropdownOptsCtrl.clear();
+      _colNameError = null;
+      _dropdownOptsError = null;
+      _tableFormError = null;
     });
   }
 
   void _saveTable() {
     final String tName = _tableNameCtrl.text.trim();
     if (tName.isEmpty) {
-      setState(() => _tableFormError = 'Nama tabel wajib diisi.');
+      setState(() {
+        _tableNameError = 'Nama tabel wajib diisi.';
+        _tableFormError = 'Periksa kolom yang ditandai merah di bawah.';
+      });
       return;
     }
+    if (tName.length < 2) {
+      setState(() {
+        _tableNameError = 'Nama tabel minimal 2 karakter.';
+        _tableFormError = 'Periksa kolom yang ditandai merah di bawah.';
+      });
+      return;
+    }
+    final bool duplicateTable = _tables.any(
+      (PendataanTableDef t) => t.name.toLowerCase() == tName.toLowerCase(),
+    );
+    if (duplicateTable) {
+      setState(() {
+        _tableNameError = 'Tabel "$tName" sudah ada.';
+        _tableFormError = 'Gunakan nama tabel yang berbeda.';
+      });
+      return;
+    }
+    if (_draftColumns.isEmpty) {
+      setState(() {
+        _colNameError = 'Tambahkan minimal 1 kolom terlebih dahulu.';
+        _tableFormError = 'Tabel wajib memiliki minimal 1 kolom.';
+      });
+      return;
+    }
+    if (_colNameCtrl.text.trim().isNotEmpty) {
+      setState(() {
+        _colNameError =
+            'Klik "+ Tambah Kolom" dulu untuk memasukkan "${_colNameCtrl.text.trim()}", atau kosongkan.';
+        _tableFormError = 'Ada kolom baru yang belum ditambahkan.';
+      });
+      return;
+    }
+
     final PendataanTableDef table = PendataanTableDef(
       id: 'tbl-${DateTime.now().millisecondsSinceEpoch}',
       name: tName,
@@ -170,6 +244,9 @@ class _PendataanTabViewState extends State<PendataanTabView> {
       _activeTableId = table.id;
       _isCreatingTable = false;
       _tableFormError = null;
+      _tableNameError = null;
+      _colNameError = null;
+      _dropdownOptsError = null;
     });
   }
 
@@ -190,14 +267,53 @@ class _PendataanTabViewState extends State<PendataanTabView> {
       _isCreatingTable = false;
       _isEditingRow = true;
       _editingRowIndex = editIndex;
+      _rowFormError = null;
+      _rowFieldErrors.clear();
     });
   }
 
   void _saveRow(PendataanTableDef table) {
-    final Map<String, String> rowData = <String, String>{
-      for (final PendataanColumnDef c in table.columns)
-        c.name: _rowCtrls[c.name]?.text.trim() ?? '',
-    };
+    final Map<String, String> errors = <String, String>{};
+    final Map<String, String> rowData = <String, String>{};
+    bool hasAnyValue = false;
+
+    for (final PendataanColumnDef c in table.columns) {
+      final String val = _rowCtrls[c.name]?.text.trim() ?? '';
+      rowData[c.name] = val;
+      if (val.isNotEmpty) {
+        hasAnyValue = true;
+      }
+      if (c.type == PendataanColumnType.angka && val.isNotEmpty) {
+        final String clean = val.replaceAll('.', '').replaceAll(',', '');
+        if (num.tryParse(clean) == null) {
+          errors[c.name] = '${c.name} harus berupa angka yang valid.';
+        }
+      }
+      if (c.type == PendataanColumnType.tanggal && val.isNotEmpty) {
+        if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(val)) {
+          errors[c.name] = 'Format tanggal harus YYYY-MM-DD (contoh: 2026-11-28).';
+        }
+      }
+    }
+
+    if (!hasAnyValue) {
+      setState(() {
+        _rowFieldErrors.clear();
+        _rowFormError = 'Isi minimal satu kolom sebelum menyimpan baris.';
+      });
+      return;
+    }
+
+    if (errors.isNotEmpty) {
+      setState(() {
+        _rowFieldErrors
+          ..clear()
+          ..addAll(errors);
+        _rowFormError = 'Periksa isian yang ditandai merah di bawah.';
+      });
+      return;
+    }
+
     setState(() {
       if (_editingRowIndex == null) {
         table.rows.insert(0, rowData);
@@ -206,6 +322,8 @@ class _PendataanTabViewState extends State<PendataanTabView> {
       }
       _isEditingRow = false;
       _editingRowIndex = null;
+      _rowFormError = null;
+      _rowFieldErrors.clear();
     });
   }
 
@@ -503,13 +621,17 @@ class _PendataanTabViewState extends State<PendataanTabView> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                const Text(
-                  'Buat Tabel Pendataan',
-                  style: TextStyle(
-                    fontFamily: AppTypography.family,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: SojuColors.brandNavy,
+                const Expanded(
+                  child: Text(
+                    'Buat Tabel Pendataan',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: AppTypography.family,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: SojuColors.brandNavy,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -521,22 +643,59 @@ class _PendataanTabViewState extends State<PendataanTabView> {
               ],
             ),
             if (_tableFormError != null) ...<Widget>[
-              const SizedBox(height: 6),
-              Text(
-                _tableFormError!,
-                style: const TextStyle(
-                  fontFamily: AppTypography.family,
-                  fontSize: 12.5,
-                  color: SojuColors.brandDanger,
+              const SizedBox(height: 8),
+              Container(
+                key: const Key('pendataan_table_error_banner'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: SojuColors.brandDanger.withOpacity(0.35),
+                  ),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 18,
+                      color: SojuColors.brandDanger,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _tableFormError!,
+                        style: const TextStyle(
+                          fontFamily: AppTypography.family,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: SojuColors.brandDanger,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             TextField(
+              key: const Key('pendataan_table_name_field'),
               controller: _tableNameCtrl,
+              onChanged: (_) {
+                if (_tableNameError != null || _tableFormError != null) {
+                  setState(() {
+                    _tableNameError = null;
+                    _tableFormError = null;
+                  });
+                }
+              },
               decoration: InputDecoration(
-                labelText: 'Nama Tabel',
-                hintText: 'Contoh: Stok Bahan Baku, Jadwal Piket',
+                labelText: 'Nama Tabel *',
+                hintText: 'Contoh: Stok Sosis Frozen, Daftar Belanja',
+                errorText: _tableNameError,
                 filled: true,
                 fillColor: SojuColors.canvas,
                 border: OutlineInputBorder(
@@ -558,14 +717,32 @@ class _PendataanTabViewState extends State<PendataanTabView> {
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
-              'Kolom Tabel',
-              style: TextStyle(
-                fontFamily: AppTypography.family,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-                color: SojuColors.ink,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                const Expanded(
+                  child: Text(
+                    'Kolom Tabel',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: AppTypography.family,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: SojuColors.ink,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${_draftColumns.length} kolom',
+                  style: const TextStyle(
+                    fontFamily: AppTypography.family,
+                    fontSize: 11,
+                    color: SojuColors.inkMuted,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -574,8 +751,27 @@ class _PendataanTabViewState extends State<PendataanTabView> {
               children: _draftColumns.asMap().entries.map((entry) {
                 final int idx = entry.key;
                 final PendataanColumnDef col = entry.value;
-                return InputChip(
-                  label: Text('${col.name} (${col.type.label})'),
+                return Chip(
+                  backgroundColor: SojuColors.blueSoft,
+                  side: BorderSide(
+                    color: SojuColors.brandNavy.withOpacity(0.2),
+                  ),
+                  label: Text(
+                    '${col.name} (${col.type.label})',
+                    style: const TextStyle(
+                      fontFamily: AppTypography.family,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: SojuColors.brandNavy,
+                    ),
+                  ),
+                  deleteIcon: _draftColumns.length > 1
+                      ? const Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: SojuColors.brandNavy,
+                        )
+                      : null,
                   onDeleted: _draftColumns.length > 1
                       ? () => setState(() => _draftColumns.removeAt(idx))
                       : null,
@@ -584,13 +780,26 @@ class _PendataanTabViewState extends State<PendataanTabView> {
             ),
             const SizedBox(height: 10),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Expanded(
                   flex: 3,
                   child: TextField(
+                    key: const Key('pendataan_col_name_field'),
                     controller: _colNameCtrl,
+                    onChanged: (_) {
+                      if (_colNameError != null || _tableFormError != null) {
+                        setState(() {
+                          _colNameError = null;
+                          _tableFormError = null;
+                        });
+                      }
+                    },
                     decoration: InputDecoration(
-                      hintText: 'Nama kolom baru',
+                      labelText: 'Nama kolom baru',
+                      hintText: 'Contoh: Status Stok',
+                      errorText: _colNameError,
+                      errorMaxLines: 2,
                       isDense: true,
                       filled: true,
                       fillColor: SojuColors.canvas,
@@ -606,7 +815,9 @@ class _PendataanTabViewState extends State<PendataanTabView> {
                   child: DropdownButtonFormField<PendataanColumnType>(
                     value: _selectedColType,
                     isDense: true,
+                    isExpanded: true,
                     decoration: InputDecoration(
+                      labelText: 'Tipe',
                       filled: true,
                       fillColor: SojuColors.canvas,
                       border: OutlineInputBorder(
@@ -614,7 +825,7 @@ class _PendataanTabViewState extends State<PendataanTabView> {
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 10,
-                        vertical: 10,
+                        vertical: 11,
                       ),
                     ),
                     items: PendataanColumnType.values
@@ -630,7 +841,10 @@ class _PendataanTabViewState extends State<PendataanTabView> {
                         .toList(),
                     onChanged: (PendataanColumnType? val) {
                       if (val != null) {
-                        setState(() => _selectedColType = val);
+                        setState(() {
+                          _selectedColType = val;
+                          _dropdownOptsError = null;
+                        });
                       }
                     },
                   ),
@@ -640,9 +854,22 @@ class _PendataanTabViewState extends State<PendataanTabView> {
             if (_selectedColType == PendataanColumnType.dropdown) ...<Widget>[
               const SizedBox(height: 8),
               TextField(
+                key: const Key('pendataan_dropdown_opts_field'),
                 controller: _dropdownOptsCtrl,
+                onChanged: (_) {
+                  if (_dropdownOptsError != null || _tableFormError != null) {
+                    setState(() {
+                      _dropdownOptsError = null;
+                      _tableFormError = null;
+                    });
+                  }
+                },
                 decoration: InputDecoration(
-                  hintText: 'Opsi dropdown pisahkan koma (Aman, Habis)',
+                  labelText: 'Pilihan Dropdown (pisahkan koma)',
+                  hintText: 'Contoh: Tersedia, Menipis, Habis',
+                  helperText: 'Minimal 2 pilihan dipisahkan tanda koma (,)',
+                  errorText: _dropdownOptsError,
+                  errorMaxLines: 2,
                   isDense: true,
                   filled: true,
                   fillColor: SojuColors.canvas,
@@ -656,6 +883,7 @@ class _PendataanTabViewState extends State<PendataanTabView> {
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
+                key: const Key('pendataan_add_column_button'),
                 onPressed: _addDraftColumn,
                 icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
                 label: const Text('Tambah Kolom'),
@@ -745,6 +973,28 @@ class _PendataanTabViewState extends State<PendataanTabView> {
               ),
             ],
           ),
+          if (_rowFormError != null) ...<Widget>[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: SojuColors.brandDanger.withOpacity(0.35),
+                ),
+              ),
+              child: Text(
+                _rowFormError!,
+                style: const TextStyle(
+                  fontFamily: AppTypography.family,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: SojuColors.brandDanger,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           for (final PendataanColumnDef c in table.columns) ...<Widget>[
             if (c.type == PendataanColumnType.dropdown && c.options.isNotEmpty)
@@ -770,7 +1020,10 @@ class _PendataanTabViewState extends State<PendataanTabView> {
                     .toList(),
                 onChanged: (String? v) {
                   if (v != null && _rowCtrls[c.name] != null) {
-                    setState(() => _rowCtrls[c.name]!.text = v);
+                    setState(() {
+                      _rowCtrls[c.name]!.text = v;
+                      _rowFormError = null;
+                    });
                   }
                 },
               )
@@ -780,11 +1033,21 @@ class _PendataanTabViewState extends State<PendataanTabView> {
                 keyboardType: c.type == PendataanColumnType.angka
                     ? TextInputType.number
                     : TextInputType.text,
+                onChanged: (_) {
+                  if (_rowFieldErrors.containsKey(c.name) ||
+                      _rowFormError != null) {
+                    setState(() {
+                      _rowFieldErrors.remove(c.name);
+                      _rowFormError = null;
+                    });
+                  }
+                },
                 decoration: InputDecoration(
                   labelText: c.name,
                   hintText: c.type == PendataanColumnType.tanggal
-                      ? 'YYYY-MM-DD'
+                      ? 'YYYY-MM-DD (contoh: 2026-11-28)'
                       : 'Isi ${c.name.toLowerCase()}...',
+                  errorText: _rowFieldErrors[c.name],
                   filled: true,
                   fillColor: SojuColors.canvas,
                   border: OutlineInputBorder(
