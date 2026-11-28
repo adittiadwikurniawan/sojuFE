@@ -30,6 +30,7 @@ Future<ProductSelection?> showProductDetailSheet(
 ) {
   return showModalBottomSheet<ProductSelection>(
     context: context,
+    useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: SojuColors.surface,

@@ -49,7 +49,6 @@ import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/profile/profile_settings_screen.dart';
 import '../../presentation/screens/profile/terms_screen.dart';
 import '../../presentation/widgets/admin_drawer.dart';
-import '../../presentation/widgets/bottom_glass_overlay.dart';
 import '../../presentation/widgets/bottom_nav_bar.dart';
 import '../../presentation/widgets/customer_bottom_nav_bar.dart';
 import '../../presentation/widgets/quick_manual_entry_sheet.dart';
@@ -1214,14 +1213,14 @@ class _AdminShellState extends State<_AdminShell> {
 
   @override
   Widget build(BuildContext context) {
-    final double width = MediaQuery.sizeOf(context).width;
-    final double scale = (width > 480 ? 480 : width) / 430;
-    final bool glassEnabled = widget.activeTab != BottomNavTab.aiAssistant;
+    // Blur kaca bawah dimatikan di semua tab navigasi agar konten dan pop-up
+    // selalu tampil bersih tanpa tertutup blur navbar.
+    const bool glassEnabled = false;
 
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: SojuColors.homeBackground,
-      extendBody: glassEnabled,
+      extendBody: false,
       drawer: _AuthUserBuilder(
         controller: widget.authController,
         builder: (BuildContext context, AuthUser? user) {
@@ -1256,15 +1255,6 @@ class _AdminShellState extends State<_AdminShell> {
           key: const Key('admin_shell_body'),
           children: <Widget>[
             Positioned.fill(child: widget.child),
-            if (glassEnabled)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: IgnorePointer(
-                  child: BottomGlassOverlay(scale: scale),
-                ),
-              ),
           ],
         ),
       ),

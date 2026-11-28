@@ -966,6 +966,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final _CategorySelection? result =
         await showModalBottomSheet<_CategorySelection>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) => _CategorySheet(
         options: sorted,

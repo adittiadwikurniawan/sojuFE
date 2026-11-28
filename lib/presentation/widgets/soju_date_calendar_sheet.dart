@@ -25,6 +25,7 @@ Future<SojuDateSelection?> showSojuDateCalendarSheet(
 }) {
   return showModalBottomSheet<SojuDateSelection>(
     context: context,
+    useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (BuildContext context) => _SojuDateCalendarSheet(
